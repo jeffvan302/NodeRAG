@@ -63,14 +63,14 @@ Recorded: 2026-09-04
 - [x] All 22 unit files and 61 unit tests pass.
 - [x] All 8 PostgreSQL integration files and 44 integration tests pass.
 - [x] Production UI/server/worker/embedder builds and built-server smoke pass.
-- [ ] Two M09 thin-SPK builds are byte-identical and the hash is frozen in proof.
+- [x] Two M09 thin-SPK builds are byte-identical and the hash is frozen in proof.
 - [x] Thin-SPK archive/static checks and non-root lifecycle simulation pass.
 - [x] Repository hygiene passes.
 
 ## GitHub and closure
 
-- [ ] The M09 implementation commit is pushed to `main` and all five M09 workflow jobs pass.
-- [ ] `m09-proof.json` freezes commit, workflow, contract, browser, database, and package evidence.
+- [x] The M09 implementation commit is pushed to `main` and all five M09 workflow jobs pass.
+- [x] `m09-proof.json` freezes commit, workflow, contract, browser, database, and package evidence.
 - [ ] A proof-closure commit passes the same five-job workflow.
 - [ ] The final certification commit passes every required M09 GitHub job.
 - [ ] Annotated tag `m09-complete` resolves remotely to the final certification commit.

@@ -1,0 +1,183 @@
+{
+  "version": 1,
+  "milestone": "M09",
+  "recordedAt": "2026-09-04T15:03:22Z",
+  "reviewer": "Codex with executable local and GitHub gates",
+  "implementationBaseCommit": "d7f030eb016e1b6f76f93423392936516e331c32",
+  "milestoneCommit": "79755f113039005aa4e6eb77f3be62a19b6925e4",
+  "upstreamCommit": "79755f113039005aa4e6eb77f3be62a19b6925e4",
+  "migrationHead": "000007_operator_ui",
+  "dependencyLockSha256": "650d397622523a38cc29d0c2b8ebffbb04b5b65f351e76b26cbac6114fa42ea7",
+  "modelManifestRevision": "bd58e9fd4b0467770da53678d8da25481c0f959b",
+  "readinessState": "operational-after-one-time-bootstrap",
+  "contracts": {
+    "authorizationInventory": "platform/route-authorization.v1.json",
+    "authorizationRouteCount": 81,
+    "openApi": "platform/openapi.m09.json",
+    "openApiVersion": "3.1.1",
+    "openApiSha256": "55f3bdb9e8de627123e0d56533e8dd73567d83ceced1b0ebf3c6179f02f10305",
+    "migrationSha256": "2f221d17bd8ef7c2e0abcead5752e30e3ff57d24cc7fadcf9bee8bce39cc6bd8",
+    "setupEventTransport": "text/event-stream",
+    "setupTokenDefaultLifetimeHours": 24,
+    "setupTokenLifetimeBoundsHours": [1, 168],
+    "storageLowCapacityWarningBytes": 10737418240,
+    "calibrationChunks": 20
+  },
+  "evidence": {
+    "milestonePlan": "docs/Implementation/staged implementation.md#15-milestone-9--complete-ui-and-first-run-setup",
+    "checklist": "docs/Implementation/checklists/m09-checklist.md",
+    "accessibilityChecklist": "docs/Implementation/checklists/m09-accessibility-checklist.md",
+    "operatorGuide": "docs/Implementation/m09-operator-guide.md",
+    "deferredDsmRegister": "docs/Implementation/dsm-deferred-register.md#dsm-020",
+    "workflow": ".github/workflows/m09-operator-ui.yml",
+    "implementationWorkflowRun": {
+      "runId": 33887040943,
+      "headSha": "79755f113039005aa4e6eb77f3be62a19b6925e4",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33887040943",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T15:02:57Z",
+      "jobs": [
+        {
+          "name": "browser-e2e",
+          "jobId": 101069262187,
+          "conclusion": "success"
+        },
+        {
+          "name": "postgres-integration",
+          "jobId": 101069262479,
+          "conclusion": "success"
+        },
+        {
+          "name": "thin-spk",
+          "jobId": 101069262537,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality",
+          "jobId": 101069262634,
+          "conclusion": "success"
+        },
+        {
+          "name": "linux-compatibility",
+          "jobId": 101069262849,
+          "conclusion": "success"
+        }
+      ]
+    },
+    "setupAndRecovery": {
+      "setupTokenEntropyBits": 256,
+      "tokenVerifierOnly": true,
+      "protectedTokenFileMode": "0600",
+      "expiredTokenRotation": true,
+      "transactionalAdministratorAndDefaultSilo": true,
+      "oneTimeRecoveryCode": true,
+      "recoveryVerifierOnly": true,
+      "durableMonotonicProgress": true,
+      "sanitizedSseEvents": true,
+      "refreshRecovery": true
+    },
+    "firstRun": {
+      "absolutePathWriteFsyncRemoveProbe": true,
+      "filesystemCapacityReport": true,
+      "browserAirGapSha256Preflight": true,
+      "serverModelTransferDeferredToM10": true,
+      "embeddingCalibrationChunks": 20,
+      "ollamaStructuredProbe": true,
+      "declaredSourceRootValidation": true
+    },
+    "operatorUi": {
+      "readinessStates": ["unconfigured", "operational", "maintenance", "incompatible"],
+      "searchModes": ["vector", "keyword", "hybrid"],
+      "serverPreparedContext": true,
+      "serverQualifiedLocators": true,
+      "integrityCheckedOriginalDownload": true,
+      "sourceMissingReview": true,
+      "typedDocumentAndSiloPurge": true,
+      "durableJobControls": ["pause", "resume", "cancel", "retry"],
+      "independentCapabilities": ["read", "upload", "delete"],
+      "publicApiOnly": true,
+      "graphemeSafeDisplayTruncation": true,
+      "locatorArithmeticRemainsServerOwned": true
+    },
+    "accessibility": {
+      "playwrightJourneys": 6,
+      "axeTags": ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"],
+      "automatedViolations": 0,
+      "minimumResponsiveWidthCssPixels": 320,
+      "darkMode": true,
+      "reducedMotion": true,
+      "keyboardSemantics": true,
+      "humanAssistiveTechnologyDeferredToDsm": true
+    },
+    "thinSpk": {
+      "name": "noderag-0.2.0-1-x86_64.spk",
+      "bytes": 16209920,
+      "sha256": "643167320be7484c46d0fbbb265302b87d39d11b33e3c1986480847d75b67609",
+      "repeatSha256": "643167320be7484c46d0fbbb265302b87d39d11b33e3c1986480847d75b67609",
+      "serverBundleSha256": "210e80efdcff7f0e2ada717a105d30808ace0f2208d38d5c777dbc01d8907d52",
+      "workerBundleSha256": "d3878c9159f953bc7046b9591d1a10dc83fca0e5787b6ec7c306fd62d9f982bf",
+      "embedderBundleSha256": "a89f97a3e10b8e6315f240b1d450ca7d6fcb74a23a45fbc2a0bf135a3dcc88d2",
+      "migration000007Bundled": true,
+      "openApiM09Bundled": true,
+      "runAs": "package"
+    },
+    "certificationCommitEvidence": "The commit containing the completed proof must pass the same five-job workflow before the annotated m09-complete tag is created.",
+    "completionTag": "m09-complete"
+  },
+  "invariants": {
+    "setupSecretsAreNeverLoggedOrPersistedInPlaintext": true,
+    "setupProgressCannotRegress": true,
+    "browserCannotWidenServerScope": true,
+    "uiUsesOnlyPublicApiRoutes": true,
+    "uiCannotReadPrivateManagedPaths": true,
+    "previewNeverSlicesLocators": true,
+    "destructiveActionsRequireTypedConfirmation": true,
+    "rawSearchTextIsNotPersisted": true,
+    "thinSpkDeterministic": true,
+    "nonRootLifecycleSimulationPassed": true,
+    "testbedEvidenceNotRepresentedAsDsmEvidence": true
+  },
+  "tests": {
+    "frozenInstall": "passed",
+    "migrationVerification": "passed-7-forward-only-migrations",
+    "openApiDrift": "passed-81-routes",
+    "typecheck": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "dependencyBoundaries": "passed-96-modules-157-dependencies",
+    "unit": "passed-22-files-61-tests",
+    "postgres17PgvectorIntegration": "passed-8-files-44-tests",
+    "playwrightChromium": "passed-6-journeys",
+    "axeWcagAAndAa": "passed-zero-findings",
+    "setupRefreshAndSsePrivacy": "passed",
+    "storageAndEmbeddingCalibration": "passed",
+    "sourceReviewAndTypedPurge": "passed",
+    "capabilityAndJobControls": "passed",
+    "responsiveDarkReducedMotion": "passed",
+    "productionBuild": "passed",
+    "builtServerSmoke": "passed",
+    "licensePolicy": "passed",
+    "secretScan": "passed",
+    "repositoryHygiene": "passed",
+    "linuxNodeOnnxArgon2DatabaseCompatibility": "passed",
+    "thinSpkRepeatBuild": "passed",
+    "thinSpkStaticVerification": "passed",
+    "nonRootLifecycleSimulation": "passed",
+    "remoteCi": "passed-implementation-run"
+  },
+  "liveEvidence": {},
+  "environment": "docker-testbed",
+  "certification": "testbed-complete",
+  "deferredDsmChecks": [
+    "DSM Package Center launch and reverse-proxy/browser integration",
+    "package-identity first-run token and durable refresh behavior",
+    "real /volumeN storage, filesystem, ACL, capacity, and source selection",
+    "desktop/mobile/reflow and human assistive-technology review through DSM routing",
+    "installed-SPK ingest, search, preview, download, administration, and purge",
+    "installed-device UI latency, resource, thermal, and DSM-service impact"
+  ],
+  "failures": [],
+  "gate": "passed",
+  "nextMilestoneAuthorized": false
+}

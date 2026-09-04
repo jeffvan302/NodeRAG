@@ -1,6 +1,6 @@
 # Milestone 13 Checklist — Recovery, Upgrade, Fault, and Security Hardening
 
-Status: local qualification complete; remote certification pending
+Status: testbed certification complete; live DSM certification deferred
 
 ## Backup products and policy
 
@@ -54,8 +54,8 @@ Status: local qualification complete; remote certification pending
 - [x] OpenAPI M13 and the thin package contain the recovery contracts, SBOM, notices, and new migration.
 - [x] Complete local quality, integration, Docker, package, license, secret, and repository gates pass on the final implementation tree.
 - [x] The GitHub implementation workflow passes all four jobs.
-- [ ] The proof-only and evidence-closure commits pass the same workflow.
-- [ ] Annotated tag `m13-complete` resolves remotely to the certified evidence commit.
+- [x] The proof-only and evidence-closure commits pass the same workflow.
+- [x] Annotated tag `m13-complete` resolves remotely to the certified evidence commit.
 - [x] Docker/WSL results are never represented as installed Synology evidence.
 - [x] DSM-024 registers the exact-candidate installed backup/restore/upgrade repeat after M14.
 

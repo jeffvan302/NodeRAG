@@ -1,12 +1,12 @@
 {
   "version": 1,
   "milestone": "M13",
-  "recordedAt": "2026-09-04T22:57:05Z",
+  "recordedAt": "2026-09-04T23:00:46Z",
   "reviewer": "Codex with executable local, Docker, package, and GitHub gates",
   "implementationBaseCommit": "c30df0a78555e27e0e3566fbaed251e3807c8143",
   "milestoneCommit": "405e667befb25fb26f5d7633ec53d41bcc41aacb",
   "proofClosureCommit": "3cca8603a1761e05b3791fc267192b40c491e0e1",
-  "evidenceClosureCommit": null,
+  "evidenceClosureCommit": "22df395dadb1667ca774f567d600db03ebb2e0aa",
   "migrationHead": "000011_recovery_hardening",
   "contracts": {
     "classification": "platform/backup-data-classification.v1.json",
@@ -85,7 +85,28 @@
         }
       ]
     },
-    "evidenceClosureWorkflowRun": null,
+    "evidenceClosureWorkflowRun": {
+      "runId": 33927664635,
+      "headSha": "22df395dadb1667ca774f567d600db03ebb2e0aa",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33927664635",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T23:00:46Z",
+      "jobs": [
+        { "name": "thin-package", "jobId": 101199582170, "conclusion": "success" },
+        {
+          "name": "postgres-major-upgrade",
+          "jobId": 101199582299,
+          "conclusion": "success"
+        },
+        {
+          "name": "recovery-integration",
+          "jobId": 101199582322,
+          "conclusion": "success"
+        },
+        { "name": "quality", "jobId": 101199582328, "conclusion": "success" }
+      ]
+    },
     "localDocker": {
       "environment": "WSL Ubuntu-24.04 with Docker Desktop Linux/amd64",
       "transport": "windows-cli-interop",
@@ -148,13 +169,13 @@
     "repositoryHygiene": "passed",
     "thinSpkLifecycle": "passed",
     "thinSpkRepeatBuild": "passed-identical-sha256",
-    "remoteCi": "implementation-and-proof-closure-passed-evidence-closure-pending"
+    "remoteCi": "implementation-proof-closure-and-evidence-closure-passed"
   },
   "liveEvidence": {},
   "environment": "linux-amd64-docker-testbed",
-  "certification": "local-complete-pending-remote-ci",
+  "certification": "testbed-complete",
   "deferredDsmChecks": ["DSM-016", "DSM-024"],
   "failures": [],
-  "gate": "pending",
-  "nextMilestoneAuthorized": false
+  "gate": "passed",
+  "nextMilestoneAuthorized": true
 }

@@ -41,6 +41,7 @@ cp -- "${repository_root}/platform/migration-checksums.v1.json" "${payload_root}
 cp -- "${repository_root}/platform/route-authorization.v1.json" "${payload_root}/platform/route-authorization.v1.json"
 cp -- "${repository_root}/platform/openapi.m03.json" "${payload_root}/platform/openapi.m03.json"
 cp -- "${repository_root}/platform/openapi.m04.json" "${payload_root}/platform/openapi.m04.json"
+cp -- "${repository_root}/platform/openapi.m05.json" "${payload_root}/platform/openapi.m05.json"
 
 tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
   -czf "${outer_root}/package.tgz" -C "${payload_root}" .

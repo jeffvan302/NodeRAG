@@ -41,4 +41,37 @@ describe('canonical Markdown chunking', () => {
     }
     expect(chunks.some((chunk) => chunk.text.includes('😀'))).toBe(true);
   });
+
+  it('keeps ordinary Markdown structures atomic and describes oversized continuations', () => {
+    const tableRows = Array.from(
+      { length: 30 },
+      (_, index) => `| row ${String(index)} | ${'value '.repeat(8)} |\n`,
+    ).join('');
+    const text = [
+      '# Structures\n\n',
+      '- one list item with a continuation\n  that remains attached\n\n',
+      '```ts\nconst exact = "line boundary";\n```\n\n',
+      '<!-- noderag:image id=7 -->\nimage provenance body\n<!-- /noderag:image -->\n\n',
+      '| Key | Value |\n| --- | --- |\n',
+      tableRows,
+    ].join('');
+    const chunks = chunkCanonicalMarkdown(text, profile);
+    for (const chunk of chunks) {
+      expect(text.slice(chunk.characterStart, chunk.characterEnd)).toBe(chunk.text);
+      expect(sliceUtf8(text, chunk.byteStart, chunk.byteEnd)).toBe(chunk.text);
+      expect(isUtf16Boundary(text, chunk.characterStart)).toBe(true);
+      expect(isUtf16Boundary(text, chunk.characterEnd)).toBe(true);
+    }
+    expect(chunks.some(({ structureKinds }) => structureKinds.includes('list-item'))).toBe(true);
+    expect(chunks.some(({ structureKinds }) => structureKinds.includes('code'))).toBe(true);
+    expect(chunks.some(({ structureKinds }) => structureKinds.includes('image-provenance'))).toBe(
+      true,
+    );
+    const continuation = chunks.find(
+      ({ structureKind, continuation: detail }) =>
+        structureKind === 'table' && detail['continued'] === true,
+    );
+    expect(continuation?.embeddingText).toContain('Table continuation:');
+    expect(continuation?.embeddingText).toContain('| Key | Value |');
+  });
 });

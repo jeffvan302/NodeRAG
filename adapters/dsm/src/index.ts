@@ -84,4 +84,10 @@ export const createDsmAdapterContract = (environment: DsmAdapterEnvironment): Pl
   },
   process: new DsmProcessAdapter(environment.nodeBinary),
   resources: new DsmResourceAdapter(environment.port),
+  backgroundScheduling: {
+    workerNice: 10,
+    workerIoClass: 2,
+    workerIoPriority: 7,
+    embedderNice: 5,
+  },
 });

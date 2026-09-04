@@ -12,6 +12,12 @@ describe('DSM adapter contract', () => {
     });
     expect(adapter.kind).toBe('dsm');
     expect(adapter.resources.port).toBe(8787);
+    expect(adapter.backgroundScheduling).toEqual({
+      workerNice: 10,
+      workerIoClass: 2,
+      workerIoPriority: 7,
+      embedderNice: 5,
+    });
   });
 
   it('rejects host-relative paths instead of guessing DSM state', () => {

@@ -32,7 +32,13 @@ const main = async (): Promise<void> => {
               secureCookie: (process.env['NODERAG_ORIGIN'] ?? '').startsWith('https://'),
               authenticate,
             },
-            content: { pool, authenticate, files, embedder },
+            content: {
+              pool,
+              authenticate,
+              files,
+              embedder,
+              sourceRoots: config.sourceRoots,
+            },
           };
         })();
   const app = buildApp({

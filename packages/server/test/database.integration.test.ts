@@ -30,8 +30,8 @@ describe('foundation migration', () => {
         service: 'noderag',
         status: 'unavailable',
         state: 'unconfigured',
-        migrationHead: '000003_markdown_slice',
-        expectedMigrationHead: '000003_markdown_slice',
+        migrationHead: '000004_durable_ingestion',
+        expectedMigrationHead: '000004_durable_ingestion',
         reasons: ['readiness-state:unconfigured'],
       });
 

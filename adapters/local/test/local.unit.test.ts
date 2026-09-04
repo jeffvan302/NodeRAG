@@ -12,6 +12,12 @@ describe('local platform adapter', () => {
         true,
       );
     }
+    expect(adapter.backgroundScheduling).toEqual({
+      workerNice: 10,
+      workerIoClass: 2,
+      workerIoPriority: 7,
+      embedderNice: 5,
+    });
   });
 
   it('rejects an invalid port', () => {

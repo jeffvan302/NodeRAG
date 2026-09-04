@@ -71,10 +71,17 @@ export class SiloScope {
     const required = actionCapability[action];
     const grants = await database.query<{ silo_id: number }>(
       required === 'any'
-        ? `SELECT DISTINCT silo_id FROM noderag.silo_grant
-           WHERE principal_id = $1 ORDER BY silo_id`
-        : `SELECT silo_id FROM noderag.silo_grant
-           WHERE principal_id = $1 AND capability = $2 ORDER BY silo_id`,
+        ? `SELECT DISTINCT grant_row.silo_id
+           FROM noderag.silo_grant grant_row
+           JOIN noderag.silo silo ON silo.id = grant_row.silo_id
+           WHERE grant_row.principal_id = $1 AND silo.lifecycle_state = 'active'
+           ORDER BY grant_row.silo_id`
+        : `SELECT grant_row.silo_id
+           FROM noderag.silo_grant grant_row
+           JOIN noderag.silo silo ON silo.id = grant_row.silo_id
+           WHERE grant_row.principal_id = $1 AND grant_row.capability = $2
+             AND silo.lifecycle_state = 'active'
+           ORDER BY grant_row.silo_id`,
       required === 'any' ? [principalId] : [principalId, required satisfies SiloCapability],
     );
     let ids = normalizeIds(grants.rows.map(({ silo_id }) => silo_id));

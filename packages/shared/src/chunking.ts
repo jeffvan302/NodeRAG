@@ -12,12 +12,22 @@ export interface ChunkCandidate extends DualRange {
   readonly text: string;
   readonly headingPath: readonly string[];
   readonly embeddingText: string;
+  readonly structureKind: string | null;
+  readonly structureKinds: readonly string[];
+  readonly continuation: Readonly<Record<string, unknown>>;
 }
 
 interface Heading {
   readonly offset: number;
   readonly level: number;
   readonly text: string;
+}
+
+interface MarkdownBlock {
+  readonly start: number;
+  readonly end: number;
+  readonly kind: 'code' | 'image-provenance' | 'list-item' | 'table';
+  readonly repeatedHeader?: string;
 }
 
 const assertProfile = (profile: ChunkProfile): void => {
@@ -68,27 +78,161 @@ const lastBoundary = (text: string, start: number, end: number, expression: RegE
   return found;
 };
 
-const snapEnd = (text: string, chunkStart: number, nominalEnd: number, window: number): number => {
+const lineRanges = (
+  text: string,
+): Array<{ readonly start: number; readonly end: number; readonly text: string }> => {
+  const lines: Array<{ start: number; end: number; text: string }> = [];
+  let start = 0;
+  while (start < text.length) {
+    const newline = text.indexOf('\n', start);
+    const end = newline === -1 ? text.length : newline + 1;
+    lines.push({ start, end, text: text.slice(start, end) });
+    start = end;
+  }
+  return lines;
+};
+
+const markdownBlocks = (text: string): readonly MarkdownBlock[] => {
+  const lines = lineRanges(text);
+  const blocks: MarkdownBlock[] = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (line === undefined) continue;
+    const fence = /^\s*(`{3,}|~{3,})/u.exec(line.text)?.[1];
+    if (fence !== undefined) {
+      let endIndex = index + 1;
+      while (
+        endIndex < lines.length &&
+        !new RegExp(`^\\s*${fence[0]}{${fence.length},}`).test(lines[endIndex]?.text ?? '')
+      )
+        endIndex += 1;
+      const last = lines[Math.min(endIndex, lines.length - 1)];
+      blocks.push({ start: line.start, end: last?.end ?? line.end, kind: 'code' });
+      index = Math.min(endIndex, lines.length - 1);
+      continue;
+    }
+    if (/^\s*<!--\s*noderag:image\b/iu.test(line.text)) {
+      let endIndex = index + 1;
+      while (
+        endIndex < lines.length &&
+        !/<!--\s*\/noderag:image\s*-->/iu.test(lines[endIndex]?.text ?? '')
+      )
+        endIndex += 1;
+      const last = lines[Math.min(endIndex, lines.length - 1)];
+      blocks.push({ start: line.start, end: last?.end ?? line.end, kind: 'image-provenance' });
+      index = Math.min(endIndex, lines.length - 1);
+      continue;
+    }
+    const next = lines[index + 1];
+    if (
+      line.text.includes('|') &&
+      next !== undefined &&
+      /^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$/u.test(next.text.trimEnd())
+    ) {
+      let endIndex = index + 2;
+      while (endIndex < lines.length && (lines[endIndex]?.text.includes('|') ?? false))
+        endIndex += 1;
+      blocks.push({
+        start: line.start,
+        end: lines[endIndex - 1]?.end ?? next.end,
+        kind: 'table',
+        repeatedHeader: `${line.text}${next.text}`,
+      });
+      index = endIndex - 1;
+      continue;
+    }
+    if (/^\s*(?:[-+*]|\d+[.)])\s+/u.test(line.text)) {
+      let endIndex = index + 1;
+      while (
+        endIndex < lines.length &&
+        (/^\s{2,}\S/u.test(lines[endIndex]?.text ?? '') ||
+          /^\s*$/u.test(lines[endIndex]?.text ?? ''))
+      )
+        endIndex += 1;
+      blocks.push({
+        start: line.start,
+        end: lines[endIndex - 1]?.end ?? line.end,
+        kind: 'list-item',
+      });
+      index = endIndex - 1;
+    }
+  }
+  return blocks;
+};
+
+const containingBlock = (
+  blocks: readonly MarkdownBlock[],
+  offset: number,
+): MarkdownBlock | undefined => blocks.find((block) => offset > block.start && offset < block.end);
+
+const snapEnd = (
+  text: string,
+  chunkStart: number,
+  nominalEnd: number,
+  window: number,
+  target: number,
+  overlap: number,
+  blocks: readonly MarkdownBlock[],
+): number => {
   if (nominalEnd >= text.length) return text.length;
+  const protectedBlock = containingBlock(blocks, nominalEnd);
+  if (protectedBlock !== undefined && protectedBlock.end - protectedBlock.start <= target) {
+    if (protectedBlock.start > chunkStart) return protectedBlock.start;
+    return protectedBlock.end;
+  }
   const earliest = Math.max(chunkStart + 1, nominalEnd - window);
+  if (protectedBlock !== undefined) {
+    const lineEnd = lastBoundary(text, earliest, nominalEnd, /\n/gu);
+    if (
+      lineEnd > chunkStart + overlap &&
+      isUtf16Boundary(text, lineEnd) &&
+      isUtf16Boundary(text, lineEnd - overlap)
+    ) {
+      return lineEnd;
+    }
+  }
   const boundaryExpressions = [/\n[ \t]*\n/gu, /[.!?](?:["')\]]*)[ \t]+/gu, /\n/gu, /[ \t]+/gu];
   for (const expression of boundaryExpressions) {
     const candidate = lastBoundary(text, earliest, nominalEnd, expression);
-    if (candidate > chunkStart) return candidate;
+    if (candidate > chunkStart && containingBlock(blocks, candidate) === undefined) {
+      let exact = candidate;
+      while (
+        exact > chunkStart + overlap &&
+        (!isUtf16Boundary(text, exact) || !isUtf16Boundary(text, exact - overlap))
+      )
+        exact -= 1;
+      return exact;
+    }
   }
   let safe = nominalEnd;
-  if (!isUtf16Boundary(text, safe)) safe -= 1;
+  while (
+    safe > chunkStart + overlap &&
+    (!isUtf16Boundary(text, safe) || !isUtf16Boundary(text, safe - overlap))
+  )
+    safe -= 1;
   return Math.max(chunkStart + 1, safe);
 };
 
-const rawRanges = (text: string, profile: ChunkProfile): Array<[number, number]> => {
+const rawRanges = (
+  text: string,
+  profile: ChunkProfile,
+  blocks: readonly MarkdownBlock[],
+): Array<[number, number]> => {
   if (text.length === 0) return [];
   const ranges: Array<[number, number]> = [];
   const window = Math.floor(profile.targetCharacters * profile.snapWindow);
   let start = 0;
   while (start < text.length) {
     const nominalEnd = Math.min(text.length, start + profile.targetCharacters);
-    const end = snapEnd(text, start, nominalEnd, window);
+    const end = snapEnd(
+      text,
+      start,
+      nominalEnd,
+      window,
+      profile.targetCharacters,
+      profile.overlapCharacters,
+      blocks,
+    );
     ranges.push([start, end]);
     if (end === text.length) break;
     let next = Math.max(start + 1, end - profile.overlapCharacters);
@@ -115,16 +259,44 @@ export const chunkCanonicalMarkdown = (
   assertProfile(profile);
   const locator = createLocatorMap(text);
   const headings = headingsIn(text);
-  return rawRanges(text, profile).map(([start, end], ordinal) => {
+  const blocks = markdownBlocks(text);
+  return rawRanges(text, profile, blocks).map(([start, end], ordinal) => {
     const chunkText = text.slice(start, end);
     const headingPath = headingPathAt(headings, start);
-    const prefix =
+    const headingContext =
       profile.headingPrefix && headingPath.length > 0 ? `${headingPath.join(' > ')}\n\n` : '';
+    const continuedBlock = containingBlock(blocks, start);
+    const structureKinds = [
+      ...new Set(
+        blocks.filter((block) => block.end > start && block.start < end).map(({ kind }) => kind),
+      ),
+    ];
+    const structureKind =
+      continuedBlock?.kind ??
+      blocks.find((block) => block.start >= start && block.end <= end)?.kind ??
+      null;
+    const continuation =
+      continuedBlock === undefined
+        ? {}
+        : {
+            kind: continuedBlock.kind,
+            continued: true,
+            canonicalBlockStart: continuedBlock.start,
+          };
+    const repeatedHeader =
+      continuedBlock?.kind === 'table' && continuedBlock.repeatedHeader !== undefined
+        ? `Table continuation:\n${continuedBlock.repeatedHeader}\n`
+        : continuedBlock?.kind === 'code'
+          ? 'Code continuation:\n'
+          : '';
     return {
       ordinal,
       text: chunkText,
       headingPath,
-      embeddingText: `${prefix}${chunkText}`,
+      embeddingText: `${headingContext}${repeatedHeader}${chunkText}`,
+      structureKind,
+      structureKinds,
+      continuation,
       ...locator.range(start, end),
     };
   });

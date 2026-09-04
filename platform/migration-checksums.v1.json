@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expectedHead": "000003_markdown_slice",
+  "expectedHead": "000004_durable_ingestion",
   "migrations": [
     {
       "id": "000001_foundation",
@@ -18,6 +18,12 @@
       "id": "000003_markdown_slice",
       "path": "packages/server/migrations/000003_markdown_slice.sql",
       "sha256": "abcf51a9108f16d6b1547abdfd0c7f45dfbc425c46b9d26e966a6dc550051dd0",
+      "direction": "up-only"
+    },
+    {
+      "id": "000004_durable_ingestion",
+      "path": "packages/server/migrations/000004_durable_ingestion.sql",
+      "sha256": "17bb57292f7291f009e18ed32e6fd49906d82b684f5d3ef12efa3e963c2eb30c",
       "direction": "up-only"
     }
   ]

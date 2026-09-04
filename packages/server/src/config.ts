@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { delimiter, resolve } from 'node:path';
 import type { ClientConfig } from 'pg';
 
 export interface RuntimeConfig {
@@ -9,6 +9,7 @@ export interface RuntimeConfig {
   readonly uiRoot: string;
   readonly dataRoot: string;
   readonly embedderSocket: string;
+  readonly sourceRoots: readonly string[];
 }
 
 const parsePort = (name: string, raw: string | undefined, fallback: number): number => {
@@ -43,5 +44,10 @@ export const loadRuntimeConfig = async (): Promise<RuntimeConfig> => {
     embedderSocket: resolve(
       process.env['NODERAG_EMBEDDER_SOCKET'] ?? 'runtime-data/run/embedder.sock',
     ),
+    sourceRoots: (process.env['NODERAG_SOURCE_ROOTS'] ?? '')
+      .split(delimiter)
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0)
+      .map((value) => resolve(value)),
   };
 };

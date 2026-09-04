@@ -21,6 +21,14 @@ const candidateFromRange = (
     text,
     headingPath: original.headingPath,
     embeddingText: `${prefix}${text}`,
+    structureKind: original.structureKind,
+    structureKinds: original.structureKinds,
+    continuation: {
+      ...original.continuation,
+      tokenGuardSplit: true,
+      originalCharacterStart: original.characterStart,
+      originalCharacterEnd: original.characterEnd,
+    },
     ...createLocatorMap(canonical).range(start, end),
   };
 };

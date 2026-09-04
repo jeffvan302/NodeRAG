@@ -4,9 +4,18 @@ import { chunkCanonicalMarkdown, type Embedder } from '@noderag/shared';
 import type { Pool } from 'pg';
 import { normalizeMarkdown } from './normalization.js';
 import { enforceTokenGuard, type GuardedChunk } from './token-guard.js';
+import { runIntegrityJob } from './integrity.js';
+import { crawlSource } from './sources.js';
 import type { DocumentFileStore } from '../storage/document-files.js';
 import { databaseInteger, withTransaction, type SqlClient } from '../store/database.js';
-import { claimNextJob, completeJob, failJob, type ClaimedJob } from '../store/jobs.js';
+import { coordinatedEmbedder } from '../store/resources.js';
+import {
+  claimNextJob,
+  completeJob,
+  failJob,
+  heartbeatJob,
+  type ClaimedJob,
+} from '../store/jobs.js';
 
 const setWorkerScope = async (database: SqlClient, siloId: number): Promise<void> => {
   await database.query(`SELECT set_config('app.silo_ids', $1, true)`, [`{${String(siloId)}}`]);
@@ -16,9 +25,9 @@ const extractMarkdown = async (
   pool: Pool,
   files: DocumentFileStore,
   job: ClaimedJob,
-  leaseOwner: string,
 ): Promise<void> => {
   if (job.documentId === null || job.siloId === null) throw new Error('extract-job-missing-scope');
+  await heartbeatJob(pool, job, 60_000, { stage: 'read-original' }, { stage: 'extract' });
   const document = await withTransaction(pool, async (database) => {
     await setWorkerScope(database, job.siloId ?? 0);
     const found = await database.query<{
@@ -40,6 +49,7 @@ const extractMarkdown = async (
   const normalized = normalizeMarkdown(original);
   if (normalized.markdown.length === 0) throw new Error('empty-canonical-markdown');
   const canonical = await files.writeCanonicalMarkdown(job.documentId, normalized.markdown);
+  await heartbeatJob(pool, job, 60_000, { stage: 'commit-canonical' });
 
   await withTransaction(pool, async (database) => {
     await setWorkerScope(database, job.siloId ?? 0);
@@ -89,7 +99,7 @@ const extractMarkdown = async (
        DO NOTHING`,
       [job.documentId, job.siloId, buildId],
     );
-    await completeJob(database, job.id, leaseOwner, {
+    await completeJob(database, job, {
       characters: normalized.markdown.length,
       canonicalBytes: canonical.bytes,
     });
@@ -133,11 +143,11 @@ const embedMarkdown = async (
   files: DocumentFileStore,
   embedder: Embedder,
   job: ClaimedJob,
-  leaseOwner: string,
 ): Promise<void> => {
   if (job.documentId === null || job.siloId === null || job.buildId === null) {
     throw new Error('embed-job-missing-scope');
   }
+  await heartbeatJob(pool, job, 60_000, { stage: 'prepare-embedding' }, { stage: 'embed' });
   const profile = await withTransaction(pool, async (database) => {
     await setWorkerScope(database, job.siloId ?? 0);
     const found = await database.query<BuildProfileRow>(
@@ -158,13 +168,18 @@ const embedMarkdown = async (
   if (!markdownSha256.equals(profile.markdown_sha256)) throw new Error('markdown-hash-mismatch');
   const buildId = databaseInteger(profile.build_id, 'build id');
   const modelManifestId = databaseInteger(profile.model_manifest_id, 'model manifest id');
+  const activeEmbedder = coordinatedEmbedder(
+    pool,
+    `job:${String(job.id)}:${String(job.leaseEpoch)}`,
+    embedder,
+  );
   const candidates = chunkCanonicalMarkdown(markdown, {
     targetCharacters: profile.target_chars,
     overlapCharacters: profile.overlap_chars,
     snapWindow: Number(profile.snap_window),
     headingPrefix: profile.heading_prefix,
   });
-  const guarded = await enforceTokenGuard(markdown, candidates, profile.max_tokens, embedder);
+  const guarded = await enforceTokenGuard(markdown, candidates, profile.max_tokens, activeEmbedder);
   if (guarded.length === 0) throw new Error('no-chunks-produced');
 
   const prepared: PreparedChunk[] = [];
@@ -182,7 +197,7 @@ const embedMarkdown = async (
   }
   for (let offset = 0; offset < misses.length; offset += 16) {
     const batch = misses.slice(offset, offset + 16);
-    const result = await embedder.embed(
+    const result = await activeEmbedder.embed(
       batch.map((item) => item.chunk.embeddingText),
       profile.max_tokens,
       4,
@@ -197,6 +212,11 @@ const embedMarkdown = async (
       if (tokenCount > profile.max_tokens) throw new Error('TOKEN_LIMIT');
       prepared.push({ ...item.chunk, tokenCount, sha256: item.sha256, vector });
     }
+    await heartbeatJob(pool, job, 60_000, {
+      stage: 'embedding',
+      embedded: Math.min(offset + batch.length, misses.length),
+      total: misses.length,
+    });
   }
   prepared.sort((left, right) => left.ordinal - right.ordinal);
 
@@ -223,9 +243,10 @@ const embedMarkdown = async (
         `INSERT INTO noderag.chunk
            (silo_id, document_id, build_id, ordinal, text, page_start, page_end,
             character_start, character_end, byte_start, byte_end, embedding,
-            token_count, heading_path, chunk_sha256, part_of)
+            token_count, heading_path, chunk_sha256, part_of, structure_kind,
+            structure_kinds, continuation)
          VALUES ($1, $2, $3, $4, $5, NULL, NULL, $6, $7, $8, $9,
-                 $10::halfvec, $11, $12, $13, 'document')`,
+                 $10::halfvec, $11, $12, $13, 'document', $14, $15, $16)`,
         [
           job.siloId,
           job.documentId,
@@ -240,6 +261,9 @@ const embedMarkdown = async (
           chunk.tokenCount,
           chunk.headingPath,
           chunk.sha256,
+          chunk.structureKind,
+          chunk.structureKinds,
+          chunk.continuation,
         ],
       );
     }
@@ -253,7 +277,7 @@ const embedMarkdown = async (
        WHERE id = $1`,
       [buildId, prepared.length],
     );
-    await completeJob(database, job.id, leaseOwner, { chunks: prepared.length, buildId });
+    await completeJob(database, job, { chunks: prepared.length, buildId });
     await database.query(
       `INSERT INTO noderag.audit_log (silo_id, action, result, row_count, detail)
        VALUES ($1, 'document.index', 'ok', $2,
@@ -268,19 +292,27 @@ export interface MarkdownWorkerOptions {
   readonly files: DocumentFileStore;
   readonly embedder: Embedder;
   readonly leaseOwner: string;
+  readonly sourceRoots?: readonly string[];
 }
 
 export const processOneMarkdownJob = async (options: MarkdownWorkerOptions): Promise<boolean> => {
   const job = await claimNextJob(options.pool, options.leaseOwner);
   if (job === null) return false;
   try {
-    if (job.kind === 'extract')
-      await extractMarkdown(options.pool, options.files, job, options.leaseOwner);
+    if (job.kind === 'extract') await extractMarkdown(options.pool, options.files, job);
     else if (job.kind === 'embed')
-      await embedMarkdown(options.pool, options.files, options.embedder, job, options.leaseOwner);
+      await embedMarkdown(options.pool, options.files, options.embedder, job);
+    else if (job.kind === 'crawl')
+      await crawlSource({
+        pool: options.pool,
+        files: options.files,
+        job,
+        allowedRoots: options.sourceRoots ?? [],
+      });
+    else if (job.kind === 'verify') await runIntegrityJob(options.pool, options.files, job);
     else throw new Error(`unsupported-worker-job:${job.kind}`);
   } catch (error) {
-    await failJob(options.pool, job, options.leaseOwner, error);
+    await failJob(options.pool, job, error);
   }
   return true;
 };

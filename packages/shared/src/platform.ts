@@ -36,4 +36,10 @@ export interface PlatformAdapter {
   readonly paths: PlatformPaths;
   readonly process: ProcessAdapter;
   readonly resources: ResourceAdapter;
+  readonly backgroundScheduling: {
+    readonly workerNice: number;
+    readonly workerIoClass: 2;
+    readonly workerIoPriority: number;
+    readonly embedderNice: number;
+  };
 }

@@ -13,6 +13,7 @@ import { databaseInteger } from '../store/database.js';
 import { validatedMarkdownMetadata, type DocumentFileStore } from '../storage/document-files.js';
 import { acceptMarkdownUpload, uploadRequestDigestInput } from '../ingest/upload.js';
 import type { RequestAuthenticator } from './authentication.js';
+import { coordinatedEmbedder } from '../store/resources.js';
 
 const uploadQuerySchema = z.object({ siloId: z.coerce.number().int().min(1).max(32_767) });
 const searchSchema = z.object({
@@ -43,6 +44,7 @@ export interface ContentRoutesOptions {
   readonly embedder: Embedder;
   readonly maximumUploadBytes?: number;
   readonly minimumFreeBytes?: number;
+  readonly sourceRoots?: readonly string[];
 }
 
 export const registerContentRoutes = (
@@ -198,11 +200,11 @@ export const registerContentRoutes = (
       return reply.code(503).send(problem(503, 'active_build_missing', request.id));
     let embedded;
     try {
-      embedded = await options.embedder.embed(
-        [`${active.query_prefix}${body.query}`],
-        active.maximum_tokens,
-        0,
-      );
+      embedded = await coordinatedEmbedder(
+        options.pool,
+        `query:${request.id}`,
+        options.embedder,
+      ).embed([`${active.query_prefix}${body.query}`], active.maximum_tokens, 0);
     } catch (error) {
       if (error instanceof Error && error.message === 'TOKEN_LIMIT') {
         return reply.code(400).send(problem(400, 'query_too_long', request.id));
@@ -244,7 +246,8 @@ export const registerContentRoutes = (
          FROM noderag.chunk c
          JOIN noderag.document d ON d.silo_id = c.silo_id AND d.id = c.document_id
          JOIN noderag.build b ON b.id = c.build_id AND b.state = 'active'
-         WHERE c.silo_id = ANY ($2::smallint[]) AND d.state = 'ready'
+         WHERE c.silo_id = ANY ($2::smallint[])
+           AND d.state IN ('ready', 'source_missing')
          ORDER BY c.embedding <=> $1::halfvec, c.id
          LIMIT $3`,
         [vectorLiteral(vector), scope.siloIds, body.limit],

@@ -17,9 +17,9 @@ if [[ "${docker_transport}" == "windows-cli-interop" ]]; then
 fi
 
 simulation_suffix="$$-${RANDOM}"
-network_name="noderag-m04-${simulation_suffix}"
-database_name="noderag-m04-db-${simulation_suffix}"
-database_password="m04-package-simulation-only"
+network_name="noderag-m05-${simulation_suffix}"
+database_name="noderag-m05-db-${simulation_suffix}"
+database_password="m05-package-simulation-only"
 cleanup_simulation() {
   "${docker_command[@]}" rm -f "${database_name}" >/dev/null 2>&1 || true
   "${docker_command[@]}" network rm "${network_name}" >/dev/null 2>&1 || true
@@ -51,5 +51,6 @@ done
   -e "NODERAG_PACKAGE_DB_HOST=${database_name}" \
   -e "NODERAG_PACKAGE_DB_PASSWORD=${database_password}" \
   -e NODERAG_TEST_EMBEDDER=1 \
+  -e NODERAG_SOURCE_ROOTS=/work/watch-base \
   node@sha256:dd9d21971ec4395903fa6143c2b9267d048ae01ca6d3ea96f16cb30df6187d94 \
   bash /simulator/in-container-m02-spk-sim.sh

@@ -1,59 +1,6 @@
 name: M04 Markdown vertical slice
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/m04-markdown.yml'
-      - '.dependency-cruiser.cjs'
-      - '.gitignore'
-      - '.gitmodules'
-      - '.prettierignore'
-      - '.prettierrc.json'
-      - 'adapters/**'
-      - 'packages/**'
-      - 'platform/**'
-      - 'scripts/**'
-      - 'spk/**'
-      - 'docker-testbed/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'tsconfig.base.json'
-      - 'vitest.config.ts'
-      - 'eslint.config.mjs'
-      - 'LICENSE-POLICY.md'
-      - 'THIRD-PARTY.md'
-      - 'README.md'
-      - 'docs/Implementation/checklists/m04-checklist.md'
-      - 'docs/Implementation/proofs/m04-proof.json'
-      - 'docs/planning/M4-MARKDOWN-VERTICAL-SLICE.md'
-  pull_request:
-    paths:
-      - '.github/workflows/m04-markdown.yml'
-      - '.dependency-cruiser.cjs'
-      - '.gitignore'
-      - '.gitmodules'
-      - '.prettierignore'
-      - '.prettierrc.json'
-      - 'adapters/**'
-      - 'packages/**'
-      - 'platform/**'
-      - 'scripts/**'
-      - 'spk/**'
-      - 'docker-testbed/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'tsconfig.base.json'
-      - 'vitest.config.ts'
-      - 'eslint.config.mjs'
-      - 'LICENSE-POLICY.md'
-      - 'THIRD-PARTY.md'
-      - 'README.md'
-      - 'docs/Implementation/checklists/m04-checklist.md'
-      - 'docs/Implementation/proofs/m04-proof.json'
-      - 'docs/planning/M4-MARKDOWN-VERTICAL-SLICE.md'
   workflow_dispatch:
 
 permissions:

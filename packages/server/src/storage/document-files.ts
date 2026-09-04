@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, open, rename, rm, statfs } from 'node:fs/promises';
+import { mkdir, open, readdir, rename, rm, statfs } from 'node:fs/promises';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 
@@ -11,6 +11,7 @@ export interface StagedUpload {
 }
 
 export interface ManagedDocumentPaths {
+  readonly directoryAbsolute: string;
   readonly originalAbsolute: string;
   readonly originalRelative: string;
   readonly markdownAbsolute: string;
@@ -59,6 +60,7 @@ export class DocumentFileStore {
       return value.split(sep).join('/');
     };
     return {
+      directoryAbsolute: directory,
       originalAbsolute,
       originalRelative: asRelative(originalAbsolute),
       markdownAbsolute,
@@ -114,6 +116,32 @@ export class DocumentFileStore {
     return paths;
   }
 
+  async replaceOriginal(
+    staged: StagedUpload,
+    documentId: number,
+    extension: string,
+  ): Promise<ManagedDocumentPaths> {
+    const paths = this.paths(documentId, extension);
+    await mkdir(dirname(paths.originalAbsolute), { recursive: true, mode: 0o700 });
+    const previousPath = `${paths.originalAbsolute}.${randomUUID()}.previous`;
+    let previousMoved = false;
+    try {
+      await rename(paths.originalAbsolute, previousPath);
+      previousMoved = true;
+    } catch (error) {
+      if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error;
+    }
+    try {
+      await rename(staged.temporaryPath, paths.originalAbsolute);
+      await fsyncDirectory(dirname(paths.originalAbsolute));
+      if (previousMoved) await rm(previousPath, { force: true });
+      return paths;
+    } catch (error) {
+      if (previousMoved) await rename(previousPath, paths.originalAbsolute);
+      throw error;
+    }
+  }
+
   async writeCanonicalMarkdown(
     documentId: number,
     markdown: string,
@@ -139,6 +167,38 @@ export class DocumentFileStore {
 
   openOriginal(documentId: number, extension: string) {
     return createReadStream(this.paths(documentId, extension).originalAbsolute);
+  }
+
+  async removeDocument(documentId: number): Promise<void> {
+    const directory = this.paths(documentId).directoryAbsolute;
+    const expectedRoot = join(this.root, 'documents');
+    if (!directory.startsWith(`${expectedRoot}${sep}`)) {
+      throw new Error('Refusing to remove a document outside the managed root.');
+    }
+    await rm(directory, { recursive: true, force: true });
+    await fsyncDirectory(dirname(directory));
+  }
+
+  async managedDocumentIds(): Promise<readonly number[]> {
+    const documentsRoot = join(this.root, 'documents');
+    const ids = new Set<number>();
+    let buckets;
+    try {
+      buckets = await readdir(documentsRoot, { withFileTypes: true });
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return [];
+      throw error;
+    }
+    for (const bucket of buckets) {
+      if (!bucket.isDirectory() || !/^\d{6}$/u.test(bucket.name)) continue;
+      const entries = await readdir(join(documentsRoot, bucket.name), { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory() || !/^\d+$/u.test(entry.name)) continue;
+        const id = Number(entry.name);
+        if (Number.isSafeInteger(id) && id > 0) ids.add(id);
+      }
+    }
+    return [...ids].sort((left, right) => left - right);
   }
 }
 

@@ -9,6 +9,7 @@ import {
 import { loggerOptions } from './logging.js';
 import { registerContentRoutes, type ContentRoutesOptions } from './api/content-routes.js';
 import { registerIdentityRoutes, type IdentityRoutesOptions } from './api/identity-routes.js';
+import { registerDurabilityRoutes } from './api/durability-routes.js';
 import type { ReadinessProbe } from './store/readiness.js';
 
 const contentTypes: Readonly<Record<string, string>> = {
@@ -75,7 +76,15 @@ export const buildApp = (options: BuildAppOptions): FastifyInstance => {
   });
 
   if (options.identity !== undefined) registerIdentityRoutes(app, options.identity);
-  if (options.content !== undefined) registerContentRoutes(app, options.content);
+  if (options.content !== undefined) {
+    registerContentRoutes(app, options.content);
+    registerDurabilityRoutes(app, {
+      pool: options.content.pool,
+      authenticate: options.content.authenticate,
+      files: options.content.files,
+      sourceRoots: options.content.sourceRoots ?? [],
+    });
+  }
 
   app.get('/*', async (request, reply) => {
     const requestPath = request.url.split('?', 1)[0] ?? '/';

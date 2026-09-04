@@ -80,5 +80,11 @@ export const createLocalAdapter = (options: LocalAdapterOptions): PlatformAdapte
     paths,
     process: new LocalProcessAdapter(),
     resources: new LocalResourceAdapter(options.port ?? 8787),
+    backgroundScheduling: {
+      workerNice: 10,
+      workerIoClass: 2,
+      workerIoPriority: 7,
+      embedderNice: 5,
+    },
   };
 };

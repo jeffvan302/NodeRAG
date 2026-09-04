@@ -174,7 +174,7 @@ describe.sequential('M03 identity and authorization foundation', () => {
     const head = await state.pool.query<{ name: string }>(
       'SELECT name FROM public.noderag_migrations ORDER BY id DESC LIMIT 1',
     );
-    expect(head.rows[0]?.name).toBe('000003_markdown_slice');
+    expect(head.rows[0]?.name).toBe('000004_durable_ingestion');
     const cacheType = await state.pool.query<{ formatted: string }>(
       `SELECT format_type(a.atttypid, a.atttypmod) AS formatted
        FROM pg_attribute a

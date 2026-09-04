@@ -13,6 +13,23 @@ NODERAG_WORKER_LOG_FILE="${SYNOPKG_PKGVAR}/log/worker.log"
 NODERAG_EMBEDDER_LOG_FILE="${SYNOPKG_PKGVAR}/log/embedder.log"
 NODERAG_EMBEDDER_SOCKET="${SYNOPKG_PKGVAR}/run/embedder.sock"
 
+noderag_run_embedder() {
+  if command -v nice >/dev/null 2>&1; then
+    exec nice -n 5 "$@"
+  fi
+  exec "$@"
+}
+
+noderag_run_worker() {
+  if command -v ionice >/dev/null 2>&1 && command -v nice >/dev/null 2>&1; then
+    exec ionice -c 2 -n 7 nice -n 10 "$@"
+  fi
+  if command -v nice >/dev/null 2>&1; then
+    exec nice -n 10 "$@"
+  fi
+  exec "$@"
+}
+
 noderag_pid_running() {
   noderag_checked_file="$1"
   [ -f "${noderag_checked_file}" ] || return 1
@@ -35,7 +52,7 @@ noderag_start() {
   chmod 700 "${SYNOPKG_PKGVAR}" "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log"
   umask 077
   NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
-    "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/embedder.cjs" >>"${NODERAG_EMBEDDER_LOG_FILE}" 2>&1 &
+    noderag_run_embedder "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/embedder.cjs" >>"${NODERAG_EMBEDDER_LOG_FILE}" 2>&1 &
   noderag_embedder_pid="$!"
   printf '%s\n' "${noderag_embedder_pid}" >"${NODERAG_EMBEDDER_PID_FILE}"
   NODERAG_HOST="127.0.0.1" \
@@ -44,7 +61,7 @@ noderag_start() {
   NODERAG_MIGRATION_MANIFEST="${SYNOPKG_PKGDEST}/platform/migration-checksums.v1.json" \
   NODERAG_MIGRATIONS_DIRECTORY="${SYNOPKG_PKGDEST}/migrations" \
   NODERAG_ROUTE_AUTHORIZATION="${SYNOPKG_PKGDEST}/platform/route-authorization.v1.json" \
-  NODERAG_OPENAPI="${SYNOPKG_PKGDEST}/platform/openapi.m04.json" \
+  NODERAG_OPENAPI="${SYNOPKG_PKGDEST}/platform/openapi.m05.json" \
   NODERAG_SECRET_ROOT="${SYNOPKG_PKGVAR}/secrets/root.key" \
   NODERAG_SETUP_TOKEN_FILE="${SYNOPKG_PKGVAR}/secrets/setup.token" \
   NODERAG_DATA_ROOT="${SYNOPKG_PKGVAR}/data" \
@@ -62,7 +79,7 @@ noderag_start() {
   NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
   NODERAG_MIGRATION_MANIFEST="${SYNOPKG_PKGDEST}/platform/migration-checksums.v1.json" \
   NODERAG_MIGRATIONS_DIRECTORY="${SYNOPKG_PKGDEST}/migrations" \
-    "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/worker.cjs" >>"${NODERAG_WORKER_LOG_FILE}" 2>&1 &
+    noderag_run_worker "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/worker.cjs" >>"${NODERAG_WORKER_LOG_FILE}" 2>&1 &
   noderag_worker_pid="$!"
   printf '%s\n' "${noderag_worker_pid}" >"${NODERAG_WORKER_PID_FILE}"
   sleep 1

@@ -1,6 +1,6 @@
 # Milestone 2 — Repository Foundation and Thin SPK Record
 
-Status: local gates passed; remote certification pending
+Status: implementation CI passed; proof closure pending
 Recorded: 2026-09-04
 Evidence environment: Windows/WSL 2, Docker Desktop, and GitHub Actions; not DSM
 Certification ceiling: `testbed-complete`

@@ -1,6 +1,6 @@
 # M02 — Repository Foundation, Development Stack, CI, and Thin SPK Checklist
 
-Status: local gates passed; remote certification pending
+Status: implementation CI passed; proof closure pending
 Environment: Docker testbed and Linux package simulation
 Recorded: 2026-09-04
 
@@ -38,8 +38,8 @@ Recorded: 2026-09-04
 - [x] Exact frozen install, migration, typecheck, lint, format, boundary, unit, build, smoke, license, secret, and repository-hygiene gates pass together.
 - [x] PostgreSQL Testcontainers integration passes locally.
 - [x] The thin SPK builds twice with the same SHA-256 and passes package simulation locally.
-- [ ] The implementation commit is pushed to `main` and every M02 GitHub Actions job succeeds.
-- [ ] `m02-proof.json` records the implementation commit and successful workflow jobs.
+- [x] The implementation commit is pushed to `main` and every M02 GitHub Actions job succeeds.
+- [x] `m02-proof.json` records the implementation commit and successful workflow jobs.
 - [ ] The proof-closure commit is pushed and its own workflow succeeds.
 - [ ] Annotated tag `m02-complete` resolves to the final certification commit.
 

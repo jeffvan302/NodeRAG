@@ -1,6 +1,6 @@
 # M07 — Vision and Bad-PDF Recovery Checklist
 
-Status: implementation-complete; awaiting remote certification
+Status: implementation CI passed; awaiting proof-closure certification
 
 Environment: WSL/Docker testbed, PostgreSQL 17/pgvector containers, and non-root Linux package simulation
 
@@ -77,7 +77,7 @@ Recorded: 2026-09-04
 - [x] Non-root thin-SPK lifecycle simulation passes.
 - [x] Two local SPK builds are byte-identical at 16,168,960 bytes with SHA-256 `6aa0e52cb5b0f724ea1965361a85459386567376ecdae515c530c5aaa76fdcfe`; these values will be frozen into `m07-proof.json` after the implementation commit exists.
 - [x] Frozen install, migrations, TypeScript, lint, formatting, boundaries, units, production build/smoke, licenses, secrets, and repository hygiene pass locally.
-- [ ] The implementation commit is pushed to `main` and every required M07 GitHub job succeeds.
+- [x] Implementation commit `d91e6f8d81ea00ab56bd7ec28907c65d35defaa2` is pushed to `main`; M07 run `33874353464` passed quality, vision integration, Linux compatibility, and deterministic thin-SPK jobs.
 - [ ] The proof-closure and final certification commits pass every required M07 GitHub job.
 - [ ] Annotated tag `m07-complete` resolves remotely to the final certification commit.
 

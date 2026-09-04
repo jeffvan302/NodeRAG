@@ -1,0 +1,212 @@
+{
+  "version": 1,
+  "milestone": "M07",
+  "recordedAt": "2026-09-04T12:47:30Z",
+  "reviewer": "Codex with executable local and GitHub gates",
+  "milestoneCommit": "d91e6f8d81ea00ab56bd7ec28907c65d35defaa2",
+  "upstreamCommit": "d91e6f8d81ea00ab56bd7ec28907c65d35defaa2",
+  "migrationHead": "000005_vision_recovery",
+  "dependencyLockSha256": "56ffb811f94cb1ff39bd8c1e988c3c6f44d4be94edbbb947b48f9afa2e6ec9a5",
+  "modelManifestRevision": "bd58e9fd4b0467770da53678d8da25481c0f959b",
+  "readinessState": "operational-after-one-time-bootstrap",
+  "featureFlags": {
+    "visionSystemSetting": "enabled only after live endpoint/model activation test",
+    "realProviderNormalCi": false,
+    "cloudProviderAssumedCapable": false
+  },
+  "contracts": {
+    "visionProvider": "vision-provider.v1",
+    "promptRevision": "vision-transcription.v1",
+    "schemaRevision": "vision-result.v1",
+    "preprocessingRevision": "vision-preprocess.v1",
+    "openApi": "platform/openapi.m07.json",
+    "openApiSha256": "d08f804b7dd1f89133f228cc306763ab7c2eb10febdd1706c84bc002d583f858",
+    "migrationSha256": "eee5929738120f38c319c35205c3ac12547b3300dbe331fab07f0d8020e0ba70"
+  },
+  "evidence": {
+    "milestonePlan": "docs/Implementation/staged implementation.md#13-milestone-7--vision-and-bad-pdf-recovery",
+    "checklist": "docs/Implementation/checklists/m07-checklist.md",
+    "operations": "docs/Implementation/m07-vision-operations.md",
+    "deferredDsmRegister": "docs/Implementation/dsm-deferred-register.md#dsm-014",
+    "workflow": ".github/workflows/m07-vision-recovery.yml",
+    "implementationWorkflowRun": {
+      "runId": 33874353464,
+      "headSha": "d91e6f8d81ea00ab56bd7ec28907c65d35defaa2",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33874353464",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T12:46:48Z",
+      "jobs": [
+        {
+          "name": "vision-integration",
+          "jobId": 101027631587,
+          "conclusion": "success"
+        },
+        {
+          "name": "thin-spk",
+          "jobId": 101027631831,
+          "conclusion": "success"
+        },
+        {
+          "name": "linux-compatibility",
+          "jobId": 101027631913,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality",
+          "jobId": 101027632016,
+          "conclusion": "success"
+        },
+        {
+          "name": "real-provider",
+          "jobId": 101027633187,
+          "conclusion": "skipped-by-design-on-push"
+        }
+      ]
+    },
+    "proofClosureCommit": null,
+    "proofClosureWorkflowRun": null,
+    "completionTag": null,
+    "provider": {
+      "implementation": "Ollama /api/tags plus /api/chat",
+      "structuredOutput": true,
+      "temperature": 0,
+      "defaultContext": 8192,
+      "defaultKeepAlive": "30m",
+      "strictZodValidation": true,
+      "activationFixtureSha256": "d64ac371cfe0d2671b2a4a5ba16556d54835ee742273b1a506dfd880a297a9d1",
+      "selfHostedWithoutToken": true,
+      "encryptedBearerToken": true,
+      "nonLoopbackPlainHttpWarning": true,
+      "liveCloudCapabilityRequired": true
+    },
+    "preprocessing": {
+      "runtime": "@napi-rs/canvas@1.0.8",
+      "normalizedMediaType": "image/png",
+      "originalDigestRetained": true,
+      "maximumDimensionConfigurable": true,
+      "minimumDimensions": [64, 64],
+      "maximumAspectRatio": 20,
+      "lowEntropySkip": true,
+      "linuxNativeSha256": "738cf404fc3422bd1f57dae002f19b2f4f41d2dd5614e8023e0b64d7ef3a8e10"
+    },
+    "cacheAndDispatch": {
+      "scope": "global-without-silo-membership",
+      "keyParts": [
+        "original-sha256",
+        "preprocessed-sha256",
+        "provider",
+        "model",
+        "provider-revision",
+        "model-revision",
+        "prompt-revision",
+        "schema-revision",
+        "preprocessing-revision"
+      ],
+      "dispatchBeforeExternalCall": true,
+      "resultAndSettlementAtomic": true,
+      "referenceCountsIntegrityChecked": true,
+      "purgeAware": true
+    },
+    "recovery": {
+      "pendingPlaceholder": true,
+      "textIngestionContinues": true,
+      "automaticRetry": true,
+      "exponentialBackoff": true,
+      "timeout": true,
+      "manualRetry": true,
+      "terminalVisionFailureLeavesAwaitingVision": true,
+      "successfulRetryReindexes": true,
+      "crossProcessConcurrency": "PostgreSQL advisory slots",
+      "configuredProviderCapacityCapped": true
+    },
+    "pdf": {
+      "badPageRenderScale": 2,
+      "renderMediaType": "image/png",
+      "sameProviderInterface": true,
+      "methods": ["vision", "mixed"],
+      "searchableScannedFixture": true
+    },
+    "administration": {
+      "statusCounts": true,
+      "dispatchCounts": true,
+      "manualRetry": true,
+      "perDocumentProjection": true,
+      "elapsedEstimate": true,
+      "scanPageWarningThreshold": 400,
+      "serverAdminCsrfIdempotency": true,
+      "siloScopedDocumentEstimate": true
+    },
+    "thinSpk": {
+      "name": "noderag-0.2.0-1-x86_64.spk",
+      "bytes": 16168960,
+      "sha256": "6aa0e52cb5b0f724ea1965361a85459386567376ecdae515c530c5aaa76fdcfe",
+      "repeatSha256": "6aa0e52cb5b0f724ea1965361a85459386567376ecdae515c530c5aaa76fdcfe",
+      "serverBundleSha256": "96af5a8139d37bc8314ad266f6852dcba77fee637f32136067b5945a86bd96af",
+      "workerBundleSha256": "f9eac2b0c03313704700b301a358b15ab0395e735864e8a261b1c077f1e3e347",
+      "embedderBundleSha256": "a89f97a3e10b8e6315f240b1d450ca7d6fcb74a23a45fbc2a0bf135a3dcc88d2",
+      "migration000005Bundled": true,
+      "openApiM07Bundled": true,
+      "activationFixtureBundled": true,
+      "linuxCanvasRuntimeBundled": true,
+      "runAs": "package"
+    }
+  },
+  "invariants": {
+    "invalidProviderOutputCannotEnterCanonicalMarkdown": true,
+    "providerLossCannotBlockAvailableText": true,
+    "cacheCannotExposeCrossSiloMembership": true,
+    "providerCapacityCannotBeExceededByWorkerProcesses": true,
+    "acceptedOutputHasInvisibleProvenance": true,
+    "originalImageDigestSurvivesPreprocessing": true,
+    "scanPageUsesRenderedImageNotWholePdfBytes": true,
+    "encryptedCredentialPlaintextIsNeverReturned": true,
+    "thinSpkDeterministic": true,
+    "nonRootLifecycleSimulationPassed": true,
+    "testbedEvidenceNotRepresentedAsDsmEvidence": true
+  },
+  "tests": {
+    "frozenInstall": "passed",
+    "migrationVerification": "passed-5-forward-only-migrations",
+    "typecheck": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "dependencyBoundaries": "passed-79-modules-118-dependencies",
+    "unit": "passed-17-files-49-tests",
+    "postgres17PgvectorIntegration": "passed-6-files-36-tests",
+    "strictResponseAndFailureMatrix": "passed",
+    "cacheReuseAndRevisionInvalidation": "passed",
+    "providerConcurrency": "passed",
+    "scannedPdfSearchability": "passed",
+    "offlineTextAndManualRecovery": "passed",
+    "lowConfidenceProvenance": "passed",
+    "encryptedReverseProxyActivation": "passed-with-mocked-provider-transport",
+    "fourHundredPageProjection": "passed",
+    "productionBuild": "passed",
+    "builtServerSmoke": "passed",
+    "licensePolicy": "passed",
+    "secretScan": "passed",
+    "repositoryHygiene": "passed",
+    "linuxCanvasNativeLoad": "passed-docker-x64-linux",
+    "linuxNodeOnnxArgon2DatabaseCompatibility": "passed",
+    "thinSpkRepeatBuild": "passed",
+    "thinSpkStaticVerification": "passed",
+    "nonRootLifecycleSimulation": "passed",
+    "realProvider": "not-run-opt-in-suite-outside-normal-ci",
+    "remoteCi": "passed-implementation-run"
+  },
+  "liveEvidence": {},
+  "environment": "docker-testbed",
+  "certification": "pending-proof-closure",
+  "deferredDsmChecks": [
+    "installed-SPK @napi-rs/canvas ABI and linker validation under the Synology Node.js_v22 package",
+    "package-identity route and authentication to the approved Ollama host",
+    "live pinned-model table-schema and scanned-PDF result review",
+    "provider interruption, automatic/manual retry, and cross-process concurrency on the NAS",
+    "scan-heavy elapsed time, memory, CPU, disk, network, and thermal behavior",
+    "final content-boundary policy confirmation for any non-LAN provider"
+  ],
+  "failures": [],
+  "gate": "implementation-run-passed",
+  "nextMilestoneAuthorized": false
+}

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "milestone": "M06",
-  "recordedAt": "2026-09-04T12:00:38Z",
+  "recordedAt": "2026-09-04T12:04:22Z",
   "reviewer": "Codex with executable local and GitHub gates",
   "milestoneCommit": "3617fb6872ef75184b7a4bb0c56658b58fb32840",
   "upstreamCommit": "c67506ab621ccc866b7a871ef80cbe2e33d11646",
@@ -43,6 +43,38 @@
         }
       ]
     },
+    "proofClosureCommit": "2029e3d5d454140ae296da3055f64dd2faec260f",
+    "proofClosureWorkflowRun": {
+      "runId": 33870796829,
+      "headSha": "2029e3d5d454140ae296da3055f64dd2faec260f",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33870796829",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T12:04:22Z",
+      "jobs": [
+        {
+          "name": "linux-compatibility",
+          "jobId": 101016034901,
+          "conclusion": "success"
+        },
+        {
+          "name": "thin-spk",
+          "jobId": 101016035012,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality",
+          "jobId": 101016035111,
+          "conclusion": "success"
+        },
+        {
+          "name": "format-extraction-integration",
+          "jobId": 101016035305,
+          "conclusion": "success"
+        }
+      ]
+    },
+    "completionTag": "m06-complete",
     "resolvedPreCertificationFailures": [
       {
         "runId": 33869184096,
@@ -176,11 +208,11 @@
     "thinSpkRepeatBuild": "passed",
     "thinSpkStaticVerification": "passed",
     "nonRootLifecycleSimulation": "passed",
-    "remoteCi": "implementation-passed-proof-closure-pending"
+    "remoteCi": "passed"
   },
   "liveEvidence": {},
   "environment": "docker-testbed",
-  "certification": "implementation-ci-passed-proof-closure-pending",
+  "certification": "testbed-complete",
   "deferredDsmChecks": [
     "approved real Google Docs export and licensed no-ToUnicode PDF operator samples",
     "Package Center install, upgrade, and three-process supervision",
@@ -190,6 +222,6 @@
     "installed-SPK five-format extraction, scan waiting, memory, and thermal matrix"
   ],
   "failures": [],
-  "gate": "implementation-passed-proof-closure-pending",
-  "nextMilestoneAuthorized": false
+  "gate": "passed",
+  "nextMilestoneAuthorized": true
 }

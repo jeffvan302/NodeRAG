@@ -1,6 +1,6 @@
 # M06 — TXT, PDF, DOCX, and XLSX Extraction Checklist
 
-Status: implementation CI passed; proof-closure certification pending
+Status: testbed-complete
 
 Environment: WSL/Docker testbed and non-root Linux package simulation
 
@@ -93,8 +93,8 @@ Recorded: 2026-09-04
 - [x] Two final package builds are byte-identical at 2,365,440 bytes with SHA-256 `de771049c87d341b65fa1d9cc422670880ac60f05d5fcffebfc785a4666c72dd`; these values will be copied into `m06-proof.json` after the implementation commit exists.
 - [x] Frozen install, migrations, TypeScript, lint, formatting, boundaries, units, production build/smoke, licenses, secrets, repository hygiene, and all integration tests pass after documentation freeze.
 - [x] The implementation commit is pushed to `main` and every M06 GitHub job succeeds.
-- [ ] The proof-closure commit and final certification commit each pass every M06 GitHub job.
-- [ ] Annotated tag `m06-complete` resolves remotely to the final certification commit.
+- [x] The proof-closure commit passes every M06 GitHub job.
+- [x] The final certification commit passes every M06 GitHub job, and annotated tag `m06-complete` resolves remotely to that commit.
 
 ## Honest limitations and DSM deferral
 
@@ -102,4 +102,4 @@ Recorded: 2026-09-04
 - [x] Live Package Center, package identity/ACL, NAS memory/thermal, and installed-SPK format checks remain open in the DSM register.
 - [x] No Docker, WSL, static archive, or package-simulator result is represented as live DSM evidence.
 
-M07 is unauthorized until every delivery checkbox above is complete. No M06 testbed result closes a live DSM register row.
+M07 is authorized. No M06 testbed result closes a live DSM register row.

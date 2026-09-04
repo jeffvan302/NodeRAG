@@ -174,7 +174,7 @@ describe.sequential('M03 identity and authorization foundation', () => {
     const head = await state.pool.query<{ name: string }>(
       'SELECT name FROM public.noderag_migrations ORDER BY id DESC LIMIT 1',
     );
-    expect(head.rows[0]?.name).toBe('000002_identity_foundation');
+    expect(head.rows[0]?.name).toBe('000003_markdown_slice');
     const cacheType = await state.pool.query<{ formatted: string }>(
       `SELECT format_type(a.atttypid, a.atttypmod) AS formatted
        FROM pg_attribute a
@@ -291,11 +291,7 @@ describe.sequential('M03 identity and authorization foundation', () => {
 
   it('enforces RLS on metadata, child rows, the chunk parent, and direct partitions', async () => {
     const build = await state.pool.query<{ id: number }>(
-      `INSERT INTO noderag.build
-         (state, target_chars, overlap_chars, max_tokens, snap_window,
-          heading_prefix, rules_version, model_manifest_id, query_prefix)
-       SELECT 'active', 2000, 300, 1024, 0.150, true, 1, id, query_prefix
-       FROM noderag.model_manifest WHERE active RETURNING id`,
+      `SELECT id FROM noderag.build WHERE state = 'active'`,
     );
     const buildId = build.rows[0]?.id;
     const vector = `[1,${Array.from({ length: 1023 }, () => '0').join(',')}]`;

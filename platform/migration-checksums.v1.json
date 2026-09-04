@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expectedHead": "000002_identity_foundation",
+  "expectedHead": "000003_markdown_slice",
   "migrations": [
     {
       "id": "000001_foundation",
@@ -12,6 +12,12 @@
       "id": "000002_identity_foundation",
       "path": "packages/server/migrations/000002_identity_foundation.sql",
       "sha256": "ce6c98fea8603e0823544255408f4d5bd4a50ee360430f55e2ffc92327753cc3",
+      "direction": "up-only"
+    },
+    {
+      "id": "000003_markdown_slice",
+      "path": "packages/server/migrations/000003_markdown_slice.sql",
+      "sha256": "abcf51a9108f16d6b1547abdfd0c7f45dfbc425c46b9d26e966a6dc550051dd0",
       "direction": "up-only"
     }
   ]

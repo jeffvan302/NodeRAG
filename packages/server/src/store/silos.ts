@@ -81,6 +81,12 @@ export const createSiloInTransaction = async (
     [input.creatingPrincipalId, row.id, capabilities],
   );
   await database.query(
+    `INSERT INTO noderag.silo_build_state (silo_id, build_id, state)
+     SELECT $1, id, 'active' FROM noderag.build WHERE state = 'active'
+     ON CONFLICT (silo_id, build_id) DO NOTHING`,
+    [row.id],
+  );
+  await database.query(
     `INSERT INTO noderag.audit_log (principal_id, silo_id, action, result, detail)
        VALUES ($1, $2, 'silo.create', 'ok', jsonb_build_object('slug', $3::text))`,
     [input.creatingPrincipalId, row.id, row.slug],

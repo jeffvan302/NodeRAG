@@ -16,15 +16,40 @@ if [[ "${docker_transport}" == "windows-cli-interop" ]]; then
   simulator_mount="$(wslpath -w "${m02_script_dir}")"
 fi
 
+simulation_suffix="$$-${RANDOM}"
+network_name="noderag-m04-${simulation_suffix}"
+database_name="noderag-m04-db-${simulation_suffix}"
+database_password="m04-package-simulation-only"
+cleanup_simulation() {
+  "${docker_command[@]}" rm -f "${database_name}" >/dev/null 2>&1 || true
+  "${docker_command[@]}" network rm "${network_name}" >/dev/null 2>&1 || true
+}
+trap cleanup_simulation EXIT
+"${docker_command[@]}" network create "${network_name}" >/dev/null
+"${docker_command[@]}" run -d --name "${database_name}" --network "${network_name}" \
+  -e POSTGRES_DB=noderag_package -e POSTGRES_USER=noderag -e POSTGRES_PASSWORD="${database_password}" \
+  pgvector/pgvector@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f \
+  >/dev/null
+for _ in $(seq 1 60); do
+  if "${docker_command[@]}" exec "${database_name}" pg_isready -U noderag -d noderag_package >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+"${docker_command[@]}" exec "${database_name}" pg_isready -U noderag -d noderag_package >/dev/null
+
 "${docker_command[@]}" run --rm --platform linux/amd64 \
   --user 1000:1000 \
   --read-only \
   --cap-drop ALL \
   --security-opt no-new-privileges \
-  --network none \
+  --network "${network_name}" \
   --tmpfs /work:rw,exec,uid=1000,gid=1000,mode=0700 \
   --mount "type=bind,source=${artifact_mount},target=/input,readonly" \
   --mount "type=bind,source=${simulator_mount},target=/simulator,readonly" \
   -e "NODERAG_SPK_INPUT=/input/${artifact_name}" \
+  -e "NODERAG_PACKAGE_DB_HOST=${database_name}" \
+  -e "NODERAG_PACKAGE_DB_PASSWORD=${database_password}" \
+  -e NODERAG_TEST_EMBEDDER=1 \
   node@sha256:dd9d21971ec4395903fa6143c2b9267d048ae01ca6d3ea96f16cb30df6187d94 \
   bash /simulator/in-container-m02-spk-sim.sh

@@ -1,0 +1,297 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "NodeRag API",
+    "version": "0.2.0",
+    "description": "Implemented M04 setup, identity, Markdown upload, and scoped vector-search surface."
+  },
+  "servers": [{ "url": "/" }],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "security": [],
+        "responses": { "200": { "description": "Process is alive" } }
+      }
+    },
+    "/ready": {
+      "get": {
+        "operationId": "readiness",
+        "security": [],
+        "responses": {
+          "200": { "description": "Service is operational" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/setup/status": {
+      "get": {
+        "operationId": "setupStatus",
+        "security": [],
+        "responses": { "200": { "description": "Durable setup state" } }
+      }
+    },
+    "/v1/setup/verify-token": {
+      "post": {
+        "operationId": "verifySetupToken",
+        "security": [],
+        "requestBody": { "$ref": "#/components/requestBodies/SetupToken" },
+        "responses": { "200": { "description": "Token validity without token disclosure" } }
+      }
+    },
+    "/v1/setup/configure": {
+      "post": {
+        "operationId": "configureFirstAdministrator",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["setupToken", "username", "password"],
+                "properties": {
+                  "setupToken": { "type": "string" },
+                  "username": { "type": "string", "minLength": 3, "maxLength": 64 },
+                  "password": { "type": "string", "minLength": 12, "maxLength": 1024 },
+                  "email": { "type": "string", "format": "email" },
+                  "defaultSiloName": { "type": "string", "minLength": 1, "maxLength": 120 }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "First administrator and default silo created atomically" },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "operationId": "login",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "password": { "type": "string" }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "HttpOnly session cookie and CSRF token" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/CsrfToken" }],
+        "responses": { "204": { "description": "Session revoked" } }
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "operationId": "currentPrincipal",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "responses": {
+          "200": { "description": "Current principal" },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/auth/password": {
+      "patch": {
+        "operationId": "changePassword",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/CsrfToken" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currentPassword", "nextPassword"],
+                "properties": {
+                  "currentPassword": { "type": "string", "minLength": 1, "maxLength": 1024 },
+                  "nextPassword": { "type": "string", "minLength": 12, "maxLength": 1024 }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Password changed and sessions revoked" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/silos": {
+      "get": {
+        "operationId": "listSilos",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "responses": {
+          "200": { "description": "Only silos with at least one exact grant" },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/documents": {
+      "post": {
+        "operationId": "uploadMarkdown",
+        "description": "Streams one Markdown file into a temporary file, verifies scope and durability, then queues extraction.",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "parameters": [
+          {
+            "name": "siloId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 32767 }
+          },
+          { "$ref": "#/components/parameters/CsrfToken" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": { "file": { "type": "string", "format": "binary" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": { "description": "Authoritative document and extract job accepted" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "507": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/search": {
+      "post": {
+        "operationId": "vectorSearch",
+        "description": "Embeds an instructed query and searches only the caller's narrowed silo partitions.",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": { "type": "string", "minLength": 1, "maxLength": 4000 },
+                  "siloIds": {
+                    "type": "array",
+                    "maxItems": 64,
+                    "items": { "type": "integer", "minimum": 1, "maximum": 32767 }
+                  },
+                  "limit": { "type": "integer", "minimum": 1, "maximum": 50, "default": 10 }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Passages with full UTF-16/UTF-8 and page-range locators"
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/openapi.json": {
+      "get": {
+        "operationId": "openApi",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "responses": { "200": { "description": "This document" } }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "CsrfToken": {
+        "name": "X-CSRF-Token",
+        "in": "header",
+        "required": true,
+        "schema": { "type": "string" }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": { "type": "string", "minLength": 8, "maxLength": 200 }
+      }
+    },
+    "requestBodies": {
+      "SetupToken": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": ["setupToken"],
+              "properties": { "setupToken": { "type": "string" } },
+              "additionalProperties": false
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "sessionCookie": { "type": "apiKey", "in": "cookie", "name": "noderag_session" },
+      "bearerApiKey": { "type": "http", "scheme": "bearer" }
+    },
+    "responses": {
+      "Problem": {
+        "description": "RFC 9457-style problem detail with a request ID",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "type": "object",
+              "required": ["type", "title", "status", "code", "requestId"],
+              "properties": {
+                "type": { "type": "string", "format": "uri" },
+                "title": { "type": "string" },
+                "status": { "type": "integer" },
+                "code": { "type": "string" },
+                "requestId": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -36,8 +36,9 @@ for required in INFO PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG package.tgz conf/priv
   WIZARD_UIFILES/install_uifile ui/config; do
   [[ -e "${verify_root}/outer/${required}" ]] || { echo "Missing SPK member: ${required}" >&2; exit 1; }
 done
-for required in bin/server.cjs bin/worker.cjs ui/index.html migrations/000001_foundation.sql \
-  migrations/000002_identity_foundation.sql platform/migration-checksums.v1.json; do
+for required in bin/server.cjs bin/worker.cjs bin/embedder.cjs ui/index.html \
+  migrations/000001_foundation.sql migrations/000002_identity_foundation.sql \
+  migrations/000003_markdown_slice.sql platform/migration-checksums.v1.json; do
   [[ -e "${verify_root}/payload/${required}" ]] || { echo "Missing payload member: ${required}" >&2; exit 1; }
 done
 [[ -e "${verify_root}/payload/platform/route-authorization.v1.json" ]] || {
@@ -46,6 +47,10 @@ done
 }
 [[ -e "${verify_root}/payload/platform/openapi.m03.json" ]] || {
   echo "Missing payload member: platform/openapi.m03.json" >&2
+  exit 1
+}
+[[ -e "${verify_root}/payload/platform/openapi.m04.json" ]] || {
+  echo "Missing payload member: platform/openapi.m04.json" >&2
   exit 1
 }
 
@@ -60,6 +65,8 @@ node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' \
   "${verify_root}/payload/platform/route-authorization.v1.json"
 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' \
   "${verify_root}/payload/platform/openapi.m03.json"
+node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' \
+  "${verify_root}/payload/platform/openapi.m04.json"
 grep -q '"run-as": "package"' "${verify_root}/outer/conf/privilege"
 grep -q '127.0.0.1:8787' "${verify_root}/outer/conf/resource"
 

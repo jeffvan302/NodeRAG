@@ -22,8 +22,7 @@ describe('foundation migration', () => {
         user: container.getUsername(),
         password: container.getPassword(),
       };
-      const first = await runMigrations(database);
-      const second = await runMigrations(database);
+      const [first, second] = await Promise.all([runMigrations(database), runMigrations(database)]);
       expect(second.expectedHead).toBe(first.expectedHead);
 
       const readiness = await createDatabaseReadinessProbe(database)();
@@ -31,8 +30,8 @@ describe('foundation migration', () => {
         service: 'noderag',
         status: 'unavailable',
         state: 'unconfigured',
-        migrationHead: '000002_identity_foundation',
-        expectedMigrationHead: '000002_identity_foundation',
+        migrationHead: '000003_markdown_slice',
+        expectedMigrationHead: '000003_markdown_slice',
         reasons: ['readiness-state:unconfigured'],
       });
 

@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 
 const corepack = process.platform === 'win32' ? 'corepack.cmd' : 'corepack';
 const commands = [
+  ['--filter', '@noderag/embedder', 'exec', 'tsx', 'src/main.ts'],
   ['--filter', '@noderag/server', 'dev:api'],
   ['--filter', '@noderag/server', 'dev:worker'],
   ['--filter', '@noderag/ui', 'dev'],

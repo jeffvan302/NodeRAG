@@ -7,6 +7,8 @@ export interface RuntimeConfig {
   readonly port: number;
   readonly database: ClientConfig | null;
   readonly uiRoot: string;
+  readonly dataRoot: string;
+  readonly embedderSocket: string;
 }
 
 const parsePort = (name: string, raw: string | undefined, fallback: number): number => {
@@ -37,5 +39,9 @@ export const loadRuntimeConfig = async (): Promise<RuntimeConfig> => {
     port: parsePort('NODERAG_PORT', process.env['NODERAG_PORT'], 8787),
     database,
     uiRoot: resolve(process.env['NODERAG_UI_ROOT'] ?? 'packages/ui/dist'),
+    dataRoot: resolve(process.env['NODERAG_DATA_ROOT'] ?? 'runtime-data'),
+    embedderSocket: resolve(
+      process.env['NODERAG_EMBEDDER_SOCKET'] ?? 'runtime-data/run/embedder.sock',
+    ),
   };
 };

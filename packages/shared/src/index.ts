@@ -19,6 +19,24 @@ export {
   type SiloAction,
   type SiloCapability,
 } from './identity.js';
+export { chunkCanonicalMarkdown, type ChunkCandidate, type ChunkProfile } from './chunking.js';
+export {
+  embedderRequestSchema,
+  embedderResponseSchema,
+  type Embedder,
+  type EmbedderRequest,
+  type EmbedderResponse,
+  type EmbeddingBatch,
+} from './embedder.js';
+export {
+  createLocatorMap,
+  isUtf16Boundary,
+  sliceUtf8,
+  type DualOffset,
+  type DualRange,
+  type LocatorMap,
+} from './locator.js';
+export { encodeJsonFrame, JsonFrameDecoder } from './framing.js';
 export type {
   ManagedProcess,
   PlatformAdapter,

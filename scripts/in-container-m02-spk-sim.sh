@@ -5,6 +5,15 @@ set -euo pipefail
 [[ "$(id -g)" == "1000" ]]
 
 mkdir -p /work/outer /work/package /work/var
+report_failure() {
+  status="$?"
+  if [[ "${status}" -ne 0 ]]; then
+    for log_file in /work/var/log/*.log; do
+      [[ -f "${log_file}" ]] && { echo "Failure log: ${log_file}" >&2; tail -n 80 "${log_file}" >&2; }
+    done
+  fi
+}
+trap report_failure EXIT
 : "${NODERAG_SPK_INPUT:?NODERAG_SPK_INPUT is required}"
 tar -xf "${NODERAG_SPK_INPUT}" -C /work/outer
 tar -xzf /work/outer/package.tgz -C /work/package
@@ -13,6 +22,15 @@ export SYNOPKG_PKGVAR=/work/var
 export NODERAG_NODE_BIN
 NODERAG_NODE_BIN="$(command -v node)"
 export NODERAG_PORT=8787
+: "${NODERAG_PACKAGE_DB_HOST:?NODERAG_PACKAGE_DB_HOST is required}"
+: "${NODERAG_PACKAGE_DB_PASSWORD:?NODERAG_PACKAGE_DB_PASSWORD is required}"
+printf '%s\n' "${NODERAG_PACKAGE_DB_PASSWORD}" >/work/postgres_password
+chmod 600 /work/postgres_password
+export NODERAG_POSTGRES_HOST="${NODERAG_PACKAGE_DB_HOST}"
+export NODERAG_POSTGRES_PORT=5432
+export NODERAG_POSTGRES_DATABASE=noderag_package
+export NODERAG_POSTGRES_USER=noderag
+export NODERAG_POSTGRES_PASSWORD_FILE=/work/postgres_password
 
 /work/outer/scripts/postinst
 [[ "$(stat -c '%a' /work/var)" == "700" ]]
@@ -34,8 +52,88 @@ NODE
 /work/outer/scripts/start-stop-status start
 health_check
 /work/outer/scripts/start-stop-status status
+
+node - <<'NODE'
+const fs = await import('node:fs');
+const base = 'http://127.0.0.1:8787';
+const setupToken = fs.readFileSync('/work/var/secrets/setup.token', 'utf8').trim();
+let response = await fetch(`${base}/v1/setup/configure`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    setupToken,
+    username: 'package-admin',
+    password: 'M04-package-test-only!',
+  }),
+});
+if (response.status !== 201) throw new Error(`Setup failed: ${response.status} ${await response.text()}`);
+const configured = await response.json();
+if (fs.existsSync('/work/var/secrets/setup.token')) throw new Error('Consumed setup token was not removed.');
+response = await fetch(`${base}/v1/auth/login`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ username: 'package-admin', password: 'M04-package-test-only!' }),
+});
+if (!response.ok) throw new Error(`Login failed: ${response.status}`);
+const cookie = (response.headers.get('set-cookie') ?? '').split(';', 1)[0];
+const login = await response.json();
+const original = '\uFEFF# Package search\r\n\r\nThe amber gearbox ledger records quarterly maintenance costs.\r\n';
+const form = new FormData();
+form.append('file', new Blob([original], { type: 'text/markdown' }), 'package.md');
+response = await fetch(`${base}/v1/documents?siloId=${configured.defaultSilo.id}`, {
+  method: 'POST',
+  headers: {
+    cookie,
+    origin: base,
+    'x-csrf-token': login.csrfToken,
+    'idempotency-key': 'm04-package-upload-001',
+  },
+  body: form,
+});
+if (response.status !== 202) throw new Error(`Upload failed: ${response.status} ${await response.text()}`);
+const upload = await response.json();
+let search;
+for (let attempt = 0; attempt < 80; attempt += 1) {
+  response = await fetch(`${base}/v1/search`, {
+    method: 'POST',
+    headers: { cookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ query: 'amber gearbox costs', siloIds: [configured.defaultSilo.id] }),
+  });
+  if (!response.ok) throw new Error(`Search failed: ${response.status} ${await response.text()}`);
+  search = await response.json();
+  if (search.items.length > 0) break;
+  await new Promise((resolve) => setTimeout(resolve, 250));
+}
+if (!search || search.items.length === 0) throw new Error('Packaged worker did not produce a search result.');
+const hit = search.items[0];
+if (!hit.text.includes('amber gearbox ledger')) throw new Error('Packaged search returned the wrong passage.');
+const bucket = String(Math.floor(upload.documentId / 1000)).padStart(6, '0');
+const canonicalPath = `/work/var/data/documents/${bucket}/${upload.documentId}/canonical.md`;
+const canonical = fs.readFileSync(canonicalPath, 'utf8');
+if (canonical.includes('\r') || !canonical.startsWith('# Package search\n\n')) {
+  throw new Error('Packaged canonical Markdown was not normalized.');
+}
+if (canonical.slice(hit.locator.characterStart, hit.locator.characterEnd) !== hit.text) {
+  throw new Error('Packaged UTF-16 locator did not reproduce the passage.');
+}
+const bytes = Buffer.from(canonical, 'utf8').subarray(hit.locator.byteStart, hit.locator.byteEnd).toString('utf8');
+if (bytes !== hit.text) throw new Error('Packaged UTF-8 locator did not reproduce the passage.');
+fs.writeFileSync('/work/package-search.json', JSON.stringify({ cookie, siloId: configured.defaultSilo.id }));
+NODE
+
 /work/outer/scripts/start-stop-status restart
 health_check
+node - <<'NODE'
+const fs = await import('node:fs');
+const saved = JSON.parse(fs.readFileSync('/work/package-search.json', 'utf8'));
+const response = await fetch('http://127.0.0.1:8787/v1/search', {
+  method: 'POST',
+  headers: { cookie: saved.cookie, 'content-type': 'application/json' },
+  body: JSON.stringify({ query: 'amber gearbox costs', siloIds: [saved.siloId] }),
+});
+const body = await response.json();
+if (!response.ok || body.items.length === 0) throw new Error('Search did not survive packaged restart.');
+NODE
 /work/outer/scripts/start-stop-status stop
 ! /work/outer/scripts/start-stop-status status
 

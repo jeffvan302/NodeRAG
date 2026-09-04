@@ -9,6 +9,7 @@ await mkdir(output, { recursive: true });
 
 await build({
   entryPoints: {
+    embedder: resolve(root, 'packages/embedder/src/main.ts'),
     server: resolve(root, 'packages/server/src/main.ts'),
     worker: resolve(root, 'packages/server/src/worker.ts'),
   },
@@ -21,6 +22,7 @@ await build({
   platform: 'node',
   sourcemap: false,
   target: 'node22',
+  external: ['onnxruntime-node'],
 });
 
 await cp(resolve(root, 'packages/ui/dist'), resolve(output, 'ui'), { recursive: true });

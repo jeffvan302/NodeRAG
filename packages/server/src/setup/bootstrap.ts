@@ -1,4 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { chmod, lstat, mkdir, open, readFile, rename, rm } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import type { Pool } from 'pg';
 import { hashPassword } from '../identity/passwords.js';
 import { databaseInteger, withTransaction, type SqlClient } from '../store/database.js';
@@ -6,8 +8,10 @@ import { createSiloInTransaction, type SiloRecord } from '../store/silos.js';
 
 const sha256 = (value: string): Buffer => createHash('sha256').update(value, 'utf8').digest();
 
+const newSetupToken = (): string => `setup_${randomBytes(32).toString('base64url')}`;
+
 export const issueSetupToken = async (database: SqlClient): Promise<string> => {
-  const token = `setup_${randomBytes(32).toString('base64url')}`;
+  const token = newSetupToken();
   const result = await database.query(
     `UPDATE noderag.setup_state
      SET setup_token_sha256 = $1
@@ -16,6 +20,53 @@ export const issueSetupToken = async (database: SqlClient): Promise<string> => {
   );
   if (result.rowCount !== 1) throw new Error('setup-token-unavailable');
   return token;
+};
+
+export const ensureSetupTokenFile = async (database: SqlClient, path: string): Promise<boolean> => {
+  const absolute = resolve(path);
+  const status = await setupStatus(database);
+  if (status.state !== 'unconfigured') {
+    await rm(absolute, { force: true });
+    return false;
+  }
+  await mkdir(dirname(absolute), { recursive: true, mode: 0o700 });
+  let token: string;
+  try {
+    const file = await lstat(absolute);
+    if (!file.isFile() || file.isSymbolicLink())
+      throw new Error('setup-token-file-must-be-regular');
+    token = (await readFile(absolute, 'utf8')).trim();
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code !== 'ENOENT') throw error;
+    token = newSetupToken();
+    const temporary = `${absolute}.${process.pid}.${randomBytes(8).toString('hex')}.tmp`;
+    const handle = await open(temporary, 'wx', 0o600);
+    try {
+      await handle.writeFile(`${token}\n`, 'utf8');
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    await rename(temporary, absolute);
+  }
+  if (!/^setup_[A-Za-z0-9_-]{43}$/u.test(token)) throw new Error('invalid-setup-token-file');
+  await chmod(absolute, 0o600);
+  const digest = sha256(token);
+  const found = await database.query<{ setup_token_sha256: Buffer | null }>(
+    `SELECT setup_token_sha256 FROM noderag.setup_state
+     WHERE id = 1 AND state = 'unconfigured' FOR UPDATE`,
+  );
+  const stored = found.rows[0]?.setup_token_sha256;
+  if (stored === null || stored === undefined) {
+    await database.query(
+      `UPDATE noderag.setup_state SET setup_token_sha256 = $1
+       WHERE id = 1 AND state = 'unconfigured'`,
+      [digest],
+    );
+  } else if (stored.length !== digest.length || !timingSafeEqual(stored, digest)) {
+    throw new Error('setup-token-file-does-not-match-database');
+  }
+  return true;
 };
 
 export const setupStatus = async (

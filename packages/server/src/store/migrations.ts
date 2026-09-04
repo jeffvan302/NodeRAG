@@ -6,6 +6,8 @@ import {
   type MigrationManifest,
 } from './manifest.js';
 
+const migrationAdvisoryLock = 4_618_578_662;
+
 const recordChecksums = async (
   database: ClientConfig,
   manifest: MigrationManifest,
@@ -40,17 +42,25 @@ const recordChecksums = async (
 };
 
 export const runMigrations = async (database: ClientConfig): Promise<MigrationManifest> => {
-  const manifest = await loadAndVerifyMigrationManifest();
-  await runner({
-    databaseUrl: database,
-    dir: defaultMigrationsDirectory,
-    migrationsTable: 'noderag_migrations',
-    direction: 'up',
-    checkOrder: true,
-    singleTransaction: true,
-    verbose: false,
-    migrationLoaderStrategies: [{ extensions: ['.sql'], loader: 'sql' }],
-  });
-  await recordChecksums(database, manifest);
-  return manifest;
+  const lock = new Client(database);
+  await lock.connect();
+  await lock.query('SELECT pg_advisory_lock($1::bigint)', [migrationAdvisoryLock]);
+  try {
+    const manifest = await loadAndVerifyMigrationManifest();
+    await runner({
+      databaseUrl: database,
+      dir: defaultMigrationsDirectory,
+      migrationsTable: 'noderag_migrations',
+      direction: 'up',
+      checkOrder: true,
+      singleTransaction: true,
+      verbose: false,
+      migrationLoaderStrategies: [{ extensions: ['.sql'], loader: 'sql' }],
+    });
+    await recordChecksums(database, manifest);
+    return manifest;
+  } finally {
+    await lock.query('SELECT pg_advisory_unlock($1::bigint)', [migrationAdvisoryLock]);
+    await lock.end();
+  }
 };

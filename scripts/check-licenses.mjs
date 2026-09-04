@@ -22,6 +22,7 @@ const approved = new Set([
   'CC0-1.0',
   'ISC',
   'MIT',
+  '(MIT OR CC0-1.0)',
   'PostgreSQL',
   'Python-2.0',
 ]);

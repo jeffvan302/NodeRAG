@@ -34,11 +34,13 @@ chmod 755 -- "${outer_root}/scripts/"*
 
 cp -- "${repository_root}/packages/server/dist/server.cjs" "${payload_root}/bin/server.cjs"
 cp -- "${repository_root}/packages/server/dist/worker.cjs" "${payload_root}/bin/worker.cjs"
+cp -- "${repository_root}/packages/server/dist/embedder.cjs" "${payload_root}/bin/embedder.cjs"
 cp -R -- "${repository_root}/packages/server/dist/ui" "${payload_root}/ui"
 cp -R -- "${repository_root}/packages/server/migrations" "${payload_root}/migrations"
 cp -- "${repository_root}/platform/migration-checksums.v1.json" "${payload_root}/platform/migration-checksums.v1.json"
 cp -- "${repository_root}/platform/route-authorization.v1.json" "${payload_root}/platform/route-authorization.v1.json"
 cp -- "${repository_root}/platform/openapi.m03.json" "${payload_root}/platform/openapi.m03.json"
+cp -- "${repository_root}/platform/openapi.m04.json" "${payload_root}/platform/openapi.m04.json"
 
 tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
   -czf "${outer_root}/package.tgz" -C "${payload_root}" .

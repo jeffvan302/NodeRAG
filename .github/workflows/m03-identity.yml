@@ -1,53 +1,7 @@
 name: M03 identity and authorization
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/m03-identity.yml"
-      - ".dependency-cruiser.cjs"
-      - ".gitignore"
-      - ".gitmodules"
-      - ".prettierignore"
-      - ".prettierrc.json"
-      - "adapters/**"
-      - "packages/**"
-      - "platform/**"
-      - "scripts/**"
-      - "spk/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "tsconfig.base.json"
-      - "vitest.config.ts"
-      - "eslint.config.mjs"
-      - "docs/Implementation/checklists/m03-checklist.md"
-      - "docs/Implementation/proofs/m03-proof.json"
-      - "docs/planning/M3-IDENTITY-AUTHORIZATION.md"
-  pull_request:
-    paths:
-      - ".github/workflows/m03-identity.yml"
-      - ".dependency-cruiser.cjs"
-      - ".gitignore"
-      - ".gitmodules"
-      - ".prettierignore"
-      - ".prettierrc.json"
-      - "adapters/**"
-      - "packages/**"
-      - "platform/**"
-      - "scripts/**"
-      - "spk/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "tsconfig.base.json"
-      - "vitest.config.ts"
-      - "eslint.config.mjs"
-      - "docs/Implementation/checklists/m03-checklist.md"
-      - "docs/Implementation/proofs/m03-proof.json"
-      - "docs/planning/M3-IDENTITY-AUTHORIZATION.md"
   workflow_dispatch:
-
 permissions:
   contents: read
 

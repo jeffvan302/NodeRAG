@@ -1,0 +1,166 @@
+name: M04 Markdown vertical slice
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/m04-markdown.yml'
+      - '.dependency-cruiser.cjs'
+      - '.gitignore'
+      - '.gitmodules'
+      - '.prettierignore'
+      - '.prettierrc.json'
+      - 'adapters/**'
+      - 'packages/**'
+      - 'platform/**'
+      - 'scripts/**'
+      - 'spk/**'
+      - 'docker-testbed/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - 'vitest.config.ts'
+      - 'eslint.config.mjs'
+      - 'LICENSE-POLICY.md'
+      - 'THIRD-PARTY.md'
+      - 'README.md'
+      - 'docs/Implementation/checklists/m04-checklist.md'
+      - 'docs/Implementation/proofs/m04-proof.json'
+      - 'docs/planning/M4-MARKDOWN-VERTICAL-SLICE.md'
+  pull_request:
+    paths:
+      - '.github/workflows/m04-markdown.yml'
+      - '.dependency-cruiser.cjs'
+      - '.gitignore'
+      - '.gitmodules'
+      - '.prettierignore'
+      - '.prettierrc.json'
+      - 'adapters/**'
+      - 'packages/**'
+      - 'platform/**'
+      - 'scripts/**'
+      - 'spk/**'
+      - 'docker-testbed/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - 'vitest.config.ts'
+      - 'eslint.config.mjs'
+      - 'LICENSE-POLICY.md'
+      - 'THIRD-PARTY.md'
+      - 'README.md'
+      - 'docs/Implementation/checklists/m04-checklist.md'
+      - 'docs/Implementation/proofs/m04-proof.json'
+      - 'docs/planning/M4-MARKDOWN-VERTICAL-SLICE.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m04-markdown-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 22.22.0
+  PNPM_VERSION: 11.25.0
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository and pinned spksrc
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          submodules: recursive
+
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run repository quality gate
+        run: |
+          pnpm ci:quality
+          pnpm repo:check
+
+  markdown-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run PostgreSQL, identity, upload, worker, locator, cache, and search tests
+        run: pnpm test:integration
+
+  linux-compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NODERAG_M01_CPU_LIMIT: 2
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Re-run Linux Node, ONNX, Argon2, and database compatibility
+        run: bash docker-testbed/scripts/verify-m01.sh
+
+      - name: Stop compatibility services
+        if: always()
+        run: bash docker-testbed/scripts/down.sh
+
+  thin-spk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository and pinned spksrc
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          submodules: recursive
+
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build deterministic Markdown-capable thin DSM package
+        run: |
+          pnpm package:thin
+          first_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64.spk | awk '{print $1}')"
+          pnpm package:thin
+          second_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64.spk | awk '{print $1}')"
+          test "${first_sha}" = "${second_sha}"
+          pnpm package:verify

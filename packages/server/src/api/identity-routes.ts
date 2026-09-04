@@ -1,19 +1,14 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { readFile } from 'node:fs/promises';
+import type { FastifyInstance } from 'fastify';
+import { readFile, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { Pool } from 'pg';
 import { z } from 'zod';
 import { executeIdempotent, IdempotencyConflictError } from '../application/idempotency.js';
-import { ApiKeyRateLimiter, authenticateApiKey } from '../identity/api-keys.js';
 import { authenticatePassword, changePasswordInTransaction } from '../identity/passwords.js';
 import { SiloScope } from '../identity/scope.js';
-import {
-  browserMutationAllowed,
-  createSession,
-  revokeSession,
-  validateSession,
-} from '../identity/sessions.js';
+import { createSession, revokeSession } from '../identity/sessions.js';
 import { bootstrapFirstAdministrator, setupStatus, verifySetupToken } from '../setup/bootstrap.js';
+import { createRequestAuthenticator, type RequestAuthenticator } from './authentication.js';
 
 const loginSchema = z.object({
   username: z.string().min(3).max(64),
@@ -31,24 +26,6 @@ const passwordSchema = z.object({
   nextPassword: z.string().min(12).max(1024),
 });
 
-const parseCookie = (request: FastifyRequest, name: string): string | null => {
-  const header = request.headers.cookie;
-  if (header === undefined) return null;
-  for (const item of header.split(';')) {
-    const [key, ...value] = item.trim().split('=');
-    if (key === name) return decodeURIComponent(value.join('='));
-  }
-  return null;
-};
-
-interface AuthenticatedPrincipal {
-  readonly principalId: number;
-  readonly serverAdmin: boolean;
-  readonly searchOnly: boolean;
-  readonly sessionToken: string | null;
-  readonly csrfAllowed: (candidate: string | undefined, origin: string | undefined) => boolean;
-}
-
 const problem = (status: number, code: string, requestId: string) => ({
   type: `https://noderag.local/problems/${code}`,
   title: code.replaceAll('_', ' '),
@@ -61,14 +38,13 @@ export interface IdentityRoutesOptions {
   readonly pool: Pool;
   readonly expectedOrigin: string;
   readonly secureCookie: boolean;
+  readonly authenticate?: RequestAuthenticator;
 }
 
 export const registerIdentityRoutes = (
   app: FastifyInstance,
   options: IdentityRoutesOptions,
 ): void => {
-  const limiter = new ApiKeyRateLimiter();
-
   const principalDetails = async (
     principalId: number,
   ): Promise<{ serverAdmin: boolean; username: string | null } | null> => {
@@ -87,46 +63,8 @@ export const registerIdentityRoutes = (
       : { serverAdmin: row.server_admin ?? false, username: row.username };
   };
 
-  const authenticate = async (request: FastifyRequest): Promise<AuthenticatedPrincipal | null> => {
-    const authorization = request.headers.authorization;
-    if (authorization?.startsWith('Bearer ') === true) {
-      const result = await authenticateApiKey(
-        options.pool,
-        limiter,
-        authorization.slice('Bearer '.length),
-        request.ip,
-      );
-      if (!result.ok) return null;
-      const details = await principalDetails(result.principalId);
-      if (details === null) return null;
-      return {
-        principalId: result.principalId,
-        serverAdmin: false,
-        searchOnly: result.searchOnly,
-        sessionToken: null,
-        csrfAllowed: () => true,
-      };
-    }
-    const sessionToken = parseCookie(request, 'noderag_session');
-    if (sessionToken === null) return null;
-    const session = await validateSession(options.pool, sessionToken);
-    if (session === null) return null;
-    const details = await principalDetails(session.principalId);
-    if (details === null) return null;
-    return {
-      principalId: session.principalId,
-      serverAdmin: details.serverAdmin,
-      searchOnly: false,
-      sessionToken,
-      csrfAllowed: (candidate, origin) =>
-        browserMutationAllowed({
-          expectedOrigin: options.expectedOrigin,
-          origin,
-          csrfToken: candidate,
-          session,
-        }),
-    };
-  };
+  const authenticate =
+    options.authenticate ?? createRequestAuthenticator(options.pool, options.expectedOrigin);
 
   app.get('/v1/setup/status', async (_request, reply) =>
     reply.code(200).send(await setupStatus(options.pool)),
@@ -146,6 +84,9 @@ export const registerIdentityRoutes = (
       ...(body.email === undefined ? {} : { email: body.email }),
       ...(body.defaultSiloName === undefined ? {} : { defaultSiloName: body.defaultSiloName }),
     });
+    if (process.env['NODERAG_SETUP_TOKEN_FILE'] !== undefined) {
+      await rm(process.env['NODERAG_SETUP_TOKEN_FILE'], { force: true });
+    }
     return reply.code(201).send(result);
   });
 
@@ -286,7 +227,7 @@ export const registerIdentityRoutes = (
     const principal = await authenticate(request);
     if (principal === null)
       return reply.code(401).send(problem(401, 'authentication_required', request.id));
-    const path = resolve(process.env['NODERAG_OPENAPI'] ?? 'platform/openapi.m03.json');
+    const path = resolve(process.env['NODERAG_OPENAPI'] ?? 'platform/openapi.m04.json');
     return reply
       .type('application/json')
       .code(200)

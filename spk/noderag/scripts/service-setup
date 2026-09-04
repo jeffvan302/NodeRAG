@@ -6,53 +6,87 @@ set -eu
 
 NODERAG_NODE_BIN="${NODERAG_NODE_BIN:-/var/packages/Node.js_v22/target/usr/local/bin/node}"
 NODERAG_PID_FILE="${SYNOPKG_PKGVAR}/run/noderag.pid"
+NODERAG_WORKER_PID_FILE="${SYNOPKG_PKGVAR}/run/worker.pid"
+NODERAG_EMBEDDER_PID_FILE="${SYNOPKG_PKGVAR}/run/embedder.pid"
 NODERAG_LOG_FILE="${SYNOPKG_PKGVAR}/log/noderag.log"
+NODERAG_WORKER_LOG_FILE="${SYNOPKG_PKGVAR}/log/worker.log"
+NODERAG_EMBEDDER_LOG_FILE="${SYNOPKG_PKGVAR}/log/embedder.log"
+NODERAG_EMBEDDER_SOCKET="${SYNOPKG_PKGVAR}/run/embedder.sock"
+
+noderag_pid_running() {
+  noderag_checked_file="$1"
+  [ -f "${noderag_checked_file}" ] || return 1
+  noderag_checked_pid="$(cat "${noderag_checked_file}")"
+  [ -n "${noderag_checked_pid}" ] && kill -0 "${noderag_checked_pid}" 2>/dev/null
+}
 
 noderag_status() {
-  [ -f "${NODERAG_PID_FILE}" ] || return 1
-  noderag_pid="$(cat "${NODERAG_PID_FILE}")"
-  [ -n "${noderag_pid}" ] && kill -0 "${noderag_pid}" 2>/dev/null
+  noderag_pid_running "${NODERAG_PID_FILE}" &&
+    noderag_pid_running "${NODERAG_WORKER_PID_FILE}" &&
+    noderag_pid_running "${NODERAG_EMBEDDER_PID_FILE}"
 }
 
 noderag_start() {
   if noderag_status; then
     return 0
   fi
+  noderag_stop
   mkdir -p "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log"
   chmod 700 "${SYNOPKG_PKGVAR}" "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log"
   umask 077
+  NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
+    "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/embedder.cjs" >>"${NODERAG_EMBEDDER_LOG_FILE}" 2>&1 &
+  noderag_embedder_pid="$!"
+  printf '%s\n' "${noderag_embedder_pid}" >"${NODERAG_EMBEDDER_PID_FILE}"
   NODERAG_HOST="127.0.0.1" \
   NODERAG_PORT="${NODERAG_PORT:-8787}" \
   NODERAG_UI_ROOT="${SYNOPKG_PKGDEST}/ui" \
   NODERAG_MIGRATION_MANIFEST="${SYNOPKG_PKGDEST}/platform/migration-checksums.v1.json" \
   NODERAG_MIGRATIONS_DIRECTORY="${SYNOPKG_PKGDEST}/migrations" \
   NODERAG_ROUTE_AUTHORIZATION="${SYNOPKG_PKGDEST}/platform/route-authorization.v1.json" \
-  NODERAG_OPENAPI="${SYNOPKG_PKGDEST}/platform/openapi.m03.json" \
+  NODERAG_OPENAPI="${SYNOPKG_PKGDEST}/platform/openapi.m04.json" \
   NODERAG_SECRET_ROOT="${SYNOPKG_PKGVAR}/secrets/root.key" \
+  NODERAG_SETUP_TOKEN_FILE="${SYNOPKG_PKGVAR}/secrets/setup.token" \
+  NODERAG_DATA_ROOT="${SYNOPKG_PKGVAR}/data" \
+  NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
     "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/server.cjs" >>"${NODERAG_LOG_FILE}" 2>&1 &
   noderag_pid="$!"
   printf '%s\n' "${noderag_pid}" >"${NODERAG_PID_FILE}"
   sleep 1
   if ! kill -0 "${noderag_pid}" 2>/dev/null; then
-    rm -f "${NODERAG_PID_FILE}"
+    kill "${noderag_embedder_pid}" 2>/dev/null || true
+    rm -f "${NODERAG_PID_FILE}" "${NODERAG_EMBEDDER_PID_FILE}"
+    return 1
+  fi
+  NODERAG_DATA_ROOT="${SYNOPKG_PKGVAR}/data" \
+  NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
+  NODERAG_MIGRATION_MANIFEST="${SYNOPKG_PKGDEST}/platform/migration-checksums.v1.json" \
+  NODERAG_MIGRATIONS_DIRECTORY="${SYNOPKG_PKGDEST}/migrations" \
+    "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/worker.cjs" >>"${NODERAG_WORKER_LOG_FILE}" 2>&1 &
+  noderag_worker_pid="$!"
+  printf '%s\n' "${noderag_worker_pid}" >"${NODERAG_WORKER_PID_FILE}"
+  sleep 1
+  if ! noderag_status; then
+    noderag_stop
     return 1
   fi
 }
 
 noderag_stop() {
-  if ! noderag_status; then
-    rm -f "${NODERAG_PID_FILE}"
-    return 0
-  fi
-  noderag_pid="$(cat "${NODERAG_PID_FILE}")"
-  kill "${noderag_pid}"
-  noderag_wait=0
-  while kill -0 "${noderag_pid}" 2>/dev/null && [ "${noderag_wait}" -lt 30 ]; do
-    sleep 1
-    noderag_wait=$((noderag_wait + 1))
+  for noderag_stop_file in "${NODERAG_WORKER_PID_FILE}" "${NODERAG_PID_FILE}" "${NODERAG_EMBEDDER_PID_FILE}"; do
+    if noderag_pid_running "${noderag_stop_file}"; then
+      noderag_stop_pid="$(cat "${noderag_stop_file}")"
+      kill "${noderag_stop_pid}" 2>/dev/null || true
+      noderag_wait=0
+      while kill -0 "${noderag_stop_pid}" 2>/dev/null && [ "${noderag_wait}" -lt 30 ]; do
+        sleep 1
+        noderag_wait=$((noderag_wait + 1))
+      done
+      if kill -0 "${noderag_stop_pid}" 2>/dev/null; then
+        kill -9 "${noderag_stop_pid}" 2>/dev/null || true
+      fi
+    fi
+    rm -f "${noderag_stop_file}"
   done
-  if kill -0 "${noderag_pid}" 2>/dev/null; then
-    kill -9 "${noderag_pid}"
-  fi
-  rm -f "${NODERAG_PID_FILE}"
+  rm -f "${NODERAG_EMBEDDER_SOCKET}"
 }

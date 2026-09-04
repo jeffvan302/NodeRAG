@@ -1,0 +1,14 @@
+{
+  "name": "@noderag/embedder",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@huggingface/tokenizers": "0.1.3",
+    "@noderag/shared": "workspace:*",
+    "onnxruntime-node": "1.24.3"
+  }
+}

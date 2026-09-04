@@ -7,6 +7,7 @@ import {
   type ReadinessResponse,
 } from '@noderag/shared';
 import { loggerOptions } from './logging.js';
+import { registerContentRoutes, type ContentRoutesOptions } from './api/content-routes.js';
 import { registerIdentityRoutes, type IdentityRoutesOptions } from './api/identity-routes.js';
 import type { ReadinessProbe } from './store/readiness.js';
 
@@ -26,6 +27,7 @@ export interface BuildAppOptions {
   readonly readiness: ReadinessProbe;
   readonly uiRoot: string;
   readonly identity?: IdentityRoutesOptions;
+  readonly content?: ContentRoutesOptions;
 }
 
 const safeUiFile = async (root: string, requestPath: string): Promise<string | null> => {
@@ -73,6 +75,7 @@ export const buildApp = (options: BuildAppOptions): FastifyInstance => {
   });
 
   if (options.identity !== undefined) registerIdentityRoutes(app, options.identity);
+  if (options.content !== undefined) registerContentRoutes(app, options.content);
 
   app.get('/*', async (request, reply) => {
     const requestPath = request.url.split('?', 1)[0] ?? '/';

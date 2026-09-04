@@ -1,4 +1,7 @@
 import { createServer } from 'node:net';
+import { randomUUID } from 'node:crypto';
+import { mkdir, open, rm, statfs } from 'node:fs/promises';
+import { isAbsolute, resolve } from 'node:path';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { createApiKeyInTransaction, revokeApiKey } from '../identity/api-keys.js';
@@ -9,6 +12,7 @@ import { executeIdempotent, IdempotencyConflictError } from '../application/idem
 import type { ContentRoutesOptions } from './content-routes.js';
 import { RequestAuthenticationError, type AuthenticatedPrincipal } from './authentication.js';
 import { sendProblem } from './problem.js';
+import { coordinatedEmbedder } from '../store/resources.js';
 
 const idSchema = z.coerce.number().int().positive().safe();
 const smallIdSchema = z.coerce.number().int().min(1).max(32_767);
@@ -121,6 +125,18 @@ const storageSchema = z
     enabled: z.boolean().default(true),
   })
   .strict();
+const storageProbeSchema = z.object({ managedPath: z.string().min(1).max(4096) }).strict();
+const calibrationSchema = z
+  .object({
+    samples: z.array(z.string().min(20).max(8000)).length(20).optional(),
+  })
+  .strict();
+const setupProgressSchema = z
+  .object({
+    step: z.enum(['storage', 'model', 'calibration', 'vision', 'sources', 'complete']),
+    progress: z.number().int().min(30).max(100),
+  })
+  .strict();
 const backupSchema = z.object({ destinationId: smallIdSchema.optional() }).strict();
 const restoreSchema = z
   .object({ backupId: idSchema, sourceManifest: z.record(z.string(), z.unknown()).default({}) })
@@ -187,6 +203,36 @@ const probePort = async (port: number, host = '0.0.0.0'): Promise<boolean> =>
     server.listen({ host, port, exclusive: true }, () => server.close(() => resolve(true)));
   });
 
+const probeStorage = async (managedPath: string) => {
+  if (!isAbsolute(managedPath)) throw new Error('storage_path_must_be_absolute');
+  const target = resolve(managedPath);
+  await mkdir(target, { recursive: true });
+  const probe = resolve(target, `.noderag-write-probe-${randomUUID()}`);
+  const handle = await open(probe, 'wx', 0o600);
+  try {
+    await handle.writeFile('NodeRag storage probe\n', 'utf8');
+    await handle.sync();
+  } finally {
+    await handle.close();
+    await rm(probe, { force: true });
+  }
+  const capacity = await statfs(target, { bigint: true });
+  const availableBytes = capacity.bavail * capacity.bsize;
+  const totalBytes = capacity.blocks * capacity.bsize;
+  return {
+    writable: true,
+    availableBytes: availableBytes.toString(),
+    totalBytes: totalBytes.toString(),
+    lowCapacity: availableBytes < 10n * 1024n * 1024n * 1024n,
+  };
+};
+
+const calibrationSamples = Array.from({ length: 20 }, (_, index) =>
+  `NodeRag calibration passage ${String(index + 1)}. This representative local knowledge text measures embedding throughput without retaining document content. `.repeat(
+    12,
+  ),
+);
+
 const idempotencyKey = (request: FastifyRequest): string => {
   const value = request.headers['idempotency-key']?.toString();
   if (value === undefined) throw new Error('idempotency_key_required');
@@ -234,6 +280,7 @@ const mutationFailure = (
     ['not_found', { status: 404, code: 'not_found' }],
     ['backup_not_found', { status: 404, code: 'backup_not_found' }],
     ['build_not_mutable', { status: 409, code: 'build_not_mutable' }],
+    ['setup_progress_regression', { status: 409, code: 'setup_progress_regression' }],
     ['server-admin-required', { status: 403, code: 'server_admin_required' }],
   ]).get(message);
   if (known !== undefined) return sendProblem(reply, known.status, known.code, request.id);
@@ -700,6 +747,59 @@ export const registerAdminRoutes = (
     return reply.send(result.rows[0]);
   });
 
+  app.put('/v1/admin/setup/progress', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const body = setupProgressSchema.safeParse(request.body);
+    if (!body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    try {
+      const result = await mutate(
+        request,
+        principal,
+        options,
+        'admin-setup-progress',
+        body.data,
+        async (database) => {
+          const updated = await database.query(
+            `UPDATE noderag.setup_state
+             SET setup_step = $1, setup_progress = $2
+             WHERE id = 1 AND state = 'operational'
+               AND $2 >= setup_progress
+               AND CASE $1
+                     WHEN 'storage' THEN 1 WHEN 'model' THEN 2
+                     WHEN 'calibration' THEN 3 WHEN 'vision' THEN 4
+                     WHEN 'sources' THEN 5 WHEN 'complete' THEN 6
+                   END >= CASE setup_step
+                     WHEN 'verify-token' THEN 0 WHEN 'administrator' THEN 0
+                     WHEN 'sign-in' THEN 0 WHEN 'storage' THEN 1
+                     WHEN 'model' THEN 2 WHEN 'calibration' THEN 3
+                     WHEN 'vision' THEN 4 WHEN 'sources' THEN 5
+                     WHEN 'complete' THEN 6
+                   END
+             RETURNING setup_step AS step, setup_progress AS progress`,
+            [body.data.step, body.data.progress],
+          );
+          if (updated.rows[0] === undefined) throw new Error('setup_progress_regression');
+          await database.query(
+            `INSERT INTO noderag.setup_event (event_type, step, progress, detail)
+             VALUES ($1, $2, $3, jsonb_build_object('principalId', $4::bigint))`,
+            [
+              body.data.step === 'complete' ? 'setup-complete' : 'step-completed',
+              body.data.step,
+              body.data.progress,
+              principal.principalId,
+            ],
+          );
+          return { status: 200, body: updated.rows[0] };
+        },
+      );
+      return reply.send(result.response.body);
+    } catch (error) {
+      return mutationFailure(reply, request, error);
+    }
+  });
+
   app.put('/v1/admin/settings', async (request, reply) => {
     const principal = await requireAdmin(request, options, true);
     if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
@@ -881,6 +981,26 @@ export const registerAdminRoutes = (
     );
     return reply.send({ items: rows.rows });
   });
+  app.post('/v1/admin/storage/probe', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const body = storageProbeSchema.safeParse(request.body);
+    if (!body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    try {
+      return reply.send(await probeStorage(body.data.managedPath));
+    } catch (error) {
+      const code = error instanceof Error ? error.message : 'storage_probe_failed';
+      if (code === 'storage_path_must_be_absolute') {
+        return sendProblem(reply, 400, code, request.id);
+      }
+      request.log.warn(
+        { errorName: error instanceof Error ? error.name : 'unknown' },
+        'storage probe failed',
+      );
+      return sendProblem(reply, 400, 'storage_probe_failed', request.id);
+    }
+  });
   app.post('/v1/admin/storage', async (request, reply) => {
     const principal = await requireAdmin(request, options, true);
     if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
@@ -912,6 +1032,45 @@ export const registerAdminRoutes = (
     } catch (error) {
       return mutationFailure(reply, request, error);
     }
+  });
+  app.post('/v1/admin/calibration/embedding', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const body = calibrationSchema.safeParse(request.body ?? {});
+    if (!body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    const model = await options.pool.query<{
+      maximum_tokens: number;
+      document_prefix: string;
+      name: string;
+      source_revision: string;
+    }>(
+      `SELECT m.maximum_tokens, m.document_prefix, m.name, m.source_revision
+       FROM noderag.model_manifest m WHERE m.active`,
+    );
+    const active = model.rows[0];
+    if (active === undefined) return sendProblem(reply, 503, 'active_model_missing', request.id);
+    const samples = body.data.samples ?? calibrationSamples;
+    const characters = samples.reduce((total, value) => total + value.length, 0);
+    const started = performance.now();
+    await coordinatedEmbedder(options.pool, `ui-calibration:${request.id}`, options.embedder).embed(
+      samples.map((value) => `${active.document_prefix}${value.normalize('NFC')}`),
+      active.maximum_tokens,
+      0,
+    );
+    const elapsedMs = Math.max(1, performance.now() - started);
+    const charactersPerSecond = Math.round((characters * 1000) / elapsedMs);
+    return reply.send({
+      chunks: samples.length,
+      characters,
+      elapsedMs: Math.round(elapsedMs),
+      charactersPerSecond,
+      projectedMinutesPerMillionCharacters: Number(
+        (1_000_000 / Math.max(1, charactersPerSecond) / 60).toFixed(1),
+      ),
+      model: active.name,
+      revision: active.source_revision,
+    });
   });
   app.get('/v1/admin/backups', async (request, reply) => {
     const principal = await requireAdmin(request, options, false);

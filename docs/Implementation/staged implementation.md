@@ -52,32 +52,32 @@ Do not modify the two planning documents merely to hide a contradiction. Record 
 
 ### 2.1 Locked implementation decisions
 
-| Area | Authoritative v1 decision |
-|---|---|
-| Platform | DSM 7.2+, x86_64, minimum 8 GB physical RAM. ARM/aarch64 is excluded. |
-| Runtime | Begin with Synology `Node.js_v22`; re-evaluate before release because Node 22 reaches planned upstream EOL on 2027-04-30. A release after EOL requires a validated supported Synology runtime or maintained bundled Node. |
-| Database | PostgreSQL 17 and pgvector bundled inside the SPK. Unix socket only by default. |
-| Silos | Silos are access-control and partition boundaries only. They do not own chunk, model, CPU, vision, search-language, or storage settings. |
-| Capabilities | Independent `read`, `upload`, and `delete` capabilities per principal and silo. None implies another. |
-| Administration | `server_admin` is required for silo lifecycle, principals, grants, settings, storage, gateways, builds, backup/restore, and upgrades. |
-| API keys | API keys use the same silo grants as users and default to `search_only`, which blocks document downloads, full Markdown, and mutations regardless of other grants. |
-| Originals | Every ingest creates a package-managed original named by document ID. There is no reference-in-place mode and no original-file deduplication in v1. |
-| Canonical Markdown | Stored as a package-managed file named by document ID. PostgreSQL stores hashes, boundaries, states, and locators, not full page Markdown. |
-| Missing watched file | Retain the managed original and searchable index, set `source_state=missing`, and require review. An unavailable source root must never mark all children missing. |
-| Explicit delete | Always purges the managed original, Markdown, pages, images, chunks, vectors, jobs that exist only for it, and cache entries whose reference count reaches zero. |
-| Character offsets | UTF-16 code units into canonical Markdown; always populated. |
-| Byte offsets | UTF-8 bytes into canonical Markdown; always populated. |
-| Original matching | `offsets_match_original` only indicates whether canonical Markdown offsets also address the original bytes. |
-| Page locators | Locator object always exists. Page fields are nullable for TXT and Markdown. |
-| Chunking | System-wide build profile. Defaults: target 2,000 UTF-16 units, overlap 300, token guard 1,024, snap window 15%, heading prefix enabled. |
-| Keyword language | PostgreSQL `simple` configuration initially, for mixed-language safety. |
-| Search default | Vector/Meaning initially. Hybrid is promoted only by measured evaluation. |
-| Embedding | Qwen3-Embedding-0.6B ONNX, 1,024 dimensions, last-token pooling, L2 normalization, instructed queries, unprefixed documents. |
-| Vision | System-wide provider configuration and global content-hash cache. Self-hosted Ollama or an authenticated reverse proxy is the v1-supported path. |
-| Audit privacy | Do not store raw search text. Store a normalized-query hash and operational metadata. Default retention: 90 days. |
-| Distribution | Private manual SPK upload. No package repository, SynoCommunity submission, or auto-update in v1. |
-| Git workflow | Commit bounded, passing changes directly to `main`. Do not use milestone branches or pull requests. Do not force-push or rewrite shared history. |
-| Test sequence | Complete M0–M14 in `docker-testbed`; run one final live DSM certification against the immutable M14 candidate before tagging v1.0.0. |
+| Area                 | Authoritative v1 decision                                                                                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Platform             | DSM 7.2+, x86_64, minimum 8 GB physical RAM. ARM/aarch64 is excluded.                                                                                                                                                     |
+| Runtime              | Begin with Synology `Node.js_v22`; re-evaluate before release because Node 22 reaches planned upstream EOL on 2027-04-30. A release after EOL requires a validated supported Synology runtime or maintained bundled Node. |
+| Database             | PostgreSQL 17 and pgvector bundled inside the SPK. Unix socket only by default.                                                                                                                                           |
+| Silos                | Silos are access-control and partition boundaries only. They do not own chunk, model, CPU, vision, search-language, or storage settings.                                                                                  |
+| Capabilities         | Independent `read`, `upload`, and `delete` capabilities per principal and silo. None implies another.                                                                                                                     |
+| Administration       | `server_admin` is required for silo lifecycle, principals, grants, settings, storage, gateways, builds, backup/restore, and upgrades.                                                                                     |
+| API keys             | API keys use the same silo grants as users and default to `search_only`, which blocks document downloads, full Markdown, and mutations regardless of other grants.                                                        |
+| Originals            | Every ingest creates a package-managed original named by document ID. There is no reference-in-place mode and no original-file deduplication in v1.                                                                       |
+| Canonical Markdown   | Stored as a package-managed file named by document ID. PostgreSQL stores hashes, boundaries, states, and locators, not full page Markdown.                                                                                |
+| Missing watched file | Retain the managed original and searchable index, set `source_state=missing`, and require review. An unavailable source root must never mark all children missing.                                                        |
+| Explicit delete      | Always purges the managed original, Markdown, pages, images, chunks, vectors, jobs that exist only for it, and cache entries whose reference count reaches zero.                                                          |
+| Character offsets    | UTF-16 code units into canonical Markdown; always populated.                                                                                                                                                              |
+| Byte offsets         | UTF-8 bytes into canonical Markdown; always populated.                                                                                                                                                                    |
+| Original matching    | `offsets_match_original` only indicates whether canonical Markdown offsets also address the original bytes.                                                                                                               |
+| Page locators        | Locator object always exists. Page fields are nullable for TXT and Markdown.                                                                                                                                              |
+| Chunking             | System-wide build profile. Defaults: target 2,000 UTF-16 units, overlap 300, token guard 1,024, snap window 15%, heading prefix enabled.                                                                                  |
+| Keyword language     | PostgreSQL `simple` configuration initially, for mixed-language safety.                                                                                                                                                   |
+| Search default       | Vector/Meaning initially. Hybrid is promoted only by measured evaluation.                                                                                                                                                 |
+| Embedding            | Qwen3-Embedding-0.6B ONNX, 1,024 dimensions, last-token pooling, L2 normalization, instructed queries, unprefixed documents.                                                                                              |
+| Vision               | System-wide provider configuration and global content-hash cache. Self-hosted Ollama or an authenticated reverse proxy is the v1-supported path.                                                                          |
+| Audit privacy        | Do not store raw search text. Store a normalized-query hash and operational metadata. Default retention: 90 days.                                                                                                         |
+| Distribution         | Private manual SPK upload. No package repository, SynoCommunity submission, or auto-update in v1.                                                                                                                         |
+| Git workflow         | Commit bounded, passing changes directly to `main`. Do not use milestone branches or pull requests. Do not force-push or rewrite shared history.                                                                          |
+| Test sequence        | Complete M0–M14 in `docker-testbed`; run one final live DSM certification against the immutable M14 candidate before tagging v1.0.0.                                                                                      |
 
 ### 2.2 Source-file behavior
 
@@ -233,27 +233,27 @@ NodeRag/
 
 ### 4.2 Stack
 
-| Layer | Choice |
-|---|---|
-| Runtime | Node.js 22 compatibility baseline; supported-runtime release gate |
-| Language | TypeScript, `strict`, `noUncheckedIndexedAccess` |
-| Workspaces | pnpm, exact package-manager version pinned through Corepack |
-| HTTP | Fastify |
-| Validation/OpenAPI | Zod with Fastify type provider and generated JSON Schema |
-| Database | `pg`, hand-reviewed SQL, no ORM |
-| Migrations | `node-pg-migrate`, forward-only, immutable checksums |
-| Passwords | Argon2id, provisionally calibrated in the testbed and re-calibrated during final DSM certification |
-| Embedding | `onnxruntime-node`, tokenizer files loaded locally |
-| PDF | `pdfjs-dist`; MuPDF only if the measured fallback gate requires it |
-| DOCX | `unzipper` + `fast-xml-parser`, direct OOXML traversal |
-| XLSX | `exceljs` streaming reader |
-| UI | Preact + Vite, no SSR |
-| Markdown display | HTML-disabled/sanitized Markdown renderer |
-| Tests | Vitest, fast-check, Testcontainers, Playwright, accessibility checks |
-| Bundling | esbuild, production dependencies preassembled |
-| Packaging | Pinned vendored spksrc, built on Linux/WSL/CI |
-| MCP | Official Model Context Protocol SDK |
-| Logging | Structured JSON through Fastify/Pino with redaction |
+| Layer              | Choice                                                                                             |
+| ------------------ | -------------------------------------------------------------------------------------------------- |
+| Runtime            | Node.js 22 compatibility baseline; supported-runtime release gate                                  |
+| Language           | TypeScript, `strict`, `noUncheckedIndexedAccess`                                                   |
+| Workspaces         | pnpm, exact package-manager version pinned through Corepack                                        |
+| HTTP               | Fastify                                                                                            |
+| Validation/OpenAPI | Zod with Fastify type provider and generated JSON Schema                                           |
+| Database           | `pg`, hand-reviewed SQL, no ORM                                                                    |
+| Migrations         | `node-pg-migrate`, forward-only, immutable checksums                                               |
+| Passwords          | Argon2id, provisionally calibrated in the testbed and re-calibrated during final DSM certification |
+| Embedding          | `onnxruntime-node`, tokenizer files loaded locally                                                 |
+| PDF                | `pdfjs-dist`; MuPDF only if the measured fallback gate requires it                                 |
+| DOCX               | `unzipper` + `fast-xml-parser`, direct OOXML traversal                                             |
+| XLSX               | `exceljs` streaming reader                                                                         |
+| UI                 | Preact + Vite, no SSR                                                                              |
+| Markdown display   | HTML-disabled/sanitized Markdown renderer                                                          |
+| Tests              | Vitest, fast-check, Testcontainers, Playwright, accessibility checks                               |
+| Bundling           | esbuild, production dependencies preassembled                                                      |
+| Packaging          | Pinned vendored spksrc, built on Linux/WSL/CI                                                      |
+| MCP                | Official Model Context Protocol SDK                                                                |
+| Logging            | Structured JSON through Fastify/Pino with redaction                                                |
 
 No ORM, GraphQL, Redis, production-runtime Docker, runtime package installation, or second message broker is permitted. Docker is authorized only for development, CI, testbed execution, and release-candidate rehearsal.
 
@@ -291,12 +291,7 @@ The store must not import API code. Extractors must not import search or databas
 ```ts
 export type SiloCapability = 'read' | 'upload' | 'delete';
 
-export type PageBasis =
-  | 'exact'
-  | 'sheet'
-  | 'rendered'
-  | 'explicit'
-  | 'none';
+export type PageBasis = 'exact' | 'sheet' | 'rendered' | 'explicit' | 'none';
 
 export type ReadinessState =
   | 'unconfigured'
@@ -309,22 +304,10 @@ export type ReadinessState =
   | 'unavailable';
 
 export type DocumentState =
-  | 'pending'
-  | 'extracting'
-  | 'awaiting_vision'
-  | 'ready'
-  | 'source_missing'
-  | 'failed'
-  | 'purging';
+  'pending' | 'extracting' | 'awaiting_vision' | 'ready' | 'source_missing' | 'failed' | 'purging';
 
 export type JobState =
-  | 'pending'
-  | 'leased'
-  | 'retry_wait'
-  | 'paused'
-  | 'succeeded'
-  | 'failed'
-  | 'cancelled';
+  'pending' | 'leased' | 'retry_wait' | 'paused' | 'succeeded' | 'failed' | 'cancelled';
 
 export interface Locator {
   pageStart: number | null;
@@ -459,24 +442,24 @@ Search-only API keys may use search, chunks, context, and silo listing only. The
 
 ## 5. Milestones at a Glance
 
-| Milestone | Outcome | Hard gate |
-|---|---|---|
-| M0 | Repository-owned WSL/Docker testbed | Clean checkout starts healthy PostgreSQL 17 + pgvector and passes the halfvec probe |
-| M1 | Contract freeze and testbed feasibility | ONNX, PostgreSQL/pgvector, Node runtime, extraction, Ollama, and Argon2id pass locally; DSM register is complete |
-| M2 | Reproducible repo, dev stack, CI, thin SPK | Clean checkout builds; thin SPK passes static and simulated lifecycle checks |
-| M3 | Schema, identity, authorization, readiness | Zero-grant and independent-capability suites pass |
-| M4 | Markdown vertical slice | Markdown upload returns a scoped vector result with exact locators |
-| M5 | Durable ingestion, verifier, missing-source and purge | Crash recovery and purge evidence pass |
-| M6 | All five formats | Hand-verified fixture corpus passes |
-| M7 | Vision and bad-PDF fallback | Vision output is searchable; outages remain retryable |
-| M8 | Full retrieval, REST, gateway, MCP, eval harness | Contract and isolation matrices pass |
-| M9 | Full UI and setup wizard | All UI functions use public API; E2E/a11y pass |
-| M10 | Production SPK and simulated storage lifecycle | Candidate archive and lifecycle pass the local package-user simulator |
-| M11 | Zero-downtime rebuilds | Chunk/model rebuild and rollback work under search load |
-| M12 | Evaluation and testbed-measured defaults | Quality thresholds and provisional resource/latency thresholds pass on the test corpus |
-| M13 | Backup, restore, upgrade, fault/security hardening | Blank-install restore and upgrade rollback pass |
-| M14 | Immutable testbed release candidate | Clean-room build, full testbed suite, and 24-hour Docker soak pass |
-| Final DSM certification | Live-device validation after all milestones | Exact M14 candidate passes install through uninstall, performance, recovery, and soak checks before v1.0.0 |
+| Milestone               | Outcome                                               | Hard gate                                                                                                        |
+| ----------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| M0                      | Repository-owned WSL/Docker testbed                   | Clean checkout starts healthy PostgreSQL 17 + pgvector and passes the halfvec probe                              |
+| M1                      | Contract freeze and testbed feasibility               | ONNX, PostgreSQL/pgvector, Node runtime, extraction, Ollama, and Argon2id pass locally; DSM register is complete |
+| M2                      | Reproducible repo, dev stack, CI, thin SPK            | Clean checkout builds; thin SPK passes static and simulated lifecycle checks                                     |
+| M3                      | Schema, identity, authorization, readiness            | Zero-grant and independent-capability suites pass                                                                |
+| M4                      | Markdown vertical slice                               | Markdown upload returns a scoped vector result with exact locators                                               |
+| M5                      | Durable ingestion, verifier, missing-source and purge | Crash recovery and purge evidence pass                                                                           |
+| M6                      | All five formats                                      | Hand-verified fixture corpus passes                                                                              |
+| M7                      | Vision and bad-PDF fallback                           | Vision output is searchable; outages remain retryable                                                            |
+| M8                      | Full retrieval, REST, gateway, MCP, eval harness      | Contract and isolation matrices pass                                                                             |
+| M9                      | Full UI and setup wizard                              | All UI functions use public API; E2E/a11y pass                                                                   |
+| M10                     | Production SPK and simulated storage lifecycle        | Candidate archive and lifecycle pass the local package-user simulator                                            |
+| M11                     | Zero-downtime rebuilds                                | Chunk/model rebuild and rollback work under search load                                                          |
+| M12                     | Evaluation and testbed-measured defaults              | Quality thresholds and provisional resource/latency thresholds pass on the test corpus                           |
+| M13                     | Backup, restore, upgrade, fault/security hardening    | Blank-install restore and upgrade rollback pass                                                                  |
+| M14                     | Immutable testbed release candidate                   | Clean-room build, full testbed suite, and 24-hour Docker soak pass                                               |
+| Final DSM certification | Live-device validation after all milestones           | Exact M14 candidate passes install through uninstall, performance, recovery, and soak checks before v1.0.0       |
 
 ---
 
@@ -577,18 +560,18 @@ Milestone 0.
 
 ### Acceptance matrix
 
-| Case | Required result |
-|---|---|
-| ONNX load | Module loads in the Node 22 Linux compatibility container and completes inference; DSM ABI remains registered |
-| Embedding contract | Exactly 1,024 finite values, L2-normalized, repeatable within tolerance |
-| PostgreSQL | Testbed initializes and starts PG17; cross-built artifact is produced and inspected |
-| pgvector | Extension loads; `halfvec(1024)` insert and similarity query succeed |
-| Argon2id | Hash and verify succeed at a provisional testbed cost; final NAS calibration remains registered |
-| Storage probe | Unsafe simulated paths are rejected with a specific reason; DSM path classes remain registered |
-| Format spike | Each representative format produces or honestly rejects usable output |
-| Ollama | Tags/model check and schema-constrained table transcription succeed, or vision is recorded as unavailable without blocking the core |
-| Runtime support | Node 22 compatibility and end-of-support risk are recorded; installed Synology runtime remains registered |
-| DSM register | Every live-only assertion has an owner, procedure, expected result, and release-blocking severity |
+| Case               | Required result                                                                                                                     |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| ONNX load          | Module loads in the Node 22 Linux compatibility container and completes inference; DSM ABI remains registered                       |
+| Embedding contract | Exactly 1,024 finite values, L2-normalized, repeatable within tolerance                                                             |
+| PostgreSQL         | Testbed initializes and starts PG17; cross-built artifact is produced and inspected                                                 |
+| pgvector           | Extension loads; `halfvec(1024)` insert and similarity query succeed                                                                |
+| Argon2id           | Hash and verify succeed at a provisional testbed cost; final NAS calibration remains registered                                     |
+| Storage probe      | Unsafe simulated paths are rejected with a specific reason; DSM path classes remain registered                                      |
+| Format spike       | Each representative format produces or honestly rejects usable output                                                               |
+| Ollama             | Tags/model check and schema-constrained table transcription succeed, or vision is recorded as unavailable without blocking the core |
+| Runtime support    | Node 22 compatibility and end-of-support risk are recorded; installed Synology runtime remains registered                           |
+| DSM register       | Every live-only assertion has an owner, procedure, expected result, and release-blocking severity                                   |
 
 ### Exit gate
 
@@ -716,15 +699,15 @@ Prove every architectural seam with the thinnest useful flow: one Markdown uploa
 
 ### Acceptance matrix
 
-| Case | Required result |
-|---|---|
-| Upload retry | Same idempotency key/request returns the original outcome without a duplicate document |
-| Markdown normalization | BOM/CRLF/NFD inputs produce recorded LF/NFC canonical Markdown |
-| Locator | UTF-16 and UTF-8 slices reproduce every chunk exactly |
-| Embedding | Query and document conventions match the frozen model manifest |
-| Search scope | Only the permitted silo partition is searched |
-| Restart | A process restart resumes or safely settles the ingest job |
-| Packaged simulation | Uploaded Markdown is returned by `/v1/search` through the production bundle under simulated package paths and user restrictions |
+| Case                   | Required result                                                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Upload retry           | Same idempotency key/request returns the original outcome without a duplicate document                                          |
+| Markdown normalization | BOM/CRLF/NFD inputs produce recorded LF/NFC canonical Markdown                                                                  |
+| Locator                | UTF-16 and UTF-8 slices reproduce every chunk exactly                                                                           |
+| Embedding              | Query and document conventions match the frozen model manifest                                                                  |
+| Search scope           | Only the permitted silo partition is searched                                                                                   |
+| Restart                | A process restart resumes or safely settles the ingest job                                                                      |
+| Packaged simulation    | Uploaded Markdown is returned by `/v1/search` through the production bundle under simulated package paths and user restrictions |
 
 ### Exit gate
 
@@ -848,47 +831,47 @@ fixtures/formats/
 1. Keep extractor contracts pure: `extract(bytes, format, options, injectedVision) -> Page[]` with no database, system clock, filesystem path assumptions, or real network dependency.
 2. Implement a shared page/Markdown assembly contract with extraction method, confidence, warnings, images, and page basis.
 3. TXT/Markdown decode order:
-    - BOM wins and is stripped;
-    - test BOM-less UTF-16 alternating-null patterns;
-    - try strict UTF-8;
-    - use an approved legacy detector;
-    - record encoding and confidence;
-    - normalize CRLF to LF;
-    - normalize to NFC;
-    - compute all offsets only afterward.
+   - BOM wins and is stripped;
+   - test BOM-less UTF-16 alternating-null patterns;
+   - try strict UTF-8;
+   - use an approved legacy detector;
+   - record encoding and confidence;
+   - normalize CRLF to LF;
+   - normalize to NFC;
+   - compute all offsets only afterward.
 4. Preserve Markdown structure without reformatting. TXT only splits paragraphs on blank lines and does not invent headings.
 5. Implement PDF page extraction with `pdfjs-dist` legacy build:
-    - retain glyph coordinates and render modes;
-    - detect columns and rebuild reading order;
-    - infer missing spaces from glyph gaps;
-    - fold `ﬁ`, `ﬂ`, `ﬀ`, `ﬃ`, and `ﬄ`;
-    - conservatively join line-end hyphenation;
-    - handle useful invisible OCR layers without duplicating visible text;
-    - reject encrypted files that cannot be opened;
-    - calculate extraction confidence per page.
+   - retain glyph coordinates and render modes;
+   - detect columns and rebuild reading order;
+   - infer missing spaces from glyph gaps;
+   - fold `ﬁ`, `ﬂ`, `ﬀ`, `ﬃ`, and `ﬄ`;
+   - conservatively join line-end hyphenation;
+   - handle useful invisible OCR layers without duplicating visible text;
+   - reject encrypted files that cannot be opened;
+   - calculate extraction confidence per page.
 6. Fail a PDF page to the vision path when it has no usable text, too many replacements/private-use characters, implausible spacing, or quality far below the document median.
 7. Implement DOCX by walking OOXML directly:
-    - heading styles;
-    - paragraphs/emphasis;
-    - ordered/unordered lists;
-    - exact table structure;
-    - drawings/images;
-    - footnotes;
-    - `w:lastRenderedPageBreak`;
-    - explicit page and section breaks.
+   - heading styles;
+   - paragraphs/emphasis;
+   - ordered/unordered lists;
+   - exact table structure;
+   - drawings/images;
+   - footnotes;
+   - `w:lastRenderedPageBreak`;
+   - explicit page and section breaks.
 8. Set DOCX `page_basis` to `rendered`, `explicit`, or `none`. Never synthesize exact pages.
 9. Implement XLSX with streaming reads:
-    - one sheet is one page;
-    - apply number/date/currency display formats;
-    - index cached formula values, not formulas;
-    - warn when cached values are absent;
-    - detect contiguous nonempty regions;
-    - emit free text as paragraphs and regions as tables;
-    - infer headers conservatively;
-    - repeat merged-cell values;
-    - switch above 15 columns to record-oriented Markdown;
-    - report hidden/empty sheets and skipped ranges;
-    - send charts/images to the injected vision interface.
+   - one sheet is one page;
+   - apply number/date/currency display formats;
+   - index cached formula values, not formulas;
+   - warn when cached values are absent;
+   - detect contiguous nonempty regions;
+   - emit free text as paragraphs and regions as tables;
+   - infer headers conservatively;
+   - repeat merged-cell values;
+   - switch above 15 columns to record-oriented Markdown;
+   - report hidden/empty sheets and skipped ranges;
+   - send charts/images to the injected vision interface.
 10. Assemble document Markdown with pages in order and exactly `"\n\n"` between page bodies. Page markers remain metadata, not visible injected text.
 11. Store page UTF-16 and UTF-8 ranges into the assembled artifact.
 12. Write canonical Markdown before committing the new ready version.
@@ -898,18 +881,18 @@ fixtures/formats/
 
 ### Acceptance matrix
 
-| Case | Required result |
-|---|---|
-| BOM and BOM-less input | Correct decode, stripped BOM, offsets computed afterward |
+| Case                       | Required result                                                 |
+| -------------------------- | --------------------------------------------------------------- |
+| BOM and BOM-less input     | Correct decode, stripped BOM, offsets computed afterward        |
 | Low-confidence legacy text | Ingests with visible warning, never silently as confident UTF-8 |
-| Two-column PDF | Reading order matches human reading order |
-| Missing ToUnicode / scan | Page is routed to vision, not indexed as gibberish |
-| DOCX from Word | `page_basis=rendered` when saved break information exists |
-| Generated DOCX | `page_basis=none` when no reliable breaks exist |
-| Excel dates/currency | Markdown contains displayed values, not raw serial numbers |
-| Missing formula cache | Warning/failure is explicit; zero is not invented |
-| Wide/tall workbook | Record layout and repeated headers remain meaningful |
-| All output | Dual locator verifier passes after assembly and chunking |
+| Two-column PDF             | Reading order matches human reading order                       |
+| Missing ToUnicode / scan   | Page is routed to vision, not indexed as gibberish              |
+| DOCX from Word             | `page_basis=rendered` when saved break information exists       |
+| Generated DOCX             | `page_basis=none` when no reliable breaks exist                 |
+| Excel dates/currency       | Markdown contains displayed values, not raw serial numbers      |
+| Missing formula cache      | Warning/failure is explicit; zero is not invented               |
+| Wide/tall workbook         | Record layout and repeated headers remain meaningful            |
+| All output                 | Dual locator verifier passes after assembly and chunking        |
 
 ### Exit gate
 
@@ -1048,6 +1031,10 @@ Allow a nontechnical administrator to install, configure, ingest, search, troubl
 
 All intended user and administrator work is possible through the UI and public API. E2E, accessibility, security, and refresh/reconnect flows pass. Generate proof and tag `m09-complete`.
 
+### Testbed implementation record (2026-09-04)
+
+The M09 implementation is complete in the WSL/Docker testbed. The shipped Preact UI provides readiness-aware setup/login/maintenance routing, durable first-run recovery, the complete operator workspace, and public-API-backed administration. Migration `000007_operator_ui`, `platform/openapi.m09.json`, the M09 browser/accessibility suite, operator guide, checklist, proof, and five-job GitHub workflow are the closure evidence. Production model transfer and strict DSM storage/package behavior remain correctly assigned to M10 and final live-DSM certification.
+
 ---
 
 ## 16. Milestone 10 — Production SPK, Storage, Transport, and Simulated Lifecycle
@@ -1130,17 +1117,17 @@ Make system-wide chunk or embedding changes safe, observable, resumable, reversi
 
 ### Acceptance matrix
 
-| Case | Required result |
-|---|---|
-| Interrupted build | Resumes from completed document checkpoints |
-| Cancelled build | Active search unchanged; complete checkpoints retained |
-| Failed verification | New data remains detached and inactive |
+| Case                      | Required result                                                     |
+| ------------------------- | ------------------------------------------------------------------- |
+| Interrupted build         | Resumes from completed document checkpoints                         |
+| Cancelled build           | Active search unchanged; complete checkpoints retained              |
+| Failed verification       | New data remains detached and inactive                              |
 | Same model/profile change | Verified silos may flip independently without score incompatibility |
-| Model revision change | All silos flip atomically or none do |
-| Dimension change | New typed parent activates atomically |
-| Search during build | Old active build continues serving with normal scope |
-| Rollback | Previous build is restored before cleanup |
-| Cleanup | Old data is removed only after explicit authorization |
+| Model revision change     | All silos flip atomically or none do                                |
+| Dimension change          | New typed parent activates atomically                               |
+| Search during build       | Old active build continues serving with normal scope                |
+| Rollback                  | Previous build is restored before cleanup                           |
+| Cleanup                   | Old data is removed only after explicit authorization               |
 
 ### Exit gate
 
@@ -1218,15 +1205,15 @@ Prove that NodeRag can be recovered, upgraded, and operated after realistic fail
 
 Classify every persisted value before accepting a schema change:
 
-| Class | Examples | Backup/restore rule |
-|---|---|---|
-| Source of truth | managed originals, canonical Markdown, pages, silo/document identity | Always include |
-| Behavioral/provenance | parser/model/build manifests, chunk settings, grants | Include so content remains interpretable |
-| Derived | chunks, vectors, indexes, caches | Full backup may include; portable export may rebuild |
-| Secrets | provider tokens, root keys, database credentials | Only in encrypted recovery backup; re-encrypt on restore |
-| Security history | principals, password hashes, API-key hashes, audit metadata | Include in full recovery according to policy |
-| Ephemeral | sessions, setup tokens, leases, temporary uploads, live SSE connections | Never restore as active state |
-| Installation-local | filesystem paths, ports, device identity, schedules tied to a host | Reconfigure or import disabled |
+| Class                 | Examples                                                                | Backup/restore rule                                      |
+| --------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------- |
+| Source of truth       | managed originals, canonical Markdown, pages, silo/document identity    | Always include                                           |
+| Behavioral/provenance | parser/model/build manifests, chunk settings, grants                    | Include so content remains interpretable                 |
+| Derived               | chunks, vectors, indexes, caches                                        | Full backup may include; portable export may rebuild     |
+| Secrets               | provider tokens, root keys, database credentials                        | Only in encrypted recovery backup; re-encrypt on restore |
+| Security history      | principals, password hashes, API-key hashes, audit metadata             | Include in full recovery according to policy             |
+| Ephemeral             | sessions, setup tokens, leases, temporary uploads, live SSE connections | Never restore as active state                            |
+| Installation-local    | filesystem paths, ports, device identity, schedules tied to a host      | Reconfigure or import disabled                           |
 
 Unknown/unclassified fields fail backup-schema verification.
 
@@ -1388,20 +1375,20 @@ If a DSM check fails, do not weaken the check or publish v1.0.0. Reopen the owni
 
 Every milestone runs the applicable layers and preserves all earlier passing layers.
 
-| Layer | Required coverage |
-|---|---|
-| Unit | Locator, chunking, encoding, normalization, extraction, hashing, auth, settings, retry classification |
-| Property | Dual-unit slicing, surrogate safety, chunk reconstruction, overlap, idempotency |
-| Integration | Migrations, partitions, RLS, job leases, caches, search, purge, rebuild cutover |
-| Security | Route inventory, zero-grant, independent capabilities, API-key narrowing, CSRF, traversal, redaction |
-| Contract | Runtime schemas, OpenAPI, RFC 9457, pagination, idempotency, SSE reconnection |
-| UI | Setup, auth, search, ingest, admin, jobs, failures, purge, responsive layout |
-| Accessibility | Automated axe checks plus keyboard/focus/screen-reader checklist |
-| Evaluation | Recall@10, MRR, nDCG@10, zero-result rate, ANN/exact recall, p50/p95 |
-| Fault | Worker/DB/process/host restart, network outage, disk full, corrupt artifacts, expired leases |
-| Package simulation | Archive, metadata, non-root ownership, lifecycle scripts, storage probe, clean/retained/destructive states |
-| NAS final | Install, setup, ingest, search, reboot, upgrade, backup, restore, uninstall; run only after M14 |
-| Release | Clean build, checksum, SBOM, license allow-list, secret scan, tagged-candidate test, certified-artifact install |
+| Layer              | Required coverage                                                                                               |
+| ------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Unit               | Locator, chunking, encoding, normalization, extraction, hashing, auth, settings, retry classification           |
+| Property           | Dual-unit slicing, surrogate safety, chunk reconstruction, overlap, idempotency                                 |
+| Integration        | Migrations, partitions, RLS, job leases, caches, search, purge, rebuild cutover                                 |
+| Security           | Route inventory, zero-grant, independent capabilities, API-key narrowing, CSRF, traversal, redaction            |
+| Contract           | Runtime schemas, OpenAPI, RFC 9457, pagination, idempotency, SSE reconnection                                   |
+| UI                 | Setup, auth, search, ingest, admin, jobs, failures, purge, responsive layout                                    |
+| Accessibility      | Automated axe checks plus keyboard/focus/screen-reader checklist                                                |
+| Evaluation         | Recall@10, MRR, nDCG@10, zero-result rate, ANN/exact recall, p50/p95                                            |
+| Fault              | Worker/DB/process/host restart, network outage, disk full, corrupt artifacts, expired leases                    |
+| Package simulation | Archive, metadata, non-root ownership, lifecycle scripts, storage probe, clean/retained/destructive states      |
+| NAS final          | Install, setup, ingest, search, reboot, upgrade, backup, restore, uninstall; run only after M14                 |
+| Release            | Clean build, checksum, SBOM, license allow-list, secret scan, tagged-candidate test, certified-artifact install |
 
 ### Global invariants
 

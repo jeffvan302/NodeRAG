@@ -42,7 +42,7 @@ try {
     throw new Error(`Built server health failed: ${JSON.stringify(health)}`);
   }
   const ui = await fetchPath('/');
-  if (ui.status !== 200 || !ui.body.includes('<title>NodeRag</title>')) {
+  if (ui.status !== 200 || !ui.body.includes('<title>NodeRag')) {
     throw new Error('Built server did not serve the compiled UI.');
   }
   console.info('Built Fastify server and Preact UI smoke test passed.');

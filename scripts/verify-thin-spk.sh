@@ -41,6 +41,7 @@ for required in bin/server.cjs bin/worker.cjs bin/embedder.cjs ui/index.html \
   migrations/000001_foundation.sql migrations/000002_identity_foundation.sql \
   migrations/000003_markdown_slice.sql migrations/000004_durable_ingestion.sql \
   migrations/000005_vision_recovery.sql migrations/000006_retrieval_interfaces.sql \
+  migrations/000007_operator_ui.sql \
   bin/node_modules/@napi-rs/canvas/index.js \
   bin/node_modules/@napi-rs/canvas-linux-x64-gnu/skia.linux-x64-gnu.node \
   platform/migration-checksums.v1.json; do
@@ -70,8 +71,8 @@ done
   echo "Missing payload member: platform/openapi.m07.json" >&2
   exit 1
 }
-[[ -e "${verify_root}/payload/platform/openapi.m08.json" ]] || {
-  echo "Missing payload member: platform/openapi.m08.json" >&2
+[[ -e "${verify_root}/payload/platform/openapi.m09.json" ]] || {
+  echo "Missing payload member: platform/openapi.m09.json" >&2
   exit 1
 }
 
@@ -95,7 +96,7 @@ node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' \
 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' \
   "${verify_root}/payload/platform/openapi.m07.json"
 grep -F '"openapi": "3.1.1"' \
-  "${verify_root}/payload/platform/openapi.m08.json"
+  "${verify_root}/payload/platform/openapi.m09.json"
 grep -q '"run-as": "package"' "${verify_root}/outer/conf/privilege"
 grep -q '127.0.0.1:8787' "${verify_root}/outer/conf/resource"
 

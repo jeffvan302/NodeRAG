@@ -489,6 +489,41 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
     );
 
     expect((await mutate('PUT', '/v1/admin/settings', { efSearch: 120 })).statusCode).toBe(200);
+    const storageProbe = await mutate('POST', '/v1/admin/storage/probe', {
+      managedPath: join(root, 'storage-probe'),
+    });
+    expect(storageProbe.statusCode, storageProbe.body).toBe(200);
+    expect(storageProbe.json()).toMatchObject({
+      writable: true,
+      availableBytes: expect.stringMatching(/^\d+$/),
+      totalBytes: expect.stringMatching(/^\d+$/),
+    });
+    const calibration = await mutate('POST', '/v1/admin/calibration/embedding', {});
+    expect(calibration.statusCode, calibration.body).toBe(200);
+    expect(calibration.json()).toMatchObject({
+      chunks: 20,
+      charactersPerSecond: expect.any(Number),
+      model: 'Qwen3-Embedding-0.6B',
+    });
+    expect(
+      (
+        await mutate('PUT', '/v1/admin/setup/progress', {
+          step: 'storage',
+          progress: 40,
+        })
+      ).statusCode,
+    ).toBe(200);
+    const setupEvents = await app.inject({ method: 'GET', url: '/v1/setup/events' });
+    expect(setupEvents.statusCode).toBe(200);
+    expect(setupEvents.headers['content-type']).toContain('text/event-stream');
+    expect(setupEvents.body).toContain('event: step-completed');
+    expect(setupEvents.body).not.toContain('principalId');
+    const regressedProgress = await mutate('PUT', '/v1/admin/setup/progress', {
+      step: 'storage',
+      progress: 39,
+    });
+    expect(regressedProgress.statusCode).toBe(409);
+    expect(regressedProgress.json()).toMatchObject({ code: 'setup_progress_regression' });
     const model = await mutate('POST', '/v1/admin/models', {
       name: 'm08-test-model',
       sourceRevision: 'm08-test-revision',

@@ -72,7 +72,34 @@ export const registerIdentityRoutes = (
 
   app.get('/v1/setup/events', async (request, reply) => {
     const status = await setupStatus(options.pool);
-    const body = `id: ${request.id}\nevent: setup-status\ndata: ${JSON.stringify(status)}\n\n`;
+    const rawCursor = request.headers['last-event-id']?.toString();
+    if (rawCursor !== undefined && !/^\d+$/u.test(rawCursor)) {
+      return reply.code(400).send(problem(400, 'invalid_last_event_id', request.id));
+    }
+    const cursor = rawCursor === undefined ? 0 : Number(rawCursor);
+    const events = await options.pool.query<{
+      sequence: string;
+      event_type: string;
+      step: string;
+      progress: number;
+      created_at: Date;
+    }>(
+      `SELECT sequence::text, event_type, step, progress, created_at
+       FROM noderag.setup_event WHERE sequence > $1
+       ORDER BY sequence LIMIT 50`,
+      [cursor],
+    );
+    const body = [
+      `event: setup-status\ndata: ${JSON.stringify(status)}\n\n`,
+      ...events.rows.map(
+        (event) =>
+          `id: ${event.sequence}\nevent: ${event.event_type}\ndata: ${JSON.stringify({
+            step: event.step,
+            progress: event.progress,
+            createdAt: event.created_at.toISOString(),
+          })}\n\n`,
+      ),
+    ].join('');
     return reply
       .header('cache-control', 'no-cache, no-transform')
       .header('connection', 'keep-alive')
@@ -238,7 +265,7 @@ export const registerIdentityRoutes = (
     const principal = await authenticate(request);
     if (principal === null)
       return reply.code(401).send(problem(401, 'authentication_required', request.id));
-    const path = resolve(process.env['NODERAG_OPENAPI'] ?? 'platform/openapi.m08.json');
+    const path = resolve(process.env['NODERAG_OPENAPI'] ?? 'platform/openapi.m09.json');
     return reply
       .type('application/json')
       .code(200)

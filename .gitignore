@@ -12,6 +12,8 @@ generated-vectors/
 runtime-data/
 uploads/
 *.log
+test-results/
+playwright-report/
 
 # Package build output
 spk/artifacts/

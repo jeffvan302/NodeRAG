@@ -103,6 +103,7 @@ interface DocumentRow {
   readonly page_basis: string;
   readonly offsets_match_original: boolean;
   readonly source_state: string;
+  readonly source_id: unknown | null;
   readonly state: string;
   readonly created_at: Date;
   readonly indexed_at: Date | null;
@@ -140,6 +141,7 @@ const asDocument = (row: DocumentRow) => ({
   pageBasis: row.page_basis,
   offsetsMatchOriginal: row.offsets_match_original,
   sourceState: row.source_state,
+  sourceId: row.source_id === null ? null : databaseInteger(row.source_id, 'source id'),
   state: row.state,
   createdAt: row.created_at,
   indexedAt: row.indexed_at,

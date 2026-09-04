@@ -1,0 +1,181 @@
+name: M09 operator UI and first-run setup
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/m09-operator-ui.yml'
+      - '.dependency-cruiser.cjs'
+      - '.gitignore'
+      - '.gitmodules'
+      - '.prettierignore'
+      - '.prettierrc.json'
+      - 'adapters/**'
+      - 'packages/**'
+      - 'platform/**'
+      - 'scripts/**'
+      - 'spk/**'
+      - 'docker-testbed/**'
+      - 'fixtures/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - 'vitest.config.ts'
+      - 'eslint.config.mjs'
+      - 'LICENSE-POLICY.md'
+      - 'THIRD-PARTY.md'
+      - 'README.md'
+      - 'docs/Implementation/checklists/m09-checklist.md'
+      - 'docs/Implementation/checklists/m09-accessibility-checklist.md'
+      - 'docs/Implementation/m09-operator-guide.md'
+      - 'docs/Implementation/proofs/m09-proof.json'
+      - 'docs/Implementation/dsm-deferred-register.md'
+      - 'docs/Implementation/staged implementation.md'
+  pull_request:
+    paths:
+      - '.github/workflows/m09-operator-ui.yml'
+      - '.dependency-cruiser.cjs'
+      - '.gitignore'
+      - '.gitmodules'
+      - '.prettierignore'
+      - '.prettierrc.json'
+      - 'adapters/**'
+      - 'packages/**'
+      - 'platform/**'
+      - 'scripts/**'
+      - 'spk/**'
+      - 'docker-testbed/**'
+      - 'fixtures/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - 'vitest.config.ts'
+      - 'eslint.config.mjs'
+      - 'LICENSE-POLICY.md'
+      - 'THIRD-PARTY.md'
+      - 'README.md'
+      - 'docs/Implementation/checklists/m09-checklist.md'
+      - 'docs/Implementation/checklists/m09-accessibility-checklist.md'
+      - 'docs/Implementation/m09-operator-guide.md'
+      - 'docs/Implementation/proofs/m09-proof.json'
+      - 'docs/Implementation/dsm-deferred-register.md'
+      - 'docs/Implementation/staged implementation.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m09-operator-ui-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 22.22.0
+  PNPM_VERSION: 11.25.0
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository and pinned spksrc
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          submodules: recursive
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run repository and contract quality gates
+        run: |
+          pnpm ci:quality
+          pnpm repo:check
+
+  browser-e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install pinned Chromium runtime
+        run: pnpm --filter @noderag/ui exec playwright install --with-deps chromium
+      - name: Run setup, operator, destructive-action, and accessibility journeys
+        run: pnpm test:e2e
+
+  postgres-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run setup, storage, calibration, scope, ingestion, and retrieval matrix
+        run: pnpm test:integration
+
+  linux-compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NODERAG_M01_CPU_LIMIT: 2
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Re-run Linux Node, ONNX, Argon2, and database compatibility
+        run: bash docker-testbed/scripts/verify-m01.sh
+      - name: Stop compatibility services
+        if: always()
+        run: bash docker-testbed/scripts/down.sh
+
+  thin-spk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository and pinned spksrc
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          submodules: recursive
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build and verify deterministic M09 thin DSM package
+        run: |
+          pnpm package:thin
+          first_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64.spk | awk '{print $1}')"
+          pnpm package:thin
+          second_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64.spk | awk '{print $1}')"
+          test "${first_sha}" = "${second_sha}"
+          pnpm package:verify

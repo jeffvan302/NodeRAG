@@ -159,6 +159,7 @@ describe.sequential('M03 identity and authorization foundation', () => {
       'principal',
       'session',
       'settings',
+      'setup_event',
       'silo',
       'silo_build_state',
       'silo_grant',
@@ -174,7 +175,7 @@ describe.sequential('M03 identity and authorization foundation', () => {
     const head = await state.pool.query<{ name: string }>(
       'SELECT name FROM public.noderag_migrations ORDER BY id DESC LIMIT 1',
     );
-    expect(head.rows[0]?.name).toBe('000006_retrieval_interfaces');
+    expect(head.rows[0]?.name).toBe('000007_operator_ui');
     const cacheType = await state.pool.query<{ formatted: string }>(
       `SELECT format_type(a.atttypid, a.atttypmod) AS formatted
        FROM pg_attribute a

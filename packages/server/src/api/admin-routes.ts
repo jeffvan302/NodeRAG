@@ -183,14 +183,36 @@ const evaluationSchema = z.discriminatedUnion('action', [
       externalId: z.string().min(1).max(120),
       siloId: smallIdSchema,
       query: z.string().min(1).max(4000),
+      queryClass: z
+        .enum([
+          'semantic',
+          'exact_identifier',
+          'exact_name',
+          'error_code',
+          'quoted_phrase',
+          'cross_page',
+          'table',
+          'vision',
+          'multilingual',
+          'unicode',
+        ])
+        .default('semantic'),
+      expectedFormat: z.enum(['pdf', 'docx', 'xlsx', 'txt', 'md']).optional(),
+      answerable: z.boolean().default(true),
       relevant: z
         .array(
           z
             .object({
               document: z.string().min(1).max(1024),
-              pages: z.array(z.number().int().min(0)).max(100).optional(),
+              sha256: z
+                .string()
+                .regex(/^[a-f0-9]{64}$/)
+                .optional(),
+              pages: z.array(z.number().int().min(1)).min(1).max(100).optional(),
+              sheets: z.array(z.string().min(1).max(255)).min(1).max(100).optional(),
             })
-            .strict(),
+            .strict()
+            .refine((value) => value.pages === undefined || value.sheets === undefined),
         )
         .min(1),
       notes: z.string().max(4000).optional(),
@@ -199,7 +221,26 @@ const evaluationSchema = z.discriminatedUnion('action', [
   z
     .object({
       action: z.literal('queue_run'),
-      mode: z.enum(['vector', 'keyword', 'hybrid']).default('vector'),
+      modes: z
+        .array(z.enum(['vector', 'keyword', 'hybrid']))
+        .min(1)
+        .max(3)
+        .default(['vector', 'keyword', 'hybrid']),
+      workload: z.enum(['idle', 'ingest']).default('idle'),
+      environment: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).default({}),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal('set_case_state'),
+      caseId: idSchema,
+      state: z.enum(['draft', 'approved', 'rejected']),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal('accept_baseline'),
+      runId: idSchema,
     })
     .strict(),
 ]);
@@ -251,6 +292,8 @@ const idempotencyKey = (request: FastifyRequest): string => {
 };
 
 const stableBody = (value: unknown): string => JSON.stringify(value);
+const digestJson = (value: unknown): string =>
+  createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
 const mutate = async (
   request: FastifyRequest,
@@ -290,6 +333,11 @@ const mutationFailure = (
     ['overlap_exceeds_half_target', { status: 400, code: 'invalid_chunk_overlap' }],
     ['not_found', { status: 404, code: 'not_found' }],
     ['backup_not_found', { status: 404, code: 'backup_not_found' }],
+    [
+      'approved_evaluation_cases_missing',
+      { status: 409, code: 'approved_evaluation_cases_missing' },
+    ],
+    ['evaluation_run_not_acceptable', { status: 409, code: 'evaluation_run_not_acceptable' }],
     ['build_not_mutable', { status: 409, code: 'build_not_mutable' }],
     ['setup_progress_regression', { status: 409, code: 'setup_progress_regression' }],
     ['server-admin-required', { status: 403, code: 'server_admin_required' }],
@@ -299,10 +347,18 @@ const mutationFailure = (
     error instanceof Error && 'code' in error && typeof error.code === 'string'
       ? error.code
       : undefined;
+  const databaseConstraint =
+    error instanceof Error && 'constraint' in error && typeof error.constraint === 'string'
+      ? error.constraint
+      : undefined;
   if (databaseCode === '23505') return sendProblem(reply, 409, 'conflict', request.id);
   if (databaseCode === '23503') return sendProblem(reply, 400, 'invalid_reference', request.id);
   request.log.error(
-    { errorName: error instanceof Error ? error.name : 'unknown', databaseCode },
+    {
+      errorName: error instanceof Error ? error.name : 'unknown',
+      databaseCode,
+      databaseConstraint,
+    },
     'administration mutation failed',
   );
   return sendProblem(reply, 500, 'mutation_failed', request.id);
@@ -1578,14 +1634,43 @@ export const registerAdminRoutes = (
     const principal = await requireAdmin(request, options, false);
     if (principal === null || principal === 'csrf')
       return sendProblem(reply, 401, 'server_admin_required', request.id);
-    const [cases, runs, diagnostics] = await Promise.all([
+    const [cases, runs, diagnostics, baselines, alerts] = await Promise.all([
       options.pool.query(
-        `SELECT id,external_id AS "externalId",silo_id AS "siloId",query,relevant,notes,enabled,created_at AS "createdAt" FROM noderag.evaluation_case ORDER BY id`,
+        `SELECT id,external_id AS "externalId",silo_id AS "siloId",query,
+                query_class AS "queryClass",expected_format AS "expectedFormat",answerable,
+                relevant,notes,enabled,curation_state AS "curationState",
+                reviewed_at AS "reviewedAt",created_at AS "createdAt"
+           FROM noderag.evaluation_case ORDER BY id`,
       ),
-      options.pool.query(`SELECT * FROM noderag.evaluation_run ORDER BY id DESC LIMIT 50`),
+      options.pool.query(
+        `SELECT id,mode,workload,state,config,metrics,case_count AS "caseCount",
+                commit_sha AS "commitSha",migration_head AS "migrationHead",
+                build_snapshot AS "buildSnapshot",model_snapshot AS "modelSnapshot",
+                failure_code AS "failureCode",started_at AS "startedAt",
+                finished_at AS "finishedAt",created_at AS "createdAt"
+           FROM noderag.evaluation_run ORDER BY id DESC LIMIT 50`,
+      ),
       options.pool.query(`SELECT * FROM noderag.retrieval_diagnostic ORDER BY id DESC LIMIT 50`),
+      options.pool.query(
+        `SELECT baseline.id,baseline.mode,baseline.workload,baseline.run_id AS "runId",
+                baseline.metrics_digest AS "metricsDigest",baseline.accepted_at AS "acceptedAt"
+           FROM noderag.evaluation_baseline baseline
+          WHERE baseline.active ORDER BY baseline.mode,baseline.workload`,
+      ),
+      options.pool.query(
+        `SELECT id,run_id AS "runId",baseline_id AS "baselineId",severity,code,detail,
+                created_at AS "createdAt"
+           FROM noderag.evaluation_alert
+          WHERE acknowledged_at IS NULL ORDER BY created_at DESC LIMIT 100`,
+      ),
     ]);
-    return reply.send({ cases: cases.rows, runs: runs.rows, diagnostics: diagnostics.rows });
+    return reply.send({
+      cases: cases.rows,
+      runs: runs.rows,
+      diagnostics: diagnostics.rows,
+      baselines: baselines.rows,
+      alerts: alerts.rows,
+    });
   });
   app.post('/v1/admin/evaluation', async (request, reply) => {
     const principal = await requireAdmin(request, options, true);
@@ -1603,11 +1688,20 @@ export const registerAdminRoutes = (
         async (database) => {
           if (body.data.action === 'add_case') {
             const row = await database.query(
-              `INSERT INTO noderag.evaluation_case(external_id,silo_id,query,relevant,notes,created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,external_id AS "externalId",silo_id AS "siloId",relevant`,
+              `INSERT INTO noderag.evaluation_case
+                 (external_id,silo_id,query,query_class,expected_format,answerable,
+                  relevant,notes,created_by,updated_by)
+               VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)
+               RETURNING id,external_id AS "externalId",silo_id AS "siloId",
+                         query_class AS "queryClass",expected_format AS "expectedFormat",
+                         answerable,relevant,curation_state AS "curationState"`,
               [
                 body.data.externalId,
                 body.data.siloId,
                 body.data.query.normalize('NFC'),
+                body.data.queryClass,
+                body.data.expectedFormat ?? null,
+                body.data.answerable,
                 JSON.stringify(body.data.relevant),
                 body.data.notes ?? null,
                 principal.principalId,
@@ -1615,11 +1709,183 @@ export const registerAdminRoutes = (
             );
             return { status: 201, body: row.rows[0] };
           }
-          const row = await database.query(
-            `INSERT INTO noderag.evaluation_run(mode,created_by,config) VALUES($1,$2,jsonb_build_object('relevanceUnit','document-page')) RETURNING id,mode,state,created_at AS "createdAt"`,
-            [body.data.mode, principal.principalId],
+          if (body.data.action === 'set_case_state') {
+            const row = await database.query(
+              `UPDATE noderag.evaluation_case
+                  SET curation_state=$2::text,
+                      reviewed_at=CASE WHEN $2::text='draft' THEN NULL::timestamptz ELSE now() END,
+                      reviewed_by=CASE WHEN $2::text='draft' THEN NULL::bigint ELSE $3::bigint END,
+                      updated_at=now(),updated_by=$3
+                WHERE id=$1
+               RETURNING id,external_id AS "externalId",curation_state AS "curationState",
+                         reviewed_at AS "reviewedAt"`,
+              [body.data.caseId, body.data.state, principal.principalId],
+            );
+            if (row.rows[0] === undefined) throw new Error('not_found');
+            return { status: 200, body: row.rows[0] };
+          }
+          if (body.data.action === 'accept_baseline') {
+            const accepted = await database.query<{
+              mode: string;
+              workload: string;
+              metrics: unknown;
+              settings_revision_id: unknown;
+            }>(
+              `SELECT mode,workload,metrics,settings_revision_id
+                 FROM noderag.evaluation_run
+                WHERE id=$1 AND state='succeeded'
+                  AND COALESCE((metrics #>> '{gate,passed}')::boolean,false)`,
+              [body.data.runId],
+            );
+            const run = accepted.rows[0];
+            if (run === undefined) throw new Error('evaluation_run_not_acceptable');
+            await database.query(
+              `UPDATE noderag.evaluation_baseline SET active=false
+                WHERE mode=$1 AND workload=$2 AND active`,
+              [run.mode, run.workload],
+            );
+            const baseline = await database.query(
+              `INSERT INTO noderag.evaluation_baseline
+                 (mode,workload,run_id,metrics_digest,accepted_by)
+               VALUES($1,$2,$3,$4,$5)
+               RETURNING id,mode,workload,run_id AS "runId",
+                         metrics_digest AS "metricsDigest",accepted_at AS "acceptedAt"`,
+              [
+                run.mode,
+                run.workload,
+                body.data.runId,
+                digestJson(run.metrics),
+                principal.principalId,
+              ],
+            );
+            if (run.settings_revision_id !== null) {
+              await database.query(
+                `UPDATE noderag.evaluation_settings_revision SET accepted=true WHERE id=$1`,
+                [run.settings_revision_id],
+              );
+            }
+            return { status: 201, body: baseline.rows[0] };
+          }
+
+          const approved = await database.query(
+            `SELECT evaluation.external_id AS "externalId",silo.slug AS silo,
+                    evaluation.query,evaluation.query_class AS "queryClass",
+                    evaluation.expected_format AS "expectedFormat",evaluation.answerable,
+                    evaluation.relevant
+               FROM noderag.evaluation_case evaluation
+               JOIN noderag.silo silo ON silo.id=evaluation.silo_id
+              WHERE evaluation.enabled AND evaluation.curation_state='approved'
+              ORDER BY evaluation.external_id`,
           );
-          return { status: 202, body: row.rows[0] };
+          if (approved.rows.length === 0) throw new Error('approved_evaluation_cases_missing');
+          const corpusManifest = {
+            relevanceUnit: 'document-page-sheet-sha256',
+            cases: approved.rows,
+          };
+          const corpusDigest = digestJson(corpusManifest);
+          const corpus = await database.query<{ id: unknown }>(
+            `INSERT INTO noderag.evaluation_corpus_snapshot
+               (corpus_id,manifest_digest,manifest,document_count,case_count,frozen_by)
+             VALUES('database-approved-v1',$1,$2,$3,$4,$5)
+             ON CONFLICT(manifest_digest) DO UPDATE SET corpus_id=EXCLUDED.corpus_id
+             RETURNING id`,
+            [
+              corpusDigest,
+              JSON.stringify(corpusManifest),
+              new Set(
+                approved.rows.flatMap((item) =>
+                  Array.isArray((item as { relevant?: unknown }).relevant)
+                    ? (item as { relevant: { document?: unknown }[] }).relevant
+                        .map(({ document }) => document)
+                        .filter((value): value is string => typeof value === 'string')
+                    : [],
+                ),
+              ).size,
+              approved.rows.length,
+              principal.principalId,
+            ],
+          );
+          const settings = await database.query(
+            `SELECT target_chars AS "targetChars",overlap_chars AS "overlapChars",
+                    max_tokens AS "maxTokens",snap_window AS "snapWindow",
+                    heading_prefix AS "headingPrefix",embed_threads AS "embedThreads",
+                    ingest_threads AS "ingestThreads",throttle_when_busy AS "throttleWhenBusy",
+                    default_mode AS "defaultMode",ef_search AS "efSearch",
+                    rules_version AS "rulesVersion",updated_at AS "updatedAt"
+               FROM noderag.settings WHERE id=1`,
+          );
+          const settingsPayload = {
+            settings: settings.rows[0] ?? {},
+            environment: body.data.environment,
+          };
+          const settingsDigest = digestJson(settingsPayload);
+          const revision = await database.query<{ id: unknown }>(
+            `INSERT INTO noderag.evaluation_settings_revision
+               (settings_digest,settings,environment,created_by)
+             VALUES($1,$2,$3,$4)
+             ON CONFLICT(settings_digest) DO UPDATE SET settings=EXCLUDED.settings
+             RETURNING id`,
+            [
+              settingsDigest,
+              JSON.stringify(settingsPayload.settings),
+              JSON.stringify(settingsPayload.environment),
+              principal.principalId,
+            ],
+          );
+          const builds = await database.query(
+            `SELECT state.silo_id AS "siloId",state.build_id AS "buildId",
+                    build.target_chars AS "targetChars",build.overlap_chars AS "overlapChars",
+                    build.max_tokens AS "maxTokens",build.heading_prefix AS "headingPrefix"
+               FROM noderag.silo_build_state state
+               JOIN noderag.build build ON build.id=state.build_id
+              WHERE state.state='active' ORDER BY state.silo_id`,
+          );
+          const models = await database.query(
+            `SELECT model.id,model.name,model.source_revision AS "sourceRevision",
+                    model.artifact_sha256 AS "artifactSha256",
+                    model.tokenizer_revision AS "tokenizerRevision",model.quantization,
+                    model.dimensions,model.pooling,model.normalization
+               FROM noderag.model_manifest model
+              WHERE model.active ORDER BY model.id`,
+          );
+          const commitSha = process.env['NODERAG_COMMIT_SHA'];
+          const pinnedCommit = /^[a-f0-9]{40}$/u.test(commitSha ?? '') ? commitSha : null;
+          const queued = [];
+          for (const mode of [...new Set(body.data.modes)]) {
+            const row = await database.query(
+              `INSERT INTO noderag.evaluation_run
+                 (mode,workload,created_by,config,corpus_snapshot_id,settings_revision_id,
+                  commit_sha,migration_head,build_snapshot,model_snapshot,thresholds)
+               VALUES($1,$2,$3,$4,$5,$6,$7,'000010_evaluation_baselines',$8,$9,$10)
+               RETURNING id,mode,workload,state,created_at AS "createdAt"`,
+              [
+                mode,
+                body.data.workload,
+                principal.principalId,
+                JSON.stringify({
+                  relevanceUnit: 'document-page-sheet-sha256',
+                  corpusDigest,
+                  settingsDigest,
+                }),
+                corpus.rows[0]?.id,
+                revision.rows[0]?.id,
+                pinnedCommit,
+                JSON.stringify({ items: builds.rows }),
+                JSON.stringify({ active: models.rows }),
+                JSON.stringify({
+                  minimumRecallAt10: 0.85,
+                  minimumPerFormatRecallAt10: 0.8,
+                  maximumZeroResultRate: 0.05,
+                  maximumIdleP95Ms: 3000,
+                  maximumIngestP95Ms: 5000,
+                  maximumLeakageCount: 0,
+                  maximumLocatorMismatchCount: 0,
+                }),
+              ],
+            );
+            queued.push(row.rows[0]);
+          }
+          return { status: 202, body: { runs: queued, corpusDigest, settingsDigest } };
         },
       );
       return reply.code(result.response.status).send(result.response.body);

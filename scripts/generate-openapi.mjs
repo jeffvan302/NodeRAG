@@ -4,7 +4,7 @@ import { format, resolveConfig } from 'prettier';
 
 const root = resolve(import.meta.dirname, '..');
 const inventoryPath = resolve(root, 'platform/route-authorization.v1.json');
-const outputPath = resolve(root, 'platform/openapi.m11.json');
+const outputPath = resolve(root, 'platform/openapi.m12.json');
 const inventory = JSON.parse(await readFile(inventoryPath, 'utf8'));
 
 const pathParameters = (path) =>
@@ -55,9 +55,11 @@ for (const route of inventory.routes) {
                 schema:
                   route.path === '/v1/search'
                     ? { $ref: '#/components/schemas/SearchRequest' }
-                    : route.path === '/mcp'
-                      ? { $ref: '#/components/schemas/JsonRpcRequest' }
-                      : { type: 'object', additionalProperties: true },
+                    : route.path === '/v1/admin/evaluation'
+                      ? { $ref: '#/components/schemas/EvaluationAdminRequest' }
+                      : route.path === '/mcp'
+                        ? { $ref: '#/components/schemas/JsonRpcRequest' }
+                        : { type: 'object', additionalProperties: true },
               },
             },
           },
@@ -114,7 +116,7 @@ const document = {
     title: 'NodeRag API',
     version: '0.2.0',
     description:
-      'M10 contract for the production package, storage and model lifecycle, operator UI, scoped retrieval, ingestion operations and complete REST administration.',
+      'M12 contract for reproducible retrieval evaluation, frozen baselines, measured defaults, production package lifecycle, operator UI, scoped retrieval and ingestion operations.',
   },
   servers: [{ url: '/', description: 'Control or narrowed gateway listener' }],
   paths,
@@ -225,6 +227,75 @@ const document = {
           document: { type: 'object' },
         },
       },
+      EvaluationAdminRequest: {
+        oneOf: [
+          {
+            type: 'object',
+            required: ['action', 'externalId', 'siloId', 'query', 'relevant'],
+            properties: {
+              action: { const: 'add_case' },
+              externalId: { type: 'string', minLength: 1, maxLength: 120 },
+              siloId: { type: 'integer', minimum: 1, maximum: 32767 },
+              query: { type: 'string', minLength: 1, maxLength: 4000 },
+              queryClass: {
+                enum: [
+                  'semantic',
+                  'exact_identifier',
+                  'exact_name',
+                  'error_code',
+                  'quoted_phrase',
+                  'cross_page',
+                  'table',
+                  'vision',
+                  'multilingual',
+                  'unicode',
+                ],
+              },
+              expectedFormat: { enum: ['pdf', 'docx', 'xlsx', 'txt', 'md'] },
+              answerable: { type: 'boolean', default: true },
+              relevant: { type: 'array', minItems: 1, items: { type: 'object' } },
+              notes: { type: 'string', maxLength: 4000 },
+            },
+            additionalProperties: false,
+          },
+          {
+            type: 'object',
+            required: ['action'],
+            properties: {
+              action: { const: 'queue_run' },
+              modes: {
+                type: 'array',
+                minItems: 1,
+                maxItems: 3,
+                uniqueItems: true,
+                items: { enum: ['vector', 'keyword', 'hybrid'] },
+              },
+              workload: { enum: ['idle', 'ingest'], default: 'idle' },
+              environment: { type: 'object' },
+            },
+            additionalProperties: false,
+          },
+          {
+            type: 'object',
+            required: ['action', 'caseId', 'state'],
+            properties: {
+              action: { const: 'set_case_state' },
+              caseId: { type: 'integer', minimum: 1 },
+              state: { enum: ['draft', 'approved', 'rejected'] },
+            },
+            additionalProperties: false,
+          },
+          {
+            type: 'object',
+            required: ['action', 'runId'],
+            properties: {
+              action: { const: 'accept_baseline' },
+              runId: { type: 'integer', minimum: 1 },
+            },
+            additionalProperties: false,
+          },
+        ],
+      },
       JsonRpcRequest: {
         type: 'object',
         required: ['jsonrpc', 'method'],
@@ -262,7 +333,7 @@ const rendered = await format(JSON.stringify(document), {
 if (process.argv.includes('--check')) {
   const current = await readFile(outputPath, 'utf8').catch(() => '');
   if (current !== rendered) {
-    console.error('platform/openapi.m11.json is out of date; run pnpm openapi:generate');
+    console.error('platform/openapi.m12.json is out of date; run pnpm openapi:generate');
     process.exitCode = 1;
   }
 } else {

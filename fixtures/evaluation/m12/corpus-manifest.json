@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "id": "m12-project-corpus-v1",
+  "description": "Approved NodeRag planning decisions projected into every supported release format.",
+  "sourcePlanningFiles": [
+    "docs/planning/ARCHITECTURE.md",
+    "docs/planning/IMPLEMENTATION.md",
+    "docs/planning/M1-TESTBED-FEASIBILITY.md",
+    "docs/planning/M2-REPOSITORY-THIN-SPK.md",
+    "docs/planning/M3-IDENTITY-AUTHORIZATION.md",
+    "docs/planning/M4-MARKDOWN-VERTICAL-SLICE.md",
+    "docs/planning/M5-DURABLE-INGESTION-PURGE.md"
+  ],
+  "silos": [
+    {
+      "slug": "platform",
+      "displayName": "Platform"
+    },
+    {
+      "slug": "operations",
+      "displayName": "Operations"
+    },
+    {
+      "slug": "evaluation",
+      "displayName": "Evaluation"
+    }
+  ],
+  "documents": [
+    {
+      "path": "corpus/platform-policy.md",
+      "silo": "platform",
+      "format": "md",
+      "bytes": 3086,
+      "sha256": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f",
+      "pageBasis": "none"
+    },
+    {
+      "path": "corpus/project-requirements.docx",
+      "silo": "platform",
+      "format": "docx",
+      "bytes": 40174,
+      "sha256": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee",
+      "pageBasis": "rendered",
+      "pages": 4
+    },
+    {
+      "path": "corpus/operations-runbook.txt",
+      "silo": "operations",
+      "format": "txt",
+      "bytes": 3066,
+      "sha256": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f",
+      "pageBasis": "none"
+    },
+    {
+      "path": "corpus/architecture-evidence.pdf",
+      "silo": "operations",
+      "format": "pdf",
+      "bytes": 55058,
+      "sha256": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa",
+      "pageBasis": "exact",
+      "pages": 4,
+      "visionPages": [3]
+    },
+    {
+      "path": "corpus/evaluation-matrix.xlsx",
+      "silo": "evaluation",
+      "format": "xlsx",
+      "bytes": 8236,
+      "sha256": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5",
+      "pageBasis": "sheet",
+      "sheets": ["Quality Thresholds", "Candidate Matrix", "Unicode Cases"]
+    }
+  ]
+}

@@ -430,7 +430,7 @@ export const confirmRebuildProposal = async (
            (kind,document_id,silo_id,build_id,priority,payload,frozen_config)
          VALUES ('embed',$1,$2,$3,8,
                  jsonb_build_object('reason','rebuild','stagingTable',$4::text),
-                 jsonb_build_object('schemaRevision','000009_zero_downtime_rebuilds',
+                 jsonb_build_object('schemaRevision','000010_evaluation_baselines',
                                     'buildId',$3::smallint,'stagingTable',$4::text))`,
         [databaseInteger(document.id, 'document id'), siloId, buildId, table],
       );

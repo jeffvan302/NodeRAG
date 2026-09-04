@@ -14,6 +14,8 @@
     "ci:quality": "corepack pnpm@11.25.0 migrations:verify && corepack pnpm@11.25.0 openapi:verify && corepack pnpm@11.25.0 typecheck && corepack pnpm@11.25.0 lint && corepack pnpm@11.25.0 format:check && corepack pnpm@11.25.0 boundaries && corepack pnpm@11.25.0 test:unit && corepack pnpm@11.25.0 build && corepack pnpm@11.25.0 build:smoke && corepack pnpm@11.25.0 license:check && corepack pnpm@11.25.0 security:scan",
     "build:smoke": "node scripts/smoke-built-server.mjs",
     "dev": "node scripts/dev.mjs",
+    "evaluation:m12": "node scripts/verify-m12-corpus.mjs && vitest run --project unit packages/server/test/evaluation.unit.test.ts packages/server/test/retrieval.unit.test.ts && vitest run --project integration packages/server/test/m12-evaluation.integration.test.ts packages/server/test/retrieval-diagnostics.integration.test.ts",
+    "evaluation:m12:real": "bash docker-testbed/scripts/verify-m12.sh --real",
     "format": "prettier --write .dependency-cruiser.cjs adapters packages platform scripts README.md SECURITY.md LICENSE-POLICY.md THIRD-PARTY.md package.json pnpm-workspace.yaml tsconfig.base.json eslint.config.mjs vitest.config.ts",
     "format:check": "prettier --check .dependency-cruiser.cjs adapters packages platform scripts README.md SECURITY.md LICENSE-POLICY.md THIRD-PARTY.md package.json pnpm-workspace.yaml tsconfig.base.json eslint.config.mjs vitest.config.ts",
     "fixtures:m06": "node scripts/generate-m06-fixtures.mjs",

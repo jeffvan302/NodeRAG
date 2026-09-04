@@ -1,0 +1,559 @@
+{
+  "version": 2,
+  "id": "m12-project-golden-v1",
+  "corpusManifest": "fixtures/evaluation/m12/corpus-manifest.json",
+  "curatedAt": "2026-09-04T00:00:00Z",
+  "curator": "NodeRag project team",
+  "synthetic": false,
+  "sourcePlanningFiles": [
+    "docs/planning/ARCHITECTURE.md",
+    "docs/planning/IMPLEMENTATION.md",
+    "docs/planning/M1-TESTBED-FEASIBILITY.md",
+    "docs/planning/M2-REPOSITORY-THIN-SPK.md",
+    "docs/planning/M3-IDENTITY-AUTHORIZATION.md",
+    "docs/planning/M4-MARKDOWN-VERTICAL-SLICE.md",
+    "docs/planning/M5-DURABLE-INGESTION-PURGE.md"
+  ],
+  "cases": [
+    {
+      "id": "md-001",
+      "silo": "platform",
+      "query": "Which project content is allowed to leave the NAS?",
+      "queryClass": "semantic",
+      "expectedFormat": "md",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/platform-policy.md", "sha256": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f" }]
+    },
+    {
+      "id": "md-002",
+      "silo": "platform",
+      "query": "SEC-403",
+      "queryClass": "error_code",
+      "expectedFormat": "md",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/platform-policy.md", "sha256": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f" }]
+    },
+    {
+      "id": "md-003",
+      "silo": "platform",
+      "query": "What is the PostgreSQL authorization backstop?",
+      "queryClass": "exact_name",
+      "expectedFormat": "md",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/platform-policy.md", "sha256": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f" }]
+    },
+    {
+      "id": "md-004",
+      "silo": "platform",
+      "query": "\"Docker results are never presented as Package Center\"",
+      "queryClass": "quoted_phrase",
+      "expectedFormat": "md",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/platform-policy.md", "sha256": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f" }]
+    },
+    {
+      "id": "md-005",
+      "silo": "platform",
+      "query": "Which search mode is the initial default?",
+      "queryClass": "semantic",
+      "expectedFormat": "md",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/platform-policy.md", "sha256": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f" }]
+    },
+    {
+      "id": "md-006",
+      "silo": "platform",
+      "query": "ef_search 100",
+      "queryClass": "exact_identifier",
+      "expectedFormat": "md",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/platform-policy.md", "sha256": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f" }]
+    },
+    {
+      "id": "md-007",
+      "silo": "platform",
+      "query": "List the five supported release formats.",
+      "queryClass": "exact_name",
+      "expectedFormat": "md",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/platform-policy.md", "sha256": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f" }]
+    },
+    {
+      "id": "md-008",
+      "silo": "platform",
+      "query": "café canonical normalization",
+      "queryClass": "unicode",
+      "expectedFormat": "md",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/platform-policy.md", "sha256": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f" }]
+    },
+    {
+      "id": "md-009",
+      "silo": "platform",
+      "query": "ローカル検索",
+      "queryClass": "multilingual",
+      "expectedFormat": "md",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/platform-policy.md", "sha256": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f" }]
+    },
+    {
+      "id": "md-010",
+      "silo": "platform",
+      "query": "What can a search-only API key retrieve and what can it not download?",
+      "queryClass": "semantic",
+      "expectedFormat": "md",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/platform-policy.md", "sha256": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f" }]
+    },
+    {
+      "id": "md-011",
+      "silo": "platform",
+      "query": "1200/200 and 3000/400",
+      "queryClass": "exact_identifier",
+      "expectedFormat": "md",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/platform-policy.md", "sha256": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f" }]
+    },
+    {
+      "id": "md-012",
+      "silo": "platform",
+      "query": "Which identities are pinned by the nightly evaluation?",
+      "queryClass": "semantic",
+      "expectedFormat": "md",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/platform-policy.md", "sha256": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f" }]
+    },
+    {
+      "id": "txt-001",
+      "silo": "operations",
+      "query": "GATE-5319",
+      "queryClass": "exact_identifier",
+      "expectedFormat": "txt",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/operations-runbook.txt", "sha256": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f" }]
+    },
+    {
+      "id": "txt-002",
+      "silo": "operations",
+      "query": "Which port does the public control interface use by default?",
+      "queryClass": "exact_identifier",
+      "expectedFormat": "txt",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/operations-runbook.txt", "sha256": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f" }]
+    },
+    {
+      "id": "txt-003",
+      "silo": "operations",
+      "query": "What mode is required for the private database directory?",
+      "queryClass": "exact_identifier",
+      "expectedFormat": "txt",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/operations-runbook.txt", "sha256": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f" }]
+    },
+    {
+      "id": "txt-004",
+      "silo": "operations",
+      "query": "How are model downloads resumed and made visible safely?",
+      "queryClass": "semantic",
+      "expectedFormat": "txt",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/operations-runbook.txt", "sha256": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f" }]
+    },
+    {
+      "id": "txt-005",
+      "silo": "operations",
+      "query": "REB-409",
+      "queryClass": "error_code",
+      "expectedFormat": "txt",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/operations-runbook.txt", "sha256": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f" }]
+    },
+    {
+      "id": "txt-006",
+      "silo": "operations",
+      "query": "Describe the ordered startup and shutdown process.",
+      "queryClass": "semantic",
+      "expectedFormat": "txt",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/operations-runbook.txt", "sha256": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f" }]
+    },
+    {
+      "id": "txt-007",
+      "silo": "operations",
+      "query": "What are the idle and active-ingest p95 limits?",
+      "queryClass": "exact_identifier",
+      "expectedFormat": "txt",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/operations-runbook.txt", "sha256": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f" }]
+    },
+    {
+      "id": "txt-008",
+      "silo": "operations",
+      "query": "When may Q4 replace Q8?",
+      "queryClass": "semantic",
+      "expectedFormat": "txt",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/operations-runbook.txt", "sha256": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f" }]
+    },
+    {
+      "id": "txt-009",
+      "silo": "operations",
+      "query": "What performance and quality conditions promote hybrid search?",
+      "queryClass": "semantic",
+      "expectedFormat": "txt",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/operations-runbook.txt", "sha256": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f" }]
+    },
+    {
+      "id": "txt-010",
+      "silo": "operations",
+      "query": "Does uninstall preserve indexed data by default?",
+      "queryClass": "semantic",
+      "expectedFormat": "txt",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/operations-runbook.txt", "sha256": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f" }]
+    },
+    {
+      "id": "txt-011",
+      "silo": "operations",
+      "query": "Which checks wait for the final DSM device test?",
+      "queryClass": "semantic",
+      "expectedFormat": "txt",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/operations-runbook.txt", "sha256": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f" }]
+    },
+    {
+      "id": "txt-012",
+      "silo": "operations",
+      "query": "Why must live PGDATA avoid Cloud Sync and media indexing?",
+      "queryClass": "semantic",
+      "expectedFormat": "txt",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/operations-runbook.txt", "sha256": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f" }]
+    },
+    {
+      "id": "docx-001",
+      "silo": "platform",
+      "query": "Which database and embedding model are packaged with NodeRag?",
+      "queryClass": "semantic",
+      "expectedFormat": "docx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/project-requirements.docx", "sha256": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee", "pages": [1] }]
+    },
+    {
+      "id": "docx-002",
+      "silo": "platform",
+      "query": "ING-417",
+      "queryClass": "error_code",
+      "expectedFormat": "docx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/project-requirements.docx", "sha256": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee", "pages": [1] }]
+    },
+    {
+      "id": "docx-003",
+      "silo": "platform",
+      "query": "plaaslike kennis bly op die NAS",
+      "queryClass": "multilingual",
+      "expectedFormat": "docx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/project-requirements.docx", "sha256": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee", "pages": [1] }]
+    },
+    {
+      "id": "docx-004",
+      "silo": "platform",
+      "query": "What is the Recall at 10 threshold for each supported format?",
+      "queryClass": "table",
+      "expectedFormat": "docx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/project-requirements.docx", "sha256": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee", "pages": [2] }]
+    },
+    {
+      "id": "docx-005",
+      "silo": "platform",
+      "query": "\"Chunk IDs are not relevance identities\"",
+      "queryClass": "quoted_phrase",
+      "expectedFormat": "docx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/project-requirements.docx", "sha256": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee", "pages": [2] }]
+    },
+    {
+      "id": "docx-006",
+      "silo": "platform",
+      "query": "How do supported formats enter the corpus and how is retrieval quality judged?",
+      "queryClass": "cross_page",
+      "expectedFormat": "docx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/project-requirements.docx", "sha256": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee", "pages": [1, 2] }]
+    },
+    {
+      "id": "docx-007",
+      "silo": "platform",
+      "query": "Which stage uses an exclusive cutover lock?",
+      "queryClass": "table",
+      "expectedFormat": "docx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/project-requirements.docx", "sha256": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee", "pages": [3] }]
+    },
+    {
+      "id": "docx-008",
+      "silo": "platform",
+      "query": "What prevents an old-model query vector from reaching new-model rows?",
+      "queryClass": "semantic",
+      "expectedFormat": "docx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/project-requirements.docx", "sha256": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee", "pages": [3] }]
+    },
+    {
+      "id": "docx-009",
+      "silo": "platform",
+      "query": "REB-409 ambiguous rollback chain",
+      "queryClass": "error_code",
+      "expectedFormat": "docx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/project-requirements.docx", "sha256": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee", "pages": [3] }]
+    },
+    {
+      "id": "docx-010",
+      "silo": "platform",
+      "query": "What are the four final device checks?",
+      "queryClass": "semantic",
+      "expectedFormat": "docx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/project-requirements.docx", "sha256": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee", "pages": [4] }]
+    },
+    {
+      "id": "docx-011",
+      "silo": "platform",
+      "query": "SEC-403 denied retrieval",
+      "queryClass": "error_code",
+      "expectedFormat": "docx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/project-requirements.docx", "sha256": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee", "pages": [4] }]
+    },
+    {
+      "id": "docx-012",
+      "silo": "platform",
+      "query": "Why does the plan use Docker first and DSM last?",
+      "queryClass": "cross_page",
+      "expectedFormat": "docx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/project-requirements.docx", "sha256": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee", "pages": [1, 4] }]
+    },
+    {
+      "id": "pdf-001",
+      "silo": "operations",
+      "query": "Which services share the same authorization model?",
+      "queryClass": "semantic",
+      "expectedFormat": "pdf",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/architecture-evidence.pdf", "sha256": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa", "pages": [1] }]
+    },
+    {
+      "id": "pdf-002",
+      "silo": "operations",
+      "query": "ARCH-5300",
+      "queryClass": "exact_identifier",
+      "expectedFormat": "pdf",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/architecture-evidence.pdf", "sha256": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa", "pages": [1] }]
+    },
+    {
+      "id": "pdf-003",
+      "silo": "operations",
+      "query": "Where may selected images be sent?",
+      "queryClass": "table",
+      "expectedFormat": "pdf",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/architecture-evidence.pdf", "sha256": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa", "pages": [1] }]
+    },
+    {
+      "id": "pdf-004",
+      "silo": "operations",
+      "query": "What probes must pass before bulk data relocation?",
+      "queryClass": "semantic",
+      "expectedFormat": "pdf",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/architecture-evidence.pdf", "sha256": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa", "pages": [2] }]
+    },
+    {
+      "id": "pdf-005",
+      "silo": "operations",
+      "query": "STOR-0700",
+      "queryClass": "error_code",
+      "expectedFormat": "pdf",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/architecture-evidence.pdf", "sha256": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa", "pages": [2] }]
+    },
+    {
+      "id": "pdf-006",
+      "silo": "operations",
+      "query": "How are Markdown and text locations recorded when no page exists?",
+      "queryClass": "semantic",
+      "expectedFormat": "pdf",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/architecture-evidence.pdf", "sha256": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa", "pages": [2] }]
+    },
+    {
+      "id": "pdf-007",
+      "silo": "operations",
+      "query": "VR-204",
+      "queryClass": "vision",
+      "expectedFormat": "pdf",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/architecture-evidence.pdf", "sha256": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa", "pages": [3] }]
+    },
+    {
+      "id": "pdf-008",
+      "silo": "operations",
+      "query": "What must the vision fallback preserve?",
+      "queryClass": "vision",
+      "expectedFormat": "pdf",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/architecture-evidence.pdf", "sha256": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa", "pages": [3] }]
+    },
+    {
+      "id": "pdf-009",
+      "silo": "operations",
+      "query": "How does a provider failure affect image and text state?",
+      "queryClass": "vision",
+      "expectedFormat": "pdf",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/architecture-evidence.pdf", "sha256": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa", "pages": [3] }]
+    },
+    {
+      "id": "pdf-010",
+      "silo": "operations",
+      "query": "PERF-3000 and PERF-5000",
+      "queryClass": "exact_identifier",
+      "expectedFormat": "pdf",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/architecture-evidence.pdf", "sha256": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa", "pages": [4] }]
+    },
+    {
+      "id": "pdf-011",
+      "silo": "operations",
+      "query": "What are the Q4 and chunk RLS acceptance rules?",
+      "queryClass": "table",
+      "expectedFormat": "pdf",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/architecture-evidence.pdf", "sha256": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa", "pages": [4] }]
+    },
+    {
+      "id": "pdf-012",
+      "silo": "operations",
+      "query": "How do local service boundaries connect to nightly regression decisions?",
+      "queryClass": "cross_page",
+      "expectedFormat": "pdf",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/architecture-evidence.pdf", "sha256": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa", "pages": [1, 4] }]
+    },
+    {
+      "id": "xlsx-001",
+      "silo": "evaluation",
+      "query": "What is the maximum cross-silo leakage count?",
+      "queryClass": "table",
+      "expectedFormat": "xlsx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/evaluation-matrix.xlsx", "sha256": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5", "sheets": ["Quality Thresholds"] }]
+    },
+    {
+      "id": "xlsx-002",
+      "silo": "evaluation",
+      "query": "Overall Recall at 10 85 percent",
+      "queryClass": "table",
+      "expectedFormat": "xlsx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/evaluation-matrix.xlsx", "sha256": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5", "sheets": ["Quality Thresholds"] }]
+    },
+    {
+      "id": "xlsx-003",
+      "silo": "evaluation",
+      "query": "Which p95 threshold applies while ingest is active?",
+      "queryClass": "table",
+      "expectedFormat": "xlsx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/evaluation-matrix.xlsx", "sha256": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5", "sheets": ["Quality Thresholds"] }]
+    },
+    {
+      "id": "xlsx-004",
+      "silo": "evaluation",
+      "query": "C02 initial release reference",
+      "queryClass": "exact_identifier",
+      "expectedFormat": "xlsx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/evaluation-matrix.xlsx", "sha256": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5", "sheets": ["Candidate Matrix"] }]
+    },
+    {
+      "id": "xlsx-005",
+      "silo": "evaluation",
+      "query": "Which candidates compare the 1200 and 3000 character profiles?",
+      "queryClass": "table",
+      "expectedFormat": "xlsx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/evaluation-matrix.xlsx", "sha256": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5", "sheets": ["Candidate Matrix"] }]
+    },
+    {
+      "id": "xlsx-006",
+      "silo": "evaluation",
+      "query": "Which candidate disables the heading prefix?",
+      "queryClass": "table",
+      "expectedFormat": "xlsx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/evaluation-matrix.xlsx", "sha256": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5", "sheets": ["Candidate Matrix"] }]
+    },
+    {
+      "id": "xlsx-007",
+      "silo": "evaluation",
+      "query": "C07 q4 promotion rule",
+      "queryClass": "exact_identifier",
+      "expectedFormat": "xlsx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/evaluation-matrix.xlsx", "sha256": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5", "sheets": ["Candidate Matrix"] }]
+    },
+    {
+      "id": "xlsx-008",
+      "silo": "evaluation",
+      "query": "UNI-001 café",
+      "queryClass": "unicode",
+      "expectedFormat": "xlsx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/evaluation-matrix.xlsx", "sha256": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5", "sheets": ["Unicode Cases"] }]
+    },
+    {
+      "id": "xlsx-009",
+      "silo": "evaluation",
+      "query": "البحث المحلي",
+      "queryClass": "multilingual",
+      "expectedFormat": "xlsx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/evaluation-matrix.xlsx", "sha256": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5", "sheets": ["Unicode Cases"] }]
+    },
+    {
+      "id": "xlsx-010",
+      "silo": "evaluation",
+      "query": "로컬 검색은 문서 경계를 보호합니다",
+      "queryClass": "multilingual",
+      "expectedFormat": "xlsx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/evaluation-matrix.xlsx", "sha256": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5", "sheets": ["Unicode Cases"] }]
+    },
+    {
+      "id": "xlsx-011",
+      "silo": "evaluation",
+      "query": "storage check ✅",
+      "queryClass": "unicode",
+      "expectedFormat": "xlsx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/evaluation-matrix.xlsx", "sha256": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5", "sheets": ["Unicode Cases"] }]
+    },
+    {
+      "id": "xlsx-012",
+      "silo": "evaluation",
+      "query": "Which candidate settings and quality thresholds govern Unicode retrieval?",
+      "queryClass": "cross_page",
+      "expectedFormat": "xlsx",
+      "answerable": true,
+      "relevant": [{ "document": "corpus/evaluation-matrix.xlsx", "sha256": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5", "sheets": ["Quality Thresholds", "Candidate Matrix", "Unicode Cases"] }]
+    }
+  ]
+}

@@ -1,0 +1,218 @@
+{
+  "version": 1,
+  "baselineId": "m12-linux-amd64-q8-v1",
+  "recordedAt": "2026-09-04T20:23:40Z",
+  "qualification": "provisional Docker testbed baseline; DSM performance remains uncertified",
+  "environment": {
+    "os": "linux",
+    "architecture": "amd64",
+    "node": "22.22.0",
+    "packageManager": "pnpm 11.25.0",
+    "image": "noderag-testbed-m12-node@sha256:f589864fa9f26a11fa835c2825012f8c83e202a5b84abd893b61284c2208ac0e",
+    "postgresImage": "pgvector/pgvector@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f",
+    "migrationHead": "000010_evaluation_baselines",
+    "commitBinding": "The exact Git commit is recorded in the M12 certification proof after this baseline enters Git history. Runtime evaluation rows use NODERAG_COMMIT_SHA, and CI sets it to github.sha."
+  },
+  "corpus": {
+    "id": "m12-project-corpus-v1",
+    "goldenSetId": "m12-project-golden-v1",
+    "cases": 60,
+    "documents": 5,
+    "silos": ["platform", "operations", "evaluation"],
+    "formats": ["md", "docx", "txt", "pdf", "xlsx"],
+    "artifactSha256": {
+      "md": "25c8744c71e648929ce0c050385cc088f6c8057e1a49c347e47fa8929b73c24f",
+      "docx": "ea6f096989f48dd4b0a5e56dc77b6f669d54715977edccac03e7511ec0bf2cee",
+      "txt": "1627058f3477a0623a287e9cb92a5919e54ce9d57e362e015ab310c1bf47c30f",
+      "pdf": "634fdf2ca49f94b0d379c14dfe02afc76bb06b4e14a1cde7c48db410d1f972aa",
+      "xlsx": "88125c71ef64281dc98796f21db98a424200891fc7eeb06da9897c897b4266d5"
+    }
+  },
+  "model": {
+    "name": "Qwen3-Embedding-0.6B",
+    "sourceRevision": "bd58e9fd4b0467770da53678d8da25481c0f959b",
+    "dimension": 1024,
+    "pooling": "last-token",
+    "normalization": "L2",
+    "defaultQuantization": "q8-avx2",
+    "q8ArtifactSha256": "a7eda29cc374b01ae75eb1af1ab65c3c61a64c43f39f16e08c6e37c075dcbf4d",
+    "q4ArtifactSha256": "7f9ebb9a77c428f2b4c2d8ed8a2ee64f292a0b1ce7a3f027ccaaef150ef7bdd1"
+  },
+  "releaseDefaults": {
+    "searchMode": "vector",
+    "quantization": "q8-avx2",
+    "targetChars": 2000,
+    "overlapChars": 300,
+    "headingPrefix": true,
+    "efSearch": 100,
+    "chunkRls": true,
+    "embeddingSessions": "shared ingest/query runtime with separate work queues"
+  },
+  "measurements": {
+    "q8": [
+      {
+        "candidate": "vector-default",
+        "recallAt10": 1,
+        "mrr": 0.825,
+        "ndcgAt10": 0.8708254137500102,
+        "p50Ms": 78.998,
+        "p95Ms": 90.853,
+        "zeroResultRate": 0,
+        "gatePassed": true
+      },
+      {
+        "candidate": "keyword",
+        "recallAt10": 0.3333333333333333,
+        "mrr": 0.325,
+        "ndcgAt10": 0.3271821625595243,
+        "p50Ms": 6.707,
+        "p95Ms": 8.79,
+        "zeroResultRate": 0.6666666666666666,
+        "gatePassed": false
+      },
+      {
+        "candidate": "hybrid",
+        "recallAt10": 1,
+        "mrr": 0.8666666666666667,
+        "ndcgAt10": 0.9015812676190554,
+        "p50Ms": 80.126,
+        "p95Ms": 97.595,
+        "zeroResultRate": 0,
+        "gatePassed": true
+      },
+      {
+        "candidate": "profile-1200-200",
+        "recallAt10": 1,
+        "mrr": 0.875,
+        "ndcgAt10": 0.9077324383928644,
+        "p50Ms": 76.049,
+        "p95Ms": 95.792,
+        "zeroResultRate": 0,
+        "gatePassed": true
+      },
+      {
+        "candidate": "profile-3000-400",
+        "recallAt10": 1,
+        "mrr": 0.85,
+        "ndcgAt10": 0.8892789260714373,
+        "p50Ms": 76.257,
+        "p95Ms": 90.227,
+        "zeroResultRate": 0,
+        "gatePassed": true
+      },
+      {
+        "candidate": "heading-prefix-off",
+        "recallAt10": 1,
+        "mrr": 0.8416666666666667,
+        "ndcgAt10": 0.8831277552976283,
+        "p50Ms": 77.264,
+        "p95Ms": 89.806,
+        "zeroResultRate": 0,
+        "gatePassed": true
+      },
+      {
+        "candidate": "ef-search-50",
+        "recallAt10": 1,
+        "mrr": 0.825,
+        "ndcgAt10": 0.8708254137500102,
+        "p50Ms": 77.069,
+        "p95Ms": 87.683,
+        "zeroResultRate": 0,
+        "gatePassed": true
+      },
+      {
+        "candidate": "ef-search-200",
+        "recallAt10": 1,
+        "mrr": 0.825,
+        "ndcgAt10": 0.8708254137500102,
+        "p50Ms": 75.278,
+        "p95Ms": 96.269,
+        "zeroResultRate": 0,
+        "gatePassed": true
+      },
+      {
+        "candidate": "vector-under-ingest",
+        "recallAt10": 1,
+        "mrr": 0.7833333333333333,
+        "ndcgAt10": 0.8361058313888955,
+        "p50Ms": 77.717,
+        "p95Ms": 94.157,
+        "zeroResultRate": 0,
+        "gatePassed": true
+      }
+    ],
+    "q4": [
+      {
+        "candidate": "vector-default",
+        "recallAt10": 1,
+        "mrr": 0.8916666666666667,
+        "ndcgAt10": 0.9200347799404825,
+        "p50Ms": 95.113,
+        "p95Ms": 113.536,
+        "zeroResultRate": 0,
+        "gatePassed": true
+      },
+      {
+        "candidate": "keyword",
+        "recallAt10": 0.3333333333333333,
+        "mrr": 0.325,
+        "ndcgAt10": 0.3271821625595243,
+        "p50Ms": 6.779,
+        "p95Ms": 7.83,
+        "zeroResultRate": 0.6666666666666666,
+        "gatePassed": false
+      },
+      {
+        "candidate": "hybrid",
+        "recallAt10": 1,
+        "mrr": 0.925,
+        "ndcgAt10": 0.9446394630357187,
+        "p50Ms": 94.167,
+        "p95Ms": 114.355,
+        "zeroResultRate": 0,
+        "gatePassed": true
+      }
+    ],
+    "rls": {
+      "rlsOnP95Ms": 0.2449,
+      "rlsOffP95Ms": 0.2271,
+      "overheadRatio": 0.07837956847203892,
+      "partitionRetained": true,
+      "indexRetained": true
+    },
+    "ann": { "recallAt10": 0.9, "samples": 160, "queryRepetitions": 10, "totalChunks": 8500 },
+    "isolation": { "crossSiloLeakageCount": 0, "locatorMismatchCount": 0 }
+  },
+  "decisions": {
+    "q8": { "accepted": true },
+    "hybrid": {
+      "acceptedAsDefault": false,
+      "reason": "Recall@10 gain was 0; promotion requires at least 0.02."
+    },
+    "q4": {
+      "acceptedAsDefault": false,
+      "throughputRatioVersusQ8": 0.8305699536340985,
+      "reason": "Candidate was slower; promotion requires at least 1.5x q8 throughput with no more than 0.01 recall loss."
+    },
+    "chunkProfiles": {
+      "accepted": "2000/300",
+      "reason": "All profiles passed; the established default remains frozen because alternatives did not improve Recall@10."
+    },
+    "headingPrefix": {
+      "accepted": true,
+      "reason": "Disabling it did not improve Recall@10 and reduced ranking quality relative to the best profile."
+    },
+    "efSearch": {
+      "accepted": 100,
+      "reason": "50 and 200 did not improve Recall@10; 100 remains the measured stable default."
+    },
+    "chunkRls": {
+      "accepted": true,
+      "reason": "Measured p95 overhead was below 15%, and partition/index behavior was retained."
+    },
+    "dedicatedQuerySession": {
+      "accepted": false,
+      "reason": "The shared runtime passed the active-ingest p95 gate; M01 already proved two sessions fit the 8 GiB ceiling, so a dedicated session remains an available DSM-tuning option rather than the default."
+    }
+  }
+}

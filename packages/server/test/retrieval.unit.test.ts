@@ -37,6 +37,7 @@ const row = (
   original_sha256: input.original_sha256 ?? Buffer.alloc(32),
   first_page_label: input.first_page_label ?? null,
   last_page_label: input.last_page_label ?? null,
+  page_labels: input.page_labels ?? [],
   score: input.score ?? 0.5,
 });
 
@@ -107,6 +108,9 @@ describe('M08 retrieval algorithms', () => {
           page_basis: 'sheet',
           page_start: 1,
           page_end: 1,
+          first_page_label: 'Quality Thresholds',
+          last_page_label: 'Quality Thresholds',
+          page_labels: ['Quality Thresholds'],
         }),
         score: 0.8,
       },
@@ -120,11 +124,15 @@ describe('M08 retrieval algorithms', () => {
           page_basis: 'sheet',
           page_start: 2,
           page_end: 2,
+          first_page_label: 'Candidate Matrix',
+          last_page_label: 'Candidate Matrix',
+          page_labels: ['Candidate Matrix'],
         }),
         score: 0.7,
       },
     ]);
-    expect(sheet[0]?.locator.pageLabel).toBe('Sheets 1–2');
+    expect(sheet[0]?.locator.pageLabel).toBe('Sheets: Quality Thresholds–Candidate Matrix');
+    expect(sheet[0]?.locator.pageLabels).toEqual(['Quality Thresholds', 'Candidate Matrix']);
 
     const pageLess = collapseOverlappingHits([
       {

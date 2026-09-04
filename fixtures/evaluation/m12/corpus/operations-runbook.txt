@@ -1,0 +1,30 @@
+NodeRag Operations Runbook
+
+This runbook contains approved operational facts from the project planning set.
+
+STARTUP
+The ordered process tree starts the bundled PostgreSQL server, the embedder, the API, and the worker. PostgreSQL listens on a package-private Unix socket. The socket directory and database data directory use mode 0700. TCP port 5432 is disabled by default.
+
+The public control interface uses port 8787 when DSM has not assigned another package port. Narrowed gateways use the declared range 5300 through 5319. GATE-5319 is the final allowed narrowed gateway port.
+
+STORAGE
+The DSM-selected volume is the safe default for package data. Before relocation, the service checks the filesystem, capacity, rebuild reserve, permissions, write, fsync, atomic rename, and read behavior. Live PGDATA must not be placed in a shared folder managed by Cloud Sync, Synology Drive, media indexing, or a file-level backup job.
+
+MODELS
+Model artifacts download to a partial file, resume over HTTPS when supported, verify size and SHA-256, and become visible only through atomic rename. Runtime executable downloads are prohibited. A model manifest freezes the artifact digest, tokenizer revision, quantization, dimension, pooling, normalization, prefixes, and license.
+
+REBUILDS
+A capacity-valid proposal must be confirmed before staging work starts. Build jobs are low priority and checkpoint each completed document. Search keeps serving the active build. Activation uses the exclusive counterpart of the shared search cutover lock. REB-409 rejects an activation that would create an ambiguous rollback chain.
+
+Rollback restores the prior active table and model metadata before rejected new data can be cleaned up. Cleanup needs a separate typed authorization and is transactionally retryable.
+
+PERFORMANCE
+The provisional Docker gate for idle search p95 is 3000 milliseconds. The gate while ingest is active is 5000 milliseconds. These are testbed qualifications, not NAS promises. Chunk row-level security is retained only if measured p95 overhead is no more than 15 percent and query plans remain correct.
+
+Q4 is promoted only when it is at least 1.5 times faster than Q8 and loses no more than 0.01 absolute Recall at 10. Hybrid is promoted only when it gains at least 0.02 absolute Recall at 10 without more than doubling p95 latency.
+
+SHUTDOWN AND RECOVERY
+Shutdown stops new work, drains or checkpoints active jobs, stops the worker and API, stops the embedder, and then stops PostgreSQL. Stale PID and socket files are recovered only after process ownership and liveness checks. Uninstall preserves data unless the administrator explicitly selects destructive removal.
+
+DSM FINAL TEST
+After Milestone 14, install the exact release candidate through Package Center. Verify the Synology Node.js 22 runtime, C++ compatibility, package identity, ACLs, ext4 or Btrfs behavior, encrypted shared folders, restart, reboot, upgrade, retained uninstall, destructive uninstall, DSM administration responsiveness, file sharing, memory, temperature, and I/O contention.

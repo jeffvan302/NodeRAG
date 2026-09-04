@@ -10,6 +10,7 @@ import { enqueueNightlyIntegrityJob } from './ingest/integrity.js';
 import { enqueueDueSourceCrawls } from './ingest/sources.js';
 import { createRuntimeVisionProcessor } from './vision/runtime.js';
 import { loadOrCreateSecretRoot, SecretVault } from './identity/secrets.js';
+import { processOneEvaluationRun } from './search/evaluation-runner.js';
 
 const main = async (): Promise<void> => {
   const once = process.argv.includes('--once');
@@ -32,7 +33,13 @@ const main = async (): Promise<void> => {
   console.info(JSON.stringify({ service: 'noderag-worker', event: 'started', once, leaseOwner }));
   try {
     do {
-      const processed = await processOneDocumentJob({
+      const evaluationProcessed = await processOneEvaluationRun({
+        pool,
+        embedder,
+        files,
+        leaseOwner: `${leaseOwner}:evaluation`,
+      });
+      const documentProcessed = await processOneDocumentJob({
         pool,
         files,
         embedder,
@@ -50,7 +57,7 @@ const main = async (): Promise<void> => {
           }),
       });
       if (once) break;
-      if (!processed) {
+      if (!evaluationProcessed && !documentProcessed) {
         await enqueueDueSourceCrawls(pool);
         await delay(500);
       }

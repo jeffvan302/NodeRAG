@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expectedHead": "000009_zero_downtime_rebuilds",
+  "expectedHead": "000010_evaluation_baselines",
   "migrations": [
     {
       "id": "000001_foundation",
@@ -54,6 +54,12 @@
       "id": "000009_zero_downtime_rebuilds",
       "path": "packages/server/migrations/000009_zero_downtime_rebuilds.sql",
       "sha256": "03bd94112fd134580d3115a2464983c775ea0e38d6af227d65ead13ba59de767",
+      "direction": "up-only"
+    },
+    {
+      "id": "000010_evaluation_baselines",
+      "path": "packages/server/migrations/000010_evaluation_baselines.sql",
+      "sha256": "d424b0b0c7fb91a1a40b425ebe57a53cb9b7b77a4756c3a95602b2a9630a93b0",
       "direction": "up-only"
     }
   ]

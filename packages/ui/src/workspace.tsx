@@ -856,6 +856,266 @@ const ActivityView = () => {
   );
 };
 
+const EvaluationPanel = ({
+  data,
+  refresh,
+  report,
+}: {
+  readonly data: JsonRecord;
+  readonly refresh: () => void;
+  readonly report: (message: string, error?: boolean) => void;
+}) => {
+  const cases = list(data['cases']);
+  const runs = list(data['runs']);
+  const baselines = list(data['baselines']);
+  const alerts = list(data['alerts']);
+  const mutateEvaluation = async (body: JsonRecord, success: string) => {
+    try {
+      await postJson('/v1/admin/evaluation', body, { idempotent: true });
+      report(success);
+      refresh();
+    } catch (reason) {
+      report(displayError(reason), true);
+    }
+  };
+  const addCase = async (event: SubmitEvent) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget as HTMLFormElement);
+    const pages = String(form.get('pages') ?? '')
+      .split(',')
+      .map((value) => Number(value.trim()))
+      .filter((value) => Number.isSafeInteger(value) && value > 0);
+    const sheets = String(form.get('sheets') ?? '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const relevance: JsonRecord = {
+      document: String(form.get('document')),
+      ...(String(form.get('sha256') ?? '') === '' ? {} : { sha256: String(form.get('sha256')) }),
+      ...(pages.length === 0 ? {} : { pages }),
+      ...(sheets.length === 0 ? {} : { sheets }),
+    };
+    await mutateEvaluation(
+      {
+        action: 'add_case',
+        externalId: String(form.get('externalId')),
+        siloId: Number(form.get('siloId')),
+        query: String(form.get('query')),
+        queryClass: String(form.get('queryClass')),
+        expectedFormat: String(form.get('expectedFormat')),
+        answerable: true,
+        relevant: [relevance],
+      },
+      'Draft evaluation case added.',
+    );
+  };
+  const queue = async (event: SubmitEvent) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget as HTMLFormElement);
+    const modes = ['vector', 'keyword', 'hybrid'].filter((mode) => form.get(mode) === 'on');
+    await mutateEvaluation(
+      {
+        action: 'queue_run',
+        modes,
+        workload: String(form.get('workload')),
+        environment: { initiatedFrom: 'operator-ui' },
+      },
+      'Pinned evaluation runs queued.',
+    );
+  };
+  const latest = runs[0];
+  const latestMetrics =
+    typeof latest?.['metrics'] === 'object' && latest['metrics'] !== null
+      ? (latest['metrics'] as JsonRecord)
+      : {};
+  return (
+    <div class="evaluation-console">
+      <div class="metric-grid">
+        <article>
+          <span>Approved cases</span>
+          <strong>{cases.filter((item) => item['curationState'] === 'approved').length}</strong>
+          <small>{cases.length} total curated records</small>
+        </article>
+        <article>
+          <span>Recall at 10</span>
+          <strong>{Math.round(asNumber(latestMetrics['recallAt10']) * 100)}%</strong>
+          <small>release gate: at least 85%</small>
+        </article>
+        <article>
+          <span>p95 latency</span>
+          <strong>
+            {asNumber((latestMetrics['latencyMs'] as JsonRecord | undefined)?.['p95'])} ms
+          </strong>
+          <small>idle gate: at most 3,000 ms</small>
+        </article>
+        <article>
+          <span>Open alerts</span>
+          <strong>{alerts.length}</strong>
+          <small>leakage and locator errors block release</small>
+        </article>
+      </div>
+      <section class="evaluation-card">
+        <h3>Queue a pinned comparison</h3>
+        <p>Every run freezes the commit, migration, model, build, settings, and approved corpus.</p>
+        <form class="inline-form" onSubmit={queue}>
+          <label class="checkbox">
+            <input name="vector" type="checkbox" defaultChecked />
+            Meaning
+          </label>
+          <label class="checkbox">
+            <input name="keyword" type="checkbox" defaultChecked />
+            Keyword
+          </label>
+          <label class="checkbox">
+            <input name="hybrid" type="checkbox" defaultChecked />
+            Both
+          </label>
+          <Field label="Workload">
+            <select name="workload">
+              <option value="idle">Idle</option>
+              <option value="ingest">During ingest</option>
+            </select>
+          </Field>
+          <button class="primary">Queue comparison</button>
+        </form>
+      </section>
+      <section class="evaluation-card">
+        <h3>Add a curation draft</h3>
+        <form class="evaluation-form" onSubmit={addCase}>
+          <Field label="Case ID">
+            <input name="externalId" required />
+          </Field>
+          <Field label="Knowledge space ID">
+            <input name="siloId" type="number" min="1" required />
+          </Field>
+          <Field label="Question">
+            <input name="query" required />
+          </Field>
+          <Field label="Question type">
+            <select name="queryClass">
+              <option value="semantic">Meaning</option>
+              <option value="exact_identifier">Exact identifier</option>
+              <option value="exact_name">Exact name</option>
+              <option value="error_code">Error code</option>
+              <option value="quoted_phrase">Quoted phrase</option>
+              <option value="cross_page">Across pages</option>
+              <option value="table">Table</option>
+              <option value="vision">Image/scan</option>
+              <option value="multilingual">Multilingual</option>
+              <option value="unicode">Unicode</option>
+            </select>
+          </Field>
+          <Field label="File type">
+            <select name="expectedFormat">
+              {['pdf', 'docx', 'xlsx', 'txt', 'md'].map((format) => (
+                <option>{format}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Document path">
+            <input name="document" required />
+          </Field>
+          <Field label="Document SHA-256">
+            <input name="sha256" pattern="[a-f0-9]{64}" />
+          </Field>
+          <Field label="Pages (comma separated)">
+            <input name="pages" placeholder="3, 4" />
+          </Field>
+          <Field label="Sheets (comma separated)">
+            <input name="sheets" placeholder="Quality Thresholds" />
+          </Field>
+          <button class="secondary">Add draft</button>
+        </form>
+      </section>
+      <section class="evaluation-card">
+        <h3>Curated cases</h3>
+        {cases.length === 0 ? (
+          <p class="muted">No cases have been curated.</p>
+        ) : (
+          <div class="record-list">
+            {cases.map((item) => (
+              <article>
+                <div>
+                  <b>{asText(item['externalId'])}</b>
+                  <small>
+                    {asText(item['query'])} · {asText(item['queryClass'])} ·{' '}
+                    {asText(item['curationState'])}
+                  </small>
+                </div>
+                <div class="compact-buttons">
+                  <button
+                    onClick={() =>
+                      void mutateEvaluation(
+                        { action: 'set_case_state', caseId: item['id'], state: 'approved' },
+                        'Case approved.',
+                      )
+                    }
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() =>
+                      void mutateEvaluation(
+                        { action: 'set_case_state', caseId: item['id'], state: 'rejected' },
+                        'Case rejected.',
+                      )
+                    }
+                  >
+                    Reject
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+      <section class="evaluation-card">
+        <h3>Runs and accepted baselines</h3>
+        <p>
+          {baselines.length} active baseline{baselines.length === 1 ? '' : 's'}.
+        </p>
+        <div class="record-list">
+          {runs.map((run) => {
+            const metrics =
+              typeof run['metrics'] === 'object' && run['metrics'] !== null
+                ? (run['metrics'] as JsonRecord)
+                : {};
+            const gate =
+              typeof metrics['gate'] === 'object' && metrics['gate'] !== null
+                ? (metrics['gate'] as JsonRecord)
+                : {};
+            return (
+              <article>
+                <div>
+                  <b>
+                    Run {String(run['id'])} · {asText(run['mode'])}
+                  </b>
+                  <small>
+                    {asText(run['state'])} · {String(run['caseCount'] ?? 0)} cases · recall{' '}
+                    {Math.round(asNumber(metrics['recallAt10']) * 100)}%
+                  </small>
+                </div>
+                {run['state'] === 'succeeded' && gate['passed'] === true ? (
+                  <button
+                    onClick={() =>
+                      void mutateEvaluation(
+                        { action: 'accept_baseline', runId: run['id'] },
+                        'Baseline accepted.',
+                      )
+                    }
+                  >
+                    Accept baseline
+                  </button>
+                ) : null}
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+};
+
 const adminSections = [
   ['silos', 'Knowledge spaces', '/v1/admin/silos'],
   ['principals', 'Users', '/v1/admin/principals'],
@@ -1035,9 +1295,24 @@ const AdminView = () => {
               <button class="secondary">Create search-only key</button>
             </form>
           ) : null}
+          {section === 'evaluation' && loaded.data !== null ? (
+            <EvaluationPanel
+              data={loaded.data}
+              refresh={() => setRefresh((value) => value + 1)}
+              report={(value, failed = false) => {
+                if (failed) {
+                  setError(value);
+                  setMessage('');
+                } else {
+                  setMessage(value);
+                  setError('');
+                }
+              }}
+            />
+          ) : null}
           {loaded.data === null ? (
             <SkeletonRows />
-          ) : items.length > 0 ? (
+          ) : section === 'evaluation' ? null : items.length > 0 ? (
             <div class="record-list">
               {items.map((item) => (
                 <article>

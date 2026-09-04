@@ -3,7 +3,7 @@ name: noderag-testbed
 services:
   postgres:
     image: ${NODERAG_TESTBED_POSTGRES_IMAGE:-pgvector/pgvector@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f}
-    restart: "no"
+    restart: 'no'
     environment:
       POSTGRES_DB: ${NODERAG_TESTBED_POSTGRES_DB:-noderag_test}
       POSTGRES_USER: ${NODERAG_TESTBED_POSTGRES_USER:-noderag_test}
@@ -11,7 +11,7 @@ services:
     secrets:
       - postgres_password
     ports:
-      - "127.0.0.1:${NODERAG_TESTBED_DB_PORT:-55432}:5432"
+      - '127.0.0.1:${NODERAG_TESTBED_DB_PORT:-55432}:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./initdb:/docker-entrypoint-initdb.d:ro
@@ -34,7 +34,7 @@ services:
       - m01
     mem_limit: ${NODERAG_M01_MEMORY_LIMIT:-8g}
     cpus: ${NODERAG_M01_CPU_LIMIT:-12}
-    user: "node:node"
+    user: 'node:node'
     read_only: true
     cap_drop:
       - ALL
@@ -55,6 +55,37 @@ services:
       - ./runtime/models:/models:ro
       - ../fixtures:/workspace/fixtures:ro
       - m01-storage:/probe-volume
+    networks:
+      - backend
+
+  m12-node:
+    build:
+      context: ..
+      dockerfile: docker-testbed/m12/Dockerfile
+    profiles:
+      - m12
+    user: '0:0'
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+      TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: /var/run/docker.sock
+      NODERAG_M12_MODEL_ROOT: /models/qwen3-embedding-0.6b/bd58e9fd4b0467770da53678d8da25481c0f959b
+      NODERAG_M12_MODEL_THREADS: ${NODERAG_M12_MODEL_THREADS:-4}
+      NODERAG_M12_MODEL_VARIANT: ${NODERAG_M12_MODEL_VARIANT:-q8}
+      NODERAG_M12_REPORT: /artifacts/${NODERAG_M12_REPORT_NAME:-m12-docker-q8.json}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,mode=1777
+      - /workspace/node_modules/.vite-temp:rw,noexec,nosuid,nodev,mode=1777
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./runtime/models:/models:ro
+      - ./artifacts/m12:/artifacts
     networks:
       - backend
 

@@ -1,0 +1,145 @@
+name: M12 measured evaluation and defaults
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/m12-evaluation.yml'
+      - '.dockerignore'
+      - 'packages/**'
+      - 'platform/**'
+      - 'scripts/**'
+      - 'spk/**'
+      - 'docker-testbed/**'
+      - 'fixtures/evaluation/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - 'vitest.config.ts'
+      - 'eslint.config.mjs'
+      - 'docs/Implementation/checklists/m12-checklist.md'
+      - 'docs/Implementation/evaluation/**'
+      - 'docs/Implementation/m12-evaluation-operations.md'
+      - 'docs/Implementation/proofs/m12-proof.json'
+      - 'docs/Implementation/dsm-deferred-register.md'
+      - 'docs/Implementation/staged implementation.md'
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m12-evaluation-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 22.22.0
+  PNPM_VERSION: 11.25.0
+  NODERAG_COMMIT_SHA: ${{ github.sha }}
+  MODEL_ROOT: docker-testbed/runtime/models/qwen3-embedding-0.6b/bd58e9fd4b0467770da53678d8da25481c0f959b
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Validate corpus, contracts, migrations, tests, build, licenses, and secrets
+        run: |
+          node scripts/verify-m12-corpus.mjs
+          pnpm ci:quality
+          pnpm repo:check
+
+  evaluation-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Run 60-case format, candidate, background-load, ANN, and RLS matrix
+        run: |
+          pnpm exec vitest run --project integration packages/server/test/m12-evaluation.integration.test.ts
+          pnpm exec vitest run --project integration packages/server/test/retrieval-diagnostics.integration.test.ts --reporter=verbose
+
+  real-model-evaluation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    concurrency:
+      group: m12-real-model
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ${{ env.MODEL_ROOT }}
+          key: m12-qwen3-models-${{ hashFiles('docker-testbed/m01/model-manifest.json') }}
+      - run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Fetch checksum-pinned q8 and q4 model candidates
+        run: bash docker-testbed/scripts/fetch-m01-models.sh --benchmarks
+      - name: Measure q8 release candidate
+        env:
+          NODERAG_M12_MODEL_ROOT: ${{ github.workspace }}/${{ env.MODEL_ROOT }}
+          NODERAG_M12_MODEL_VARIANT: q8
+          NODERAG_M12_MODEL_THREADS: 2
+          NODERAG_M12_REPORT: ${{ runner.temp }}/m12-linux-q8.json
+        run: pnpm exec vitest run --project integration packages/server/test/m12-evaluation.integration.test.ts
+      - name: Measure q4 candidate
+        env:
+          NODERAG_M12_MODEL_ROOT: ${{ github.workspace }}/${{ env.MODEL_ROOT }}
+          NODERAG_M12_MODEL_VARIANT: q4
+          NODERAG_M12_MODEL_THREADS: 2
+          NODERAG_M12_REPORT: ${{ runner.temp }}/m12-linux-q4.json
+        run: pnpm exec vitest run --project integration packages/server/test/m12-evaluation.integration.test.ts
+      - name: Enforce measured default decisions
+        run: |
+          node scripts/summarize-m12-evaluation.mjs \
+            "${{ runner.temp }}/m12-linux-q8.json" \
+            "${{ runner.temp }}/m12-linux-q4.json"
+
+  thin-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Build twice and verify the M12 package payload
+        run: |
+          pnpm package:thin
+          first_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64.spk | awk '{print $1}')"
+          pnpm package:thin
+          second_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64.spk | awk '{print $1}')"
+          test "${first_sha}" = "${second_sha}"
+          pnpm package:verify

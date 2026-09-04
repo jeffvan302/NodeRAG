@@ -28,6 +28,7 @@ import {
   runAuthorizedBuildCleanup,
   verifyStagedSilo,
 } from '../src/store/rebuilds.js';
+import { processOneEvaluationRun } from '../src/search/evaluation-runner.js';
 
 const postgresImage =
   'pgvector/pgvector@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f';
@@ -1200,25 +1201,65 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
       (await mutate('POST', '/v1/admin/restores', { backupId, sourceManifest: {} })).statusCode,
     ).toBe(202);
 
+    const evaluationCase = await mutate('POST', '/v1/admin/evaluation', {
+      action: 'add_case',
+      externalId: 'm08-api-case',
+      siloId: firstSiloId,
+      query: 'How many days notice?',
+      queryClass: 'semantic',
+      expectedFormat: 'md',
+      relevant: [{ document: 'legal-register.md' }],
+    });
+    expect(evaluationCase.statusCode, evaluationCase.body).toBe(201);
+    const evaluation = await mutate('POST', '/v1/admin/evaluation', {
+      action: 'set_case_state',
+      caseId: Number(evaluationCase.json<{ id: number | string }>().id),
+      state: 'approved',
+    });
+    expect(evaluation.statusCode, evaluation.body).toBe(200);
+    const evaluationRuns = await mutate('POST', '/v1/admin/evaluation', {
+      action: 'queue_run',
+      modes: ['vector', 'keyword', 'hybrid'],
+      workload: 'idle',
+      environment: { suite: 'retrieval-integration' },
+    });
+    expect(evaluationRuns.statusCode, evaluationRuns.body).toBe(202);
+    expect(evaluationRuns.json<{ runs: unknown[] }>().runs).toHaveLength(3);
+    for (let index = 0; index < 3; index += 1) {
+      expect(
+        await processOneEvaluationRun({
+          pool,
+          embedder,
+          files,
+          leaseOwner: `m12-evaluation-${String(index)}`,
+        }),
+      ).toBe(true);
+    }
     expect(
-      (
-        await mutate('POST', '/v1/admin/evaluation', {
-          action: 'add_case',
-          externalId: 'm08-api-case',
-          siloId: firstSiloId,
-          query: 'How many days notice?',
-          relevant: [{ document: 'legal-register.md', pages: [0] }],
-        })
-      ).statusCode,
-    ).toBe(201);
-    expect(
-      (
-        await mutate('POST', '/v1/admin/evaluation', {
-          action: 'queue_run',
-          mode: 'hybrid',
-        })
-      ).statusCode,
-    ).toBe(202);
+      await processOneEvaluationRun({
+        pool,
+        embedder,
+        files,
+        leaseOwner: 'm12-evaluation-empty',
+      }),
+    ).toBe(false);
+    const evaluationState = await app.inject({
+      method: 'GET',
+      url: '/v1/admin/evaluation',
+      headers: { cookie },
+    });
+    expect(evaluationState.statusCode, evaluationState.body).toBe(200);
+    const completedRuns = evaluationState.json<{ runs: { id: number; state: string }[] }>().runs;
+    expect(completedRuns.slice(0, 3).map(({ state }) => state)).toEqual([
+      'succeeded',
+      'succeeded',
+      'succeeded',
+    ]);
+    const baseline = await mutate('POST', '/v1/admin/evaluation', {
+      action: 'accept_baseline',
+      runId: Number(completedRuns[0]?.id),
+    });
+    expect(baseline.statusCode, baseline.body).toBe(201);
 
     expect(
       (

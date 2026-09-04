@@ -43,6 +43,7 @@ export interface SearchLocator {
   readonly byteEnd: number;
   readonly byteUnit: 'utf8';
   readonly offsetsMatchOriginal: boolean;
+  readonly pageLabels: readonly string[];
 }
 
 export interface SearchDocument {
@@ -53,6 +54,7 @@ export interface SearchDocument {
   readonly pages: number | null;
   readonly characters: number | null;
   readonly originalAvailable: boolean;
+  readonly sha256: string;
 }
 
 export interface SearchHit {
@@ -112,6 +114,7 @@ export interface CandidateRow {
   readonly original_sha256: Buffer;
   readonly first_page_label: string | null;
   readonly last_page_label: string | null;
+  readonly page_labels: string[];
   readonly score: number;
 }
 
@@ -134,7 +137,14 @@ const candidateColumns = `
   (SELECT p.label FROM noderag.document_page p
    WHERE p.document_id = d.id AND p.silo_id = d.silo_id
      AND (p.page_number = c.page_end OR p.ordinal = c.page_end)
-   ORDER BY (p.page_number = c.page_end) DESC, p.ordinal DESC LIMIT 1) AS last_page_label`;
+   ORDER BY (p.page_number = c.page_end) DESC, p.ordinal DESC LIMIT 1) AS last_page_label,
+  ARRAY(
+    SELECT p.label FROM noderag.document_page p
+    WHERE p.document_id = d.id AND p.silo_id = d.silo_id
+      AND c.page_start IS NOT NULL AND c.page_end IS NOT NULL
+      AND p.page_number BETWEEN c.page_start AND c.page_end
+    ORDER BY p.ordinal
+  ) AS page_labels`;
 
 const filterSql = `
   AND ($4::bigint[] IS NULL OR d.source_id = ANY ($4::bigint[]))
@@ -224,6 +234,8 @@ const mergedPageLabel = (
   end: number | null,
   characterStart: number,
   characterCount: number | null,
+  firstLabel: string,
+  lastLabel: string,
 ): string => {
   if (basis === 'none' || start === null) {
     if (characterCount === null || characterCount <= 0) return '';
@@ -231,9 +243,21 @@ const mergedPageLabel = (
     return `${String(percent)}% through document`;
   }
   if (basis === 'sheet') {
-    return end === null || end === start
-      ? `Sheet ${String(start)}`
-      : `Sheets ${String(start)}–${String(end)}`;
+    const sheetName = (label: string): string =>
+      label
+        .replace(/^Sheets?:\s*/u, '')
+        .replace(/^Sheets?\s+/u, '')
+        .split('–')[0]
+        ?.trim() ?? '';
+    const first = sheetName(firstLabel) || String(start);
+    const lastParts = lastLabel
+      .replace(/^Sheets?:\s*/u, '')
+      .replace(/^Sheets?\s+/u, '')
+      .split('–');
+    const last = lastParts.at(-1)?.trim() || String(end ?? start);
+    return end === null || end === start || first === last
+      ? `Sheet: ${first}`
+      : `Sheets: ${first}–${last}`;
   }
   return end === null || end === start
     ? `p. ${String(start)}`
@@ -270,6 +294,7 @@ const toHit = (candidate: RankedCandidate): SearchHit => {
       byteEnd: row.byte_end,
       byteUnit: 'utf8',
       offsetsMatchOriginal: row.offsets_match_original,
+      pageLabels: row.page_labels,
     },
     document: {
       id: documentId,
@@ -279,6 +304,7 @@ const toHit = (candidate: RankedCandidate): SearchHit => {
       pages: row.page_count,
       characters: row.character_count,
       originalAvailable: row.original_available,
+      sha256: row.original_sha256.toString('hex'),
     },
   };
 };
@@ -337,11 +363,14 @@ export const collapseOverlappingHits = (
             pageEnd,
             characterStart,
             best.document.characters,
+            previous.locator.pageLabel,
+            row.locator.pageLabel,
           ),
           characterStart,
           characterEnd: Math.max(previous.locator.characterEnd, row.locator.characterEnd),
           byteStart: Math.min(previous.locator.byteStart, row.locator.byteStart),
           byteEnd: Math.max(previous.locator.byteEnd, row.locator.byteEnd),
+          pageLabels: [...new Set([...previous.locator.pageLabels, ...row.locator.pageLabels])],
         },
       };
       collapsed[collapsed.length - 1] = merged;

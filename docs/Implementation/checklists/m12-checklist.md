@@ -45,7 +45,8 @@ Status: testbed implementation complete; GitHub certification pending
 - [x] The evaluator root filesystem is read-only apart from explicit tmpfs/report mounts.
 - [x] The end-to-end `verify-m12.sh --real` command passes locally.
 - [x] GitHub implementation workflow is green.
-- [ ] Proof-only and final certification commits are green.
+- [x] Proof-only commit is green on GitHub.
+- [ ] Final evidence commit is green on GitHub.
 - [ ] Annotated tag `m12-complete` resolves remotely to the certification commit.
 - [x] DSM timing, thermals, Package Center, administration UI, and file-sharing impact remain explicitly deferred to DSM-023.
 

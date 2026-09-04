@@ -93,6 +93,11 @@ describe.sequential('M07 vision and bad-PDF recovery', () => {
     };
     await runMigrations(database);
     pool = new Pool(database);
+    // Testcontainers terminates PostgreSQL immediately after the pool closes. On
+    // slower CI hosts, pg can still surface the server's 57P01 shutdown notice
+    // from an idle client; keep that expected teardown signal from becoming an
+    // unhandled Vitest exception.
+    pool.on('error', () => undefined);
     const setup = await bootstrapFirstAdministrator(pool, {
       setupToken: await issueSetupToken(pool),
       username: 'm07-admin',

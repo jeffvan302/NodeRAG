@@ -22,7 +22,7 @@ await build({
   platform: 'node',
   sourcemap: false,
   target: 'node22',
-  external: ['onnxruntime-node'],
+  external: ['onnxruntime-node', '@aws-sdk/client-s3'],
 });
 
 await cp(resolve(root, 'packages/ui/dist'), resolve(output, 'ui'), { recursive: true });
@@ -32,4 +32,13 @@ await cp(resolve(root, 'packages/server/migrations'), resolve(output, 'migration
 await cp(
   resolve(root, 'platform/migration-checksums.v1.json'),
   resolve(output, 'migration-checksums.v1.json'),
+);
+await mkdir(resolve(output, 'vendor'), { recursive: true });
+await cp(
+  resolve(root, 'packages/server/node_modules/pdfjs-dist/legacy/build/pdf.mjs'),
+  resolve(output, 'vendor/pdf.mjs'),
+);
+await cp(
+  resolve(root, 'packages/server/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'),
+  resolve(output, 'vendor/pdf.worker.mjs'),
 );

@@ -1,71 +1,245 @@
 {
-  "version": 1,
+  "version": 2,
   "privacy": "synthetic non-private fixtures only",
+  "generator": "scripts/generate-m06-fixtures.mjs",
   "fixtures": [
     {
       "path": "txt/sample.txt",
       "format": "txt",
       "sizeBytes": 242,
       "sha256": "ff20f2a1bb13d985776cd5f514637d82118c81104f0179b2fae625fe7e0f0e69",
-      "provenance": "repository-authored synthetic UTF-8 text",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "baseline UTF-8 text",
       "expectedDisposition": "usable-text"
+    },
+    {
+      "path": "txt/utf8.txt",
+      "format": "txt",
+      "sizeBytes": 51,
+      "sha256": "13b75aad38be42b0d1d2edd09755860942885ab761cc9bdbf9d773af42a80079",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "UTF-8 text with an astral character",
+      "expectedDisposition": "usable-text"
+    },
+    {
+      "path": "txt/utf16-no-bom.txt",
+      "format": "txt",
+      "sizeBytes": 100,
+      "sha256": "1d2bf2df9063ed325b9e620d7a27d9ea088120ec66211d739cb155060a6e3480",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "BOM-less UTF-16LE text",
+      "expectedDisposition": "usable-text-with-detection-warning"
+    },
+    {
+      "path": "txt/shift-jis.txt",
+      "format": "txt",
+      "sizeBytes": 24,
+      "sha256": "968a5efb5f71685d8f45819c543fcf25f4380af47f17bdbc0d4401488b6dac31",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "Shift-JIS Japanese text",
+      "expectedDisposition": "usable-low-confidence-legacy-text"
     },
     {
       "path": "md/sample.md",
       "format": "markdown",
       "sizeBytes": 296,
       "sha256": "04a5d2dcbad168efe255b0d66075c5f3a29f879b1300303324117f4f56b6f24a",
-      "provenance": "repository-authored synthetic Markdown",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "baseline Markdown",
       "expectedDisposition": "usable-markdown"
+    },
+    {
+      "path": "md/structure.md",
+      "format": "markdown",
+      "sizeBytes": 61,
+      "sha256": "69769f26deff33911cae7f67224030db5e06aedd90f6a71611b53c8e5968104a",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "headings, list, and table",
+      "expectedDisposition": "structure-preserved"
+    },
+    {
+      "path": "md/nfd-accents.md",
+      "format": "markdown",
+      "sizeBytes": 36,
+      "sha256": "78a5c1c02311eb700df332b7c598c5ae69581fa504973e871469f09566e913b8",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "decomposed Unicode accents",
+      "expectedDisposition": "nfc-normalized"
+    },
+    {
+      "path": "md/astral-rtl.md",
+      "format": "markdown",
+      "sizeBytes": 49,
+      "sha256": "5f7c7d587d08613becc4f1969e1fe99ca4b0ac66f8c34cbe078018c8a02d5704",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "astral and right-to-left text",
+      "expectedDisposition": "dual-offset-safe"
     },
     {
       "path": "pdf/two-column.pdf",
       "format": "pdf",
       "sizeBytes": 2054,
       "sha256": "d279a7d952043efc312a7f11ef5062abe6f8900b4536bb74d995fa431cdca3a0",
-      "provenance": "repository-authored synthetic text-layer PDF",
-      "expectedDisposition": "usable-text-left-column-then-right-column"
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "coordinate-based two-column text",
+      "expectedDisposition": "left-column-then-right-column"
+    },
+    {
+      "path": "pdf/no-tounicode.pdf",
+      "format": "pdf",
+      "sizeBytes": 77414,
+      "sha256": "d4cf00a9ad07afc5b348f343a098098f6f0a8d23402e2eb2112c14ddc304f0b1",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "raster control for unusable text mapping",
+      "expectedDisposition": "vision-required"
     },
     {
       "path": "pdf/scanned.pdf",
       "format": "pdf",
       "sizeBytes": 77414,
       "sha256": "d4cf00a9ad07afc5b348f343a098098f6f0a8d23402e2eb2112c14ddc304f0b1",
-      "provenance": "repository-authored raster-only PDF",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "raster-only page",
       "expectedDisposition": "vision-required"
+    },
+    {
+      "path": "pdf/ligatures.pdf",
+      "format": "pdf",
+      "sizeBytes": 716,
+      "sha256": "67d4651ede52ca931574c97047ccef27c67553a1c233fd5aedbe4f05871d889c",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "typographic word control",
+      "expectedDisposition": "usable-text"
+    },
+    {
+      "path": "pdf/hyphenated.pdf",
+      "format": "pdf",
+      "sizeBytes": 766,
+      "sha256": "8978b0fe763fc89fc89c69faf78c71b104719e3b7574e9d039c7f6ec38b19e10",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "line-end hyphenation",
+      "expectedDisposition": "conservative-hyphen-join"
     },
     {
       "path": "docx/word-saved.docx",
       "format": "docx",
-      "sizeBytes": 37704,
-      "sha256": "733135b746c8cb16d02099ab773a1c57d182eded875f736f69097272e5bd2905",
-      "provenance": "repository-authored OOXML with an explicit page break; Word-compatible, not evidence of a specific Word build",
-      "expectedDisposition": "usable-text-and-table-with-rendered-page-basis"
+      "sizeBytes": 1095,
+      "sha256": "abdf8e2da2f8fa5a1f31846a37753386f0698c2d6933dbb70448906ca8991eb9",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "saved rendered page-break evidence",
+      "expectedDisposition": "page-basis-rendered"
+    },
+    {
+      "path": "docx/gdocs-export.docx",
+      "format": "docx",
+      "sizeBytes": 1039,
+      "sha256": "0944e37f4edad294a96e31e45ea13204608365d5e918b0813f8552c8af23e950",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "synthetic generated-export style package",
+      "expectedDisposition": "page-basis-none"
     },
     {
       "path": "docx/gdocs-export-synthetic.docx",
       "format": "docx",
       "sizeBytes": 37709,
       "sha256": "53912ea98ee3f88a9e1eabef7381d336eba96fb0f328ffe118c97dc4d48459af",
-      "provenance": "repository-authored synthetic export-style OOXML; not represented as a real Google Docs export",
-      "expectedDisposition": "usable-text-and-table-with-page-basis-none",
-      "operatorInputStillRequired": "approved real Google Docs export"
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "legacy generated-export control",
+      "expectedDisposition": "page-basis-none"
+    },
+    {
+      "path": "docx/explicit-breaks.docx",
+      "format": "docx",
+      "sizeBytes": 1055,
+      "sha256": "4ea4507b074fbf942f4a3a10e4fb894c5d62e42982624bb943d8e6255c3f540e",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "explicit page break",
+      "expectedDisposition": "page-basis-explicit"
+    },
+    {
+      "path": "docx/tables-images-footnotes.docx",
+      "format": "docx",
+      "sizeBytes": 55866,
+      "sha256": "bd499bbfae66f43c016c1a8eb924cb77da06e328e7c8ba7eefb9c607ce312bd1",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "table, image, list, emphasis, and footnote",
+      "expectedDisposition": "structured-with-pending-image"
     },
     {
       "path": "xlsx/messy-workbook.xlsx",
       "format": "xlsx",
       "sizeBytes": 5438,
       "sha256": "dd81d29559620d87144684e14487c6348e4a893cd674b515a1c7250d19a46a19",
-      "provenance": "repository-authored synthetic workbook with two regions, blanks, dates, currency, formulas, and notes",
-      "expectedDisposition": "usable-regions-and-formatted-values"
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "namespace-prefixed compatibility workbook",
+      "expectedDisposition": "usable-regions-and-formats"
+    },
+    {
+      "path": "xlsx/multi-region.xlsx",
+      "format": "xlsx",
+      "sizeBytes": 2164,
+      "sha256": "eb5e3a112dabb156f5aa1b1d990ab4a5ee90a3b62c0b9712108a9be2a9f7f0c8",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "two separated nonempty regions",
+      "expectedDisposition": "two-tables"
+    },
+    {
+      "path": "xlsx/dates-currency.xlsx",
+      "format": "xlsx",
+      "sizeBytes": 2122,
+      "sha256": "b27cb86a6eb5efdcd398889c8a84862c895ae6177a9478499a70538be9f6f413",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "date and currency display formats",
+      "expectedDisposition": "displayed-values"
+    },
+    {
+      "path": "xlsx/formulas-no-cache.xlsx",
+      "format": "xlsx",
+      "sizeBytes": 2025,
+      "sha256": "c5619bcd2e4dd3be9f598750e19ef750cf599a1a6a810ea5b7e33c9d6b01797d",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "formula without cached value",
+      "expectedDisposition": "explicit-cache-warning"
+    },
+    {
+      "path": "xlsx/merged-cells.xlsx",
+      "format": "xlsx",
+      "sizeBytes": 2054,
+      "sha256": "ac688e17942002c6bfce7904289ce8c90db38afa7ba9accf8c95166dfff52099",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "merged labels",
+      "expectedDisposition": "merged-values-repeated"
+    },
+    {
+      "path": "xlsx/wide-90-col.xlsx",
+      "format": "xlsx",
+      "sizeBytes": 2976,
+      "sha256": "6f2b6236c5d8932622a1f2b2295c6030734664df8d53f969673b57d5786ad617",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "ninety-column region",
+      "expectedDisposition": "record-layout"
+    },
+    {
+      "path": "xlsx/tall-5000-row.xlsx",
+      "format": "xlsx",
+      "sizeBytes": 78363,
+      "sha256": "a8b9794b379150a8beddca094f076abea928de96e44c8359cbe272e60d3da6fd",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "five-thousand-row streaming proxy",
+      "expectedDisposition": "streaming-reader"
     },
     {
       "path": "images/table.png",
       "format": "png",
       "sizeBytes": 64658,
       "sha256": "d64ac371cfe0d2671b2a4a5ba16556d54835ee742273b1a506dfd880a297a9d1",
-      "provenance": "repository-authored synthetic table image",
-      "expectedDisposition": "ollama-vision-probe-input"
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "synthetic table image",
+      "expectedDisposition": "vision-probe-input"
     }
+  ],
+  "operatorInputsStillRequired": [
+    "approved real Google Docs export",
+    "licensed no-ToUnicode production sample"
   ]
 }

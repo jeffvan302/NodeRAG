@@ -191,7 +191,7 @@ describe.sequential('M04 Markdown vertical slice', () => {
     expect(replay.headers['idempotency-replayed']).toBe('true');
     expect(replay.json()).toMatchObject({ documentId: accepted.documentId, jobId: accepted.jobId });
 
-    const unsupportedBody = multipart('not-markdown.txt', 'text/plain', Buffer.from('text'));
+    const unsupportedBody = multipart('not-markdown.html', 'text/html', Buffer.from('text'));
     const unsupported = await app.inject({
       method: 'POST',
       url: `/v1/documents?siloId=${String(siloId)}`,

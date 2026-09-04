@@ -1,0 +1,427 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "NodeRag API",
+    "version": "0.2.0",
+    "description": "Implemented M06 setup, identity, five-format document extraction and search, durable jobs, watched sources, integrity health, and destructive purge surface."
+  },
+  "servers": [{ "url": "/" }],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "security": [],
+        "responses": { "200": { "description": "Process is alive" } }
+      }
+    },
+    "/ready": {
+      "get": {
+        "operationId": "readiness",
+        "security": [],
+        "responses": {
+          "200": { "description": "Service is operational" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/setup/status": {
+      "get": {
+        "operationId": "setupStatus",
+        "security": [],
+        "responses": { "200": { "description": "Durable setup state" } }
+      }
+    },
+    "/v1/setup/configure": {
+      "post": {
+        "operationId": "configureFirstAdministrator",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["setupToken", "username", "password"],
+                "properties": {
+                  "setupToken": { "type": "string" },
+                  "username": { "type": "string", "minLength": 3, "maxLength": 64 },
+                  "password": { "type": "string", "minLength": 12, "maxLength": 1024 }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "First administrator and default silo created" },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "operationId": "login",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "password": { "type": "string" }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Session cookie and CSRF token" },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "operationId": "currentPrincipal",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "responses": {
+          "200": { "description": "Current principal" },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/documents": {
+      "post": {
+        "operationId": "uploadDocument",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "parameters": [
+          {
+            "name": "siloId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 32767 }
+          },
+          { "$ref": "#/components/parameters/CsrfToken" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": { "file": { "type": "string", "format": "binary" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "MD, TXT, PDF, DOCX, or XLSX document and durable extract job accepted"
+          },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "507": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/documents/{id}": {
+      "delete": {
+        "operationId": "purgeDocument",
+        "description": "Irreversibly removes all document rows, managed files, chunks, and uniquely referenced caches.",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" },
+          { "$ref": "#/components/parameters/CsrfToken" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": { "$ref": "#/components/requestBodies/DocumentPurge" },
+        "responses": {
+          "202": { "description": "Purge state machine completed or can be safely retried" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/search": {
+      "post": {
+        "operationId": "vectorSearch",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": { "type": "string", "minLength": 1, "maxLength": 4000 },
+                  "siloIds": {
+                    "type": "array",
+                    "maxItems": 64,
+                    "items": { "type": "integer", "minimum": 1, "maximum": 32767 }
+                  },
+                  "limit": { "type": "integer", "minimum": 1, "maximum": 50 }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Authorized ready and retained-source passages" },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/sources": {
+      "get": {
+        "operationId": "listSources",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "responses": { "200": { "description": "Sources in upload-authorized silos" } }
+      },
+      "post": {
+        "operationId": "createSource",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/CsrfToken" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": { "$ref": "#/components/requestBodies/Source" },
+        "responses": {
+          "201": { "description": "Source registered with automatic scheduling disabled" },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/sources/{id}": {
+      "get": {
+        "operationId": "getSource",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": {
+          "200": { "description": "Source configuration and health" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      },
+      "patch": {
+        "operationId": "updateSource",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" },
+          { "$ref": "#/components/parameters/CsrfToken" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "responses": { "200": { "description": "Source configuration updated" } }
+      },
+      "delete": {
+        "operationId": "detachSource",
+        "description": "Removes the source registration and retains managed documents as detached.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" },
+          { "$ref": "#/components/parameters/CsrfToken" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "responses": { "200": { "description": "Source detached" } }
+      }
+    },
+    "/v1/sources/{id}/crawl": {
+      "post": {
+        "operationId": "crawlSource",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" },
+          { "$ref": "#/components/parameters/CsrfToken" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "responses": { "202": { "description": "Durable crawl queued" } }
+      }
+    },
+    "/v1/sources/{id}/review-missing": {
+      "post": {
+        "operationId": "reviewMissingSourceFile",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" },
+          { "$ref": "#/components/parameters/CsrfToken" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "responses": { "200": { "description": "Operator note recorded without deletion" } }
+      }
+    },
+    "/v1/jobs": {
+      "get": {
+        "operationId": "listJobs",
+        "security": [{ "sessionCookie": [] }],
+        "responses": { "200": { "description": "Durable jobs in upload-authorized silos" } }
+      }
+    },
+    "/v1/jobs/{id}": {
+      "get": {
+        "operationId": "getJob",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": {
+          "200": { "description": "Job, frozen configuration, lease, checkpoint, and result" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/jobs/stream": {
+      "get": {
+        "operationId": "streamJobEvents",
+        "description": "Ordered SSE replay using Last-Event-ID as jobId:sequence; disconnect never cancels work.",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "schema": { "type": "string", "pattern": "^[0-9]+:[0-9]+$" }
+          }
+        ],
+        "responses": { "200": { "description": "text/event-stream" } }
+      }
+    },
+    "/v1/jobs/{id}/cancel": { "$ref": "#/components/pathItems/jobMutation" },
+    "/v1/jobs/{id}/pause": { "$ref": "#/components/pathItems/jobMutation" },
+    "/v1/jobs/{id}/resume": { "$ref": "#/components/pathItems/jobMutation" },
+    "/v1/jobs/{id}/retry": { "$ref": "#/components/pathItems/jobMutation" },
+    "/v1/admin/health": {
+      "get": {
+        "operationId": "adminHealth",
+        "security": [{ "sessionCookie": [] }],
+        "responses": { "200": { "description": "Open locator and storage integrity findings" } }
+      }
+    },
+    "/v1/admin/silos/{id}": {
+      "delete": {
+        "operationId": "purgeSilo",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" },
+          { "$ref": "#/components/parameters/CsrfToken" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "responses": {
+          "202": { "description": "Silo contents purged and partition dropped" },
+          "409": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/openapi.json": {
+      "get": {
+        "operationId": "openApi",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "responses": { "200": { "description": "This document" } }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "Id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "minimum": 1 }
+      },
+      "CsrfToken": {
+        "name": "X-CSRF-Token",
+        "in": "header",
+        "required": true,
+        "schema": { "type": "string" }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": { "type": "string", "minLength": 8, "maxLength": 200 }
+      }
+    },
+    "requestBodies": {
+      "DocumentPurge": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": ["siloId", "confirmDocumentId"],
+              "properties": {
+                "siloId": { "type": "integer", "minimum": 1, "maximum": 32767 },
+                "confirmDocumentId": { "type": "integer", "minimum": 1 }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "Source": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": ["siloId", "uri"],
+              "properties": {
+                "siloId": { "type": "integer", "minimum": 1, "maximum": 32767 },
+                "uri": { "type": "string", "maxLength": 4096 },
+                "includeGlobs": { "type": "array", "items": { "type": "string" } },
+                "excludeGlobs": { "type": "array", "items": { "type": "string" } },
+                "scheduleIntervalMinutes": {
+                  "type": ["integer", "null"],
+                  "minimum": 1,
+                  "maximum": 525600
+                },
+                "operatorNote": { "type": "string", "maxLength": 2000 }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      }
+    },
+    "pathItems": {
+      "jobMutation": {
+        "post": {
+          "security": [{ "sessionCookie": [] }],
+          "parameters": [
+            { "$ref": "#/components/parameters/Id" },
+            { "$ref": "#/components/parameters/CsrfToken" },
+            { "$ref": "#/components/parameters/IdempotencyKey" }
+          ],
+          "responses": { "202": { "description": "Durable job transition accepted" } }
+        }
+      }
+    },
+    "securitySchemes": {
+      "sessionCookie": { "type": "apiKey", "in": "cookie", "name": "noderag_session" },
+      "bearerApiKey": { "type": "http", "scheme": "bearer" }
+    },
+    "responses": {
+      "Problem": {
+        "description": "RFC 9457-style problem detail with a request ID",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "type": "object",
+              "required": ["type", "title", "status", "code", "requestId"],
+              "properties": {
+                "type": { "type": "string", "format": "uri" },
+                "title": { "type": "string" },
+                "status": { "type": "integer" },
+                "code": { "type": "string" },
+                "requestId": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -2,12 +2,12 @@ import { basename, extname } from 'node:path';
 import type { SqlClient } from '../store/database.js';
 import { databaseInteger } from '../store/database.js';
 import {
-  validatedMarkdownMetadata,
+  validatedDocumentMetadata,
   type DocumentFileStore,
   type StagedUpload,
 } from '../storage/document-files.js';
 
-export interface AcceptMarkdownUploadInput {
+export interface AcceptDocumentUploadInput {
   readonly siloId: number;
   readonly principalId: number;
   readonly filename: string;
@@ -15,7 +15,7 @@ export interface AcceptMarkdownUploadInput {
   readonly staged: StagedUpload;
 }
 
-export interface AcceptedMarkdownUpload {
+export interface AcceptedDocumentUpload {
   readonly documentId: number;
   readonly jobId: number;
   readonly state: 'pending';
@@ -37,12 +37,12 @@ export const uploadRequestDigestInput = (input: {
     bytes: input.bytes,
   });
 
-export const acceptMarkdownUpload = async (
+export const acceptDocumentUpload = async (
   database: SqlClient,
   files: DocumentFileStore,
-  input: AcceptMarkdownUploadInput,
-): Promise<AcceptedMarkdownUpload> => {
-  const metadata = validatedMarkdownMetadata(input.filename, input.mimeType);
+  input: AcceptDocumentUploadInput,
+): Promise<AcceptedDocumentUpload> => {
+  const metadata = validatedDocumentMetadata(input.filename, input.mimeType);
   const sequence = await database.query<{ id: unknown }>(
     `SELECT nextval(pg_get_serial_sequence('noderag.document', 'id')) AS id`,
   );
@@ -53,14 +53,15 @@ export const acceptMarkdownUpload = async (
       `INSERT INTO noderag.document
          (id, silo_id, name, title, extension, mime_type, relative_path,
           byte_count, original_sha256, uploaded_by, metadata)
-       VALUES ($1, $2, $3, $4, 'md', $5, $3, $6, $7, $8,
-               jsonb_build_object('managedOriginal', $9::text,
-                                  'managedMarkdown', $10::text))`,
+       VALUES ($1, $2, $3, $4, $5, $6, $3, $7, $8, $9,
+               jsonb_build_object('managedOriginal', $10::text,
+                                  'managedMarkdown', $11::text))`,
       [
         documentId,
         input.siloId,
         metadata.name,
         basename(metadata.name, extname(metadata.name)),
+        metadata.extension,
         metadata.mimeType,
         input.staged.bytes,
         input.staged.sha256,
@@ -71,9 +72,9 @@ export const acceptMarkdownUpload = async (
     );
     const job = await database.query<{ id: unknown }>(
       `INSERT INTO noderag.job (kind, document_id, silo_id, priority, payload)
-       VALUES ('extract', $1, $2, 3, jsonb_build_object('format', 'md'))
+       VALUES ('extract', $1, $2, 3, jsonb_build_object('format', $3::text))
        RETURNING id`,
-      [documentId, input.siloId],
+      [documentId, input.siloId, metadata.extension],
     );
     const jobId = databaseInteger(job.rows[0]?.id, 'extract job id');
     await database.query(
@@ -86,8 +87,8 @@ export const acceptMarkdownUpload = async (
          (principal_id, silo_id, action, result, row_count, detail)
        VALUES ($1, $2, 'document.upload', 'ok', 1,
                jsonb_build_object('documentId', $3::bigint, 'bytes', $4::bigint,
-                                  'extension', 'md'))`,
-      [input.principalId, input.siloId, documentId, input.staged.bytes],
+                                  'extension', $5::text))`,
+      [input.principalId, input.siloId, documentId, input.staged.bytes, metadata.extension],
     );
     return {
       documentId,
@@ -100,3 +101,7 @@ export const acceptMarkdownUpload = async (
     throw error;
   }
 };
+
+export type AcceptMarkdownUploadInput = AcceptDocumentUploadInput;
+export type AcceptedMarkdownUpload = AcceptedDocumentUpload;
+export const acceptMarkdownUpload = acceptDocumentUpload;

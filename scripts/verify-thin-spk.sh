@@ -37,6 +37,7 @@ for required in INFO PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG package.tgz conf/priv
   [[ -e "${verify_root}/outer/${required}" ]] || { echo "Missing SPK member: ${required}" >&2; exit 1; }
 done
 for required in bin/server.cjs bin/worker.cjs bin/embedder.cjs ui/index.html \
+  bin/vendor/pdf.mjs bin/vendor/pdf.worker.mjs \
   migrations/000001_foundation.sql migrations/000002_identity_foundation.sql \
   migrations/000003_markdown_slice.sql migrations/000004_durable_ingestion.sql \
   platform/migration-checksums.v1.json; do
@@ -58,6 +59,10 @@ done
   echo "Missing payload member: platform/openapi.m05.json" >&2
   exit 1
 }
+[[ -e "${verify_root}/payload/platform/openapi.m06.json" ]] || {
+  echo "Missing payload member: platform/openapi.m06.json" >&2
+  exit 1
+}
 
 grep -q '^package="noderag"$' "${verify_root}/outer/INFO"
 grep -q '^arch="x86_64"$' "${verify_root}/outer/INFO"
@@ -74,6 +79,8 @@ node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' \
   "${verify_root}/payload/platform/openapi.m04.json"
 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' \
   "${verify_root}/payload/platform/openapi.m05.json"
+node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' \
+  "${verify_root}/payload/platform/openapi.m06.json"
 grep -q '"run-as": "package"' "${verify_root}/outer/conf/privilege"
 grep -q '127.0.0.1:8787' "${verify_root}/outer/conf/resource"
 

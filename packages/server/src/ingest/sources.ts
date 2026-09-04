@@ -1,10 +1,15 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { lstat, readdir, realpath } from 'node:fs/promises';
+import { lstat, readdir, realpath, rm } from 'node:fs/promises';
 import { basename, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Pool } from 'pg';
-import { type DocumentFileStore, type StagedUpload } from '../storage/document-files.js';
+import type { DocumentFormat } from '../extract/contract.js';
+import {
+  validateStagedDocumentSignature,
+  type DocumentFileStore,
+  type StagedUpload,
+} from '../storage/document-files.js';
 import { databaseInteger, withTransaction, type SqlClient } from '../store/database.js';
 import { appendJobEvent, completeJob, heartbeatJob, type ClaimedJob } from '../store/jobs.js';
 
@@ -51,7 +56,17 @@ interface ScannedFile {
   readonly relativePath: string;
   readonly bytes: number;
   readonly mtime: Date;
+  readonly format: DocumentFormat;
+  readonly mimeType: string;
 }
+
+const sourceMimeTypes: Readonly<Record<DocumentFormat, string>> = {
+  md: 'text/markdown',
+  txt: 'text/plain',
+  pdf: 'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+};
 
 const validateGlobs = (values: readonly string[]): readonly string[] => {
   if (values.length > 64) throw new Error('too-many-source-globs');
@@ -216,7 +231,7 @@ export const enqueueDueSourceCrawls = async (pool: Pool): Promise<number> =>
     return due.rows.length;
   });
 
-const enumerateMarkdown = async (
+const enumerateDocuments = async (
   root: string,
   includeGlobs: readonly string[],
   excludeGlobs: readonly string[],
@@ -236,15 +251,20 @@ const enumerateMarkdown = async (
       }
       if (!entry.isFile()) continue;
       const relativePath = relative(root, absolutePath).split(sep).join('/');
-      if (
-        extname(relativePath).toLowerCase() !== '.md' ||
-        !selectedByGlobs(relativePath, includes, excludes)
-      ) {
+      const format = extname(relativePath).toLowerCase().slice(1) as DocumentFormat;
+      if (!(format in sourceMimeTypes) || !selectedByGlobs(relativePath, includes, excludes)) {
         continue;
       }
       const info = await lstat(absolutePath);
       if (!info.isFile() || info.isSymbolicLink()) continue;
-      files.push({ absolutePath, relativePath, bytes: info.size, mtime: info.mtime });
+      files.push({
+        absolutePath,
+        relativePath,
+        bytes: info.size,
+        mtime: info.mtime,
+        format,
+        mimeType: sourceMimeTypes[format],
+      });
     }
   };
   await walk(root);
@@ -296,22 +316,24 @@ const insertWatchedDocument = async (
     `SELECT nextval(pg_get_serial_sequence('noderag.document', 'id')) AS id`,
   );
   const documentId = databaseInteger(sequence.rows[0]?.id, 'watched document id');
-  const paths = await files.promoteOriginal(staged, documentId, 'md');
+  const paths = await files.promoteOriginal(staged, documentId, item.format);
   try {
     await database.query(
       `INSERT INTO noderag.document
          (id, silo_id, source_id, name, title, extension, mime_type, relative_path,
           byte_count, source_mtime, original_sha256, uploaded_by, metadata)
-       VALUES ($1, $2, $3, $4, $5, 'md', 'text/markdown', $6,
-               $7, $8, $9, $10,
-               jsonb_build_object('managedOriginal', $11::text,
-                                  'managedMarkdown', $12::text))`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
+               $9, $10, $11, $12,
+               jsonb_build_object('managedOriginal', $13::text,
+                                  'managedMarkdown', $14::text))`,
       [
         documentId,
         source.silo_id,
         databaseInteger(source.id, 'source id'),
         basename(item.relativePath),
         basename(item.relativePath, extname(item.relativePath)),
+        item.format,
+        item.mimeType,
         item.relativePath,
         staged.bytes,
         item.mtime,
@@ -324,9 +346,9 @@ const insertWatchedDocument = async (
     const job = await database.query<{ id: unknown }>(
       `INSERT INTO noderag.job (kind, document_id, silo_id, priority, payload)
        VALUES ('extract', $1, $2, 3,
-               jsonb_build_object('format', 'md', 'sourceId', $3::bigint))
+               jsonb_build_object('format', $3::text, 'sourceId', $4::bigint))
        RETURNING id`,
-      [documentId, source.silo_id, source.id],
+      [documentId, source.silo_id, item.format, source.id],
     );
     await appendJobEvent(database, databaseInteger(job.rows[0]?.id, 'extract job id'), 'queued', {
       documentId,
@@ -411,9 +433,9 @@ const updateWatchedDocument = async (
     const job = await database.query<{ id: unknown }>(
       `INSERT INTO noderag.job (kind, document_id, silo_id, priority, payload)
        VALUES ('extract', $1, $2, 3,
-               jsonb_build_object('format', 'md', 'sourceId', $3::bigint, 'changed', true))
+               jsonb_build_object('format', $3::text, 'sourceId', $4::bigint, 'changed', true))
        RETURNING id`,
-      [documentId, source.silo_id, source.id],
+      [documentId, source.silo_id, document.extension, source.id],
     );
     await appendJobEvent(database, databaseInteger(job.rows[0]?.id, 'extract job id'), 'queued', {
       documentId,
@@ -453,7 +475,7 @@ export const crawlSource = async (options: CrawlSourceOptions): Promise<void> =>
   let scanned: readonly ScannedFile[];
   try {
     root = await validateSourceRoot(source.uri, options.allowedRoots);
-    scanned = await enumerateMarkdown(root, source.include_glob, source.exclude_glob);
+    scanned = await enumerateDocuments(root, source.include_glob, source.exclude_glob);
   } catch (error) {
     await withTransaction(options.pool, async (database) => {
       await database.query(`SELECT set_config('app.silo_ids', $1, true)`, [
@@ -507,6 +529,12 @@ export const crawlSource = async (options: CrawlSourceOptions): Promise<void> =>
       fastGate += 1;
     } else {
       const staged = await stageSourceFile(options.files, item.absolutePath, maximumBytes);
+      try {
+        await validateStagedDocumentSignature(staged, item.format);
+      } catch (error) {
+        await rm(staged.temporaryPath, { force: true });
+        throw error;
+      }
       if (existing === undefined) {
         await withTransaction(options.pool, async (database) => {
           await database.query(`SELECT set_config('app.silo_ids', $1, true)`, [

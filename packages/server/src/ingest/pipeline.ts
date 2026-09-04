@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { chunkCanonicalMarkdown, type Embedder } from '@noderag/shared';
 import type { Pool } from 'pg';
-import { normalizeMarkdown } from './normalization.js';
+import { extractDocument, type DocumentFormat } from '../extract/index.js';
 import { enforceTokenGuard, type GuardedChunk } from './token-guard.js';
 import { runIntegrityJob } from './integrity.js';
 import { crawlSource } from './sources.js';
@@ -21,7 +21,15 @@ const setWorkerScope = async (database: SqlClient, siloId: number): Promise<void
   await database.query(`SELECT set_config('app.silo_ids', $1, true)`, [`{${String(siloId)}}`]);
 };
 
-const extractMarkdown = async (
+const supportedFormats = new Set<DocumentFormat>(['md', 'txt', 'pdf', 'docx', 'xlsx']);
+
+const documentFormat = (value: string): DocumentFormat => {
+  if (!supportedFormats.has(value as DocumentFormat))
+    throw new Error('unsupported-document-format');
+  return value as DocumentFormat;
+};
+
+const extractCanonicalDocument = async (
   pool: Pool,
   files: DocumentFileStore,
   job: ClaimedJob,
@@ -42,13 +50,22 @@ const extractMarkdown = async (
     if (row === undefined) throw new Error('document-not-found');
     return row;
   });
-  const original = await readFile(files.paths(job.documentId, document.extension).originalAbsolute);
+  const format = documentFormat(document.extension);
+  const original = await readFile(files.paths(job.documentId, format).originalAbsolute);
   const actualOriginalHash = createHash('sha256').update(original).digest();
   if (!actualOriginalHash.equals(document.original_sha256))
     throw new Error('original-hash-mismatch');
-  const normalized = normalizeMarkdown(original);
-  if (normalized.markdown.length === 0) throw new Error('empty-canonical-markdown');
-  const canonical = await files.writeCanonicalMarkdown(job.documentId, normalized.markdown);
+  const extracted = await extractDocument(original, format);
+  const awaitingVision =
+    extracted.markdown.length === 0 &&
+    extracted.pages.some(
+      (page) =>
+        page.extraction === 'vision' ||
+        page.images.some((image) => image.disposition === 'pending_vision'),
+    );
+  if (extracted.markdown.length === 0 && !awaitingVision)
+    throw new Error('empty-canonical-markdown');
+  const canonical = await files.writeCanonicalMarkdown(job.documentId, extracted.markdown);
   await heartbeatJob(pool, job, 60_000, { stage: 'commit-canonical' });
 
   await withTransaction(pool, async (database) => {
@@ -56,52 +73,104 @@ const extractMarkdown = async (
     await database.query(
       `UPDATE noderag.document
        SET markdown_sha256 = $3, normalized_sha256 = $3,
-           character_count = $4, page_count = 1, page_basis = 'none',
-           offsets_match_original = $5, encoding = 'utf-8', encoding_confidence = 1,
+           character_count = $4, page_count = $5, page_basis = $6,
+           offsets_match_original = $7, encoding = $8, encoding_confidence = $9,
            normalization = 'nfc', normalization_version = 1,
-           state = 'extracting', error_code = NULL, error_detail = NULL,
+           state = $10, error_code = NULL, error_detail = NULL,
            metadata = metadata || jsonb_build_object(
-             'canonicalBytes', $6::bigint, 'bomRemoved', $7::boolean,
-             'lineEndingsChanged', $8::boolean, 'unicodeChanged', $9::boolean)
+             'canonicalBytes', $11::bigint, 'extractionWarnings', $12::jsonb,
+             'extractionMetadata', $13::jsonb)
        WHERE id = $1 AND silo_id = $2`,
       [
         job.documentId,
         job.siloId,
         canonical.sha256,
-        normalized.markdown.length,
-        normalized.offsetsMatchOriginal,
+        extracted.markdown.length,
+        extracted.pages.length,
+        extracted.pageBasis,
+        extracted.offsetsMatchOriginal,
+        extracted.encoding,
+        extracted.encodingConfidence,
+        awaitingVision ? 'awaiting_vision' : 'extracting',
         canonical.bytes,
-        normalized.bomRemoved,
-        normalized.lineEndingsChanged,
-        normalized.unicodeChanged,
+        JSON.stringify(extracted.warnings),
+        JSON.stringify(extracted.metadata),
       ],
     );
     await database.query('DELETE FROM noderag.document_page WHERE document_id = $1', [
       job.documentId,
     ]);
-    await database.query(
-      `INSERT INTO noderag.document_page
-         (document_id, silo_id, ordinal, character_start, character_end,
-          byte_start, byte_end, extraction, extraction_confidence)
-       VALUES ($1, $2, 0, 0, $3, 0, $4, 'text', 1)`,
-      [job.documentId, job.siloId, normalized.markdown.length, canonical.bytes],
-    );
+    await database.query('DELETE FROM noderag.document_image WHERE document_id = $1', [
+      job.documentId,
+    ]);
+    for (const page of extracted.pages) {
+      await database.query(
+        `INSERT INTO noderag.document_page
+           (document_id, silo_id, ordinal, page_number, label, character_start, character_end,
+            byte_start, byte_end, extraction, extraction_confidence)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
+          job.documentId,
+          job.siloId,
+          page.ordinal,
+          page.pageNumber,
+          page.label,
+          page.characterStart,
+          page.characterEnd,
+          page.byteStart,
+          page.byteEnd,
+          page.extraction,
+          page.confidence,
+        ],
+      );
+      for (const image of page.images) {
+        await database.query(
+          `INSERT INTO noderag.document_image
+             (document_id, silo_id, page_ordinal, sequence, image_sha256, width, height,
+              byte_count, state, skip_reason)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [
+            job.documentId,
+            job.siloId,
+            page.ordinal,
+            image.sequence,
+            createHash('sha256').update(image.bytes).digest(),
+            image.width ?? null,
+            image.height ?? null,
+            image.bytes.byteLength,
+            image.disposition,
+            image.skipReason ?? null,
+          ],
+        );
+      }
+    }
+    if (awaitingVision) {
+      await completeJob(database, job, {
+        characters: 0,
+        canonicalBytes: canonical.bytes,
+        pages: extracted.pages.length,
+        awaitingVision: true,
+      });
+      return;
+    }
     const build = await database.query<{ id: unknown }>(
       `SELECT id FROM noderag.build WHERE state = 'active'`,
     );
     const buildId = databaseInteger(build.rows[0]?.id, 'active build id');
     await database.query(
       `INSERT INTO noderag.job (kind, document_id, silo_id, build_id, priority, payload)
-       VALUES ('embed', $1, $2, $3, 4, jsonb_build_object('format', 'md'))
+       VALUES ('embed', $1, $2, $3, 4, jsonb_build_object('format', $4::text))
        ON CONFLICT (document_id, kind)
          WHERE document_id IS NOT NULL
            AND state IN ('pending', 'leased', 'retry_wait', 'paused')
        DO NOTHING`,
-      [job.documentId, job.siloId, buildId],
+      [job.documentId, job.siloId, buildId, format],
     );
     await completeJob(database, job, {
-      characters: normalized.markdown.length,
+      characters: extracted.markdown.length,
       canonicalBytes: canonical.bytes,
+      pages: extracted.pages.length,
+      warnings: extracted.warnings,
     });
   });
 };
@@ -115,6 +184,12 @@ interface BuildProfileRow {
   readonly snap_window: string | number;
   readonly heading_prefix: boolean;
   readonly markdown_sha256: Buffer;
+}
+
+interface DocumentPageRangeRow {
+  readonly page_number: number | null;
+  readonly character_start: number;
+  readonly character_end: number;
 }
 
 const vectorLiteral = (vector: readonly number[]): string => {
@@ -168,6 +243,17 @@ const embedMarkdown = async (
   if (!markdownSha256.equals(profile.markdown_sha256)) throw new Error('markdown-hash-mismatch');
   const buildId = databaseInteger(profile.build_id, 'build id');
   const modelManifestId = databaseInteger(profile.model_manifest_id, 'model manifest id');
+  const pageRanges = await withTransaction(pool, async (database) => {
+    await setWorkerScope(database, job.siloId ?? 0);
+    const result = await database.query<DocumentPageRangeRow>(
+      `SELECT page_number, character_start, character_end
+       FROM noderag.document_page
+       WHERE document_id = $1 AND silo_id = $2
+       ORDER BY ordinal`,
+      [job.documentId, job.siloId],
+    );
+    return result.rows;
+  });
   const activeEmbedder = coordinatedEmbedder(
     pool,
     `job:${String(job.id)}:${String(job.leaseEpoch)}`,
@@ -230,6 +316,16 @@ const embedMarkdown = async (
     if ((existing.rowCount ?? 0) > 0) throw new Error('document-build-already-indexed');
     for (const chunk of prepared) {
       const embedding = vectorLiteral(chunk.vector);
+      const pages = pageRanges
+        .filter(
+          (page) =>
+            page.page_number !== null &&
+            page.character_end > chunk.characterStart &&
+            page.character_start < chunk.characterEnd,
+        )
+        .map((page) => page.page_number as number);
+      const pageStart = pages.length === 0 ? null : Math.min(...pages);
+      const pageEnd = pages.length === 0 ? null : Math.max(...pages);
       await database.query(
         `INSERT INTO noderag.embedding_cache
            (chunk_sha256, model_manifest_id, dimensions, embedding, refcount)
@@ -245,14 +341,16 @@ const embedMarkdown = async (
             character_start, character_end, byte_start, byte_end, embedding,
             token_count, heading_path, chunk_sha256, part_of, structure_kind,
             structure_kinds, continuation)
-         VALUES ($1, $2, $3, $4, $5, NULL, NULL, $6, $7, $8, $9,
-                 $10::halfvec, $11, $12, $13, 'document', $14, $15, $16)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+                 $12::halfvec, $13, $14, $15, 'document', $16, $17, $18)`,
         [
           job.siloId,
           job.documentId,
           buildId,
           chunk.ordinal,
           chunk.text,
+          pageStart,
+          pageEnd,
           chunk.characterStart,
           chunk.characterEnd,
           chunk.byteStart,
@@ -287,7 +385,7 @@ const embedMarkdown = async (
   });
 };
 
-export interface MarkdownWorkerOptions {
+export interface DocumentWorkerOptions {
   readonly pool: Pool;
   readonly files: DocumentFileStore;
   readonly embedder: Embedder;
@@ -295,11 +393,11 @@ export interface MarkdownWorkerOptions {
   readonly sourceRoots?: readonly string[];
 }
 
-export const processOneMarkdownJob = async (options: MarkdownWorkerOptions): Promise<boolean> => {
+export const processOneDocumentJob = async (options: DocumentWorkerOptions): Promise<boolean> => {
   const job = await claimNextJob(options.pool, options.leaseOwner);
   if (job === null) return false;
   try {
-    if (job.kind === 'extract') await extractMarkdown(options.pool, options.files, job);
+    if (job.kind === 'extract') await extractCanonicalDocument(options.pool, options.files, job);
     else if (job.kind === 'embed')
       await embedMarkdown(options.pool, options.files, options.embedder, job);
     else if (job.kind === 'crawl')
@@ -317,11 +415,15 @@ export const processOneMarkdownJob = async (options: MarkdownWorkerOptions): Pro
   return true;
 };
 
-export const drainMarkdownJobs = async (
-  options: MarkdownWorkerOptions,
+export const drainDocumentJobs = async (
+  options: DocumentWorkerOptions,
   maximumJobs = 100,
 ): Promise<number> => {
   let processed = 0;
-  while (processed < maximumJobs && (await processOneMarkdownJob(options))) processed += 1;
+  while (processed < maximumJobs && (await processOneDocumentJob(options))) processed += 1;
   return processed;
 };
+
+export type MarkdownWorkerOptions = DocumentWorkerOptions;
+export const processOneMarkdownJob = processOneDocumentJob;
+export const drainMarkdownJobs = drainDocumentJobs;

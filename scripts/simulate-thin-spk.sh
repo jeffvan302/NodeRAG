@@ -11,9 +11,11 @@ artifact_directory="$(cd -- "$(dirname -- "${artifact}")" && pwd)"
 artifact_name="$(basename -- "${artifact}")"
 artifact_mount="${artifact_directory}"
 simulator_mount="${m02_script_dir}"
+fixtures_mount="${repository_root}/fixtures/formats"
 if [[ "${docker_transport}" == "windows-cli-interop" ]]; then
   artifact_mount="$(wslpath -w "${artifact_directory}")"
   simulator_mount="$(wslpath -w "${m02_script_dir}")"
+  fixtures_mount="$(wslpath -w "${repository_root}/fixtures/formats")"
 fi
 
 simulation_suffix="$$-${RANDOM}"
@@ -47,6 +49,7 @@ done
   --tmpfs /work:rw,exec,uid=1000,gid=1000,mode=0700 \
   --mount "type=bind,source=${artifact_mount},target=/input,readonly" \
   --mount "type=bind,source=${simulator_mount},target=/simulator,readonly" \
+  --mount "type=bind,source=${fixtures_mount},target=/fixtures,readonly" \
   -e "NODERAG_SPK_INPUT=/input/${artifact_name}" \
   -e "NODERAG_PACKAGE_DB_HOST=${database_name}" \
   -e "NODERAG_PACKAGE_DB_PASSWORD=${database_password}" \

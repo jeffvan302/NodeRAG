@@ -3,6 +3,8 @@ import { createReadStream } from 'node:fs';
 import { mkdir, open, readdir, rename, rm, statfs } from 'node:fs/promises';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
+import * as unzipper from 'unzipper';
+import type { DocumentFormat } from '../extract/contract.js';
 
 export interface StagedUpload {
   readonly temporaryPath: string;
@@ -202,16 +204,68 @@ export class DocumentFileStore {
   }
 }
 
+const acceptedMimeTypes: Readonly<Record<DocumentFormat, readonly string[]>> = {
+  md: ['text/markdown', 'text/plain'],
+  txt: ['text/plain'],
+  pdf: ['application/pdf'],
+  docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+};
+
+export interface ValidatedDocumentMetadata {
+  readonly name: string;
+  readonly extension: DocumentFormat;
+  readonly mimeType: string;
+}
+
+export const validatedDocumentMetadata = (
+  filename: string,
+  mimeType: string,
+): ValidatedDocumentMetadata => {
+  if (filename !== basename(filename) || filename.includes('\0'))
+    throw new Error('invalid-filename');
+  const extension = extname(filename).toLowerCase().slice(1) as DocumentFormat;
+  if (!(extension in acceptedMimeTypes)) throw new Error('unsupported-extension');
+  const normalizedMime = mimeType.split(';', 1)[0]?.trim().toLowerCase();
+  if (normalizedMime === undefined || !acceptedMimeTypes[extension].includes(normalizedMime)) {
+    throw new Error('unsupported-mime-type');
+  }
+  return { name: filename, extension, mimeType: normalizedMime };
+};
+
 export const validatedMarkdownMetadata = (
   filename: string,
   mimeType: string,
-): { readonly name: string; readonly extension: 'md'; readonly mimeType: string } => {
-  if (filename !== basename(filename) || filename.includes('\0'))
-    throw new Error('invalid-filename');
-  if (extname(filename).toLowerCase() !== '.md') throw new Error('unsupported-extension');
-  const normalizedMime = mimeType.split(';', 1)[0]?.trim().toLowerCase();
-  if (normalizedMime !== 'text/markdown' && normalizedMime !== 'text/plain') {
-    throw new Error('unsupported-mime-type');
+): ValidatedDocumentMetadata => {
+  const metadata = validatedDocumentMetadata(filename, mimeType);
+  if (metadata.extension !== 'md') throw new Error('unsupported-extension');
+  return metadata;
+};
+
+export const validateStagedDocumentSignature = async (
+  staged: StagedUpload,
+  format: DocumentFormat,
+): Promise<void> => {
+  if (format === 'txt' || format === 'md') return;
+  const handle = await open(staged.temporaryPath, 'r');
+  const signature = Buffer.alloc(8);
+  try {
+    const { bytesRead } = await handle.read(signature, 0, signature.length, 0);
+    const prefix = signature.subarray(0, bytesRead);
+    if (format === 'pdf') {
+      if (!prefix.subarray(0, 5).equals(Buffer.from('%PDF-', 'ascii'))) {
+        throw new Error('document-signature-mismatch');
+      }
+      return;
+    }
+    if (prefix[0] !== 0x50 || prefix[1] !== 0x4b) throw new Error('document-signature-mismatch');
+  } finally {
+    await handle.close();
   }
-  return { name: filename, extension: 'md', mimeType: normalizedMime };
+  const archive = await unzipper.Open.file(staged.temporaryPath);
+  const paths = new Set(archive.files.map((entry) => entry.path.replaceAll('\\', '/')));
+  const expected = format === 'docx' ? 'word/document.xml' : 'xl/workbook.xml';
+  if (!paths.has('[Content_Types].xml') || !paths.has(expected)) {
+    throw new Error('document-package-mismatch');
+  }
 };

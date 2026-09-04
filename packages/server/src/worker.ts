@@ -3,7 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { Pool } from 'pg';
 import { loadRuntimeConfig } from './config.js';
 import { FramedEmbedderClient } from './embedder/client.js';
-import { processOneMarkdownJob } from './ingest/pipeline.js';
+import { processOneDocumentJob } from './ingest/pipeline.js';
 import { DocumentFileStore } from './storage/document-files.js';
 import { runMigrations } from './store/migrations.js';
 import { enqueueNightlyIntegrityJob } from './ingest/integrity.js';
@@ -29,7 +29,7 @@ const main = async (): Promise<void> => {
   console.info(JSON.stringify({ service: 'noderag-worker', event: 'started', once, leaseOwner }));
   try {
     do {
-      const processed = await processOneMarkdownJob({
+      const processed = await processOneDocumentJob({
         pool,
         files,
         embedder,

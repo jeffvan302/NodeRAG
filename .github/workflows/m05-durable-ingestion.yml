@@ -1,59 +1,6 @@
 name: M05 durable ingestion and purge
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/m05-durable-ingestion.yml'
-      - '.dependency-cruiser.cjs'
-      - '.gitignore'
-      - '.gitmodules'
-      - '.prettierignore'
-      - '.prettierrc.json'
-      - 'adapters/**'
-      - 'packages/**'
-      - 'platform/**'
-      - 'scripts/**'
-      - 'spk/**'
-      - 'docker-testbed/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'tsconfig.base.json'
-      - 'vitest.config.ts'
-      - 'eslint.config.mjs'
-      - 'LICENSE-POLICY.md'
-      - 'THIRD-PARTY.md'
-      - 'README.md'
-      - 'docs/Implementation/checklists/m05-checklist.md'
-      - 'docs/Implementation/proofs/m05-proof.json'
-      - 'docs/planning/M5-DURABLE-INGESTION-PURGE.md'
-  pull_request:
-    paths:
-      - '.github/workflows/m05-durable-ingestion.yml'
-      - '.dependency-cruiser.cjs'
-      - '.gitignore'
-      - '.gitmodules'
-      - '.prettierignore'
-      - '.prettierrc.json'
-      - 'adapters/**'
-      - 'packages/**'
-      - 'platform/**'
-      - 'scripts/**'
-      - 'spk/**'
-      - 'docker-testbed/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'tsconfig.base.json'
-      - 'vitest.config.ts'
-      - 'eslint.config.mjs'
-      - 'LICENSE-POLICY.md'
-      - 'THIRD-PARTY.md'
-      - 'README.md'
-      - 'docs/Implementation/checklists/m05-checklist.md'
-      - 'docs/Implementation/proofs/m05-proof.json'
-      - 'docs/planning/M5-DURABLE-INGESTION-PURGE.md'
   workflow_dispatch:
 
 permissions:

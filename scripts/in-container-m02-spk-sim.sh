@@ -120,6 +120,77 @@ if (canonical.slice(hit.locator.characterStart, hit.locator.characterEnd) !== hi
 }
 const bytes = Buffer.from(canonical, 'utf8').subarray(hit.locator.byteStart, hit.locator.byteEnd).toString('utf8');
 if (bytes !== hit.text) throw new Error('Packaged UTF-8 locator did not reproduce the passage.');
+
+const formatFixtures = [
+  {
+    path: '/fixtures/txt/sample.txt',
+    name: 'package-sample.txt',
+    type: 'text/plain',
+    expected: 'inspection schedules',
+  },
+  {
+    path: '/fixtures/pdf/two-column.pdf',
+    name: 'package-two-column.pdf',
+    type: 'application/pdf',
+    expected: null,
+  },
+  {
+    path: '/fixtures/docx/word-saved.docx',
+    name: 'package-word-saved.docx',
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    expected: 'Rendered pagination fixture',
+  },
+  {
+    path: '/fixtures/xlsx/messy-workbook.xlsx',
+    name: 'package-messy-workbook.xlsx',
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    expected: 'Maintenance cost register',
+  },
+  {
+    path: '/fixtures/pdf/scanned.pdf',
+    name: 'package-scanned.pdf',
+    type: 'application/pdf',
+    expected: '',
+  },
+];
+for (const [index, fixture] of formatFixtures.entries()) {
+  const formatForm = new FormData();
+  formatForm.append('file', new Blob([fs.readFileSync(fixture.path)], { type: fixture.type }), fixture.name);
+  response = await fetch(`${base}/v1/documents?siloId=${configured.defaultSilo.id}`, {
+    method: 'POST',
+    headers: {
+      cookie,
+      origin: base,
+      'x-csrf-token': login.csrfToken,
+      'idempotency-key': `m06-package-format-${String(index)}`,
+    },
+    body: formatForm,
+  });
+  if (response.status !== 202) {
+    throw new Error(`Format upload failed for ${fixture.name}: ${response.status} ${await response.text()}`);
+  }
+  const acceptedFormat = await response.json();
+  const formatBucket = String(Math.floor(acceptedFormat.documentId / 1000)).padStart(6, '0');
+  const formatCanonical = `/work/var/data/documents/${formatBucket}/${acceptedFormat.documentId}/canonical.md`;
+  let extracted = null;
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    if (fs.existsSync(formatCanonical)) {
+      extracted = fs.readFileSync(formatCanonical, 'utf8');
+      if (fixture.expected === '' || extracted.length > 0) break;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  if (extracted === null) throw new Error(`Packaged extractor did not write ${fixture.name}.`);
+  if (fixture.expected === null && extracted.length === 0) {
+    throw new Error(`Packaged extractor produced empty Markdown for ${fixture.name}.`);
+  }
+  if (fixture.expected && !extracted.includes(fixture.expected)) {
+    throw new Error(`Packaged extractor output was wrong for ${fixture.name}.`);
+  }
+  if (fixture.expected === '' && extracted !== '') {
+    throw new Error('Scanned PDF was indexed as text instead of waiting for vision.');
+  }
+}
 response = await fetch(`${base}/v1/sources`, {
   method: 'POST',
   headers: {

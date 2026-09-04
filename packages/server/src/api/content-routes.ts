@@ -10,8 +10,13 @@ import { readinessPermits } from '../application/readiness-policy.js';
 import { SiloScope, withSiloScope } from '../identity/scope.js';
 import { setupStatus } from '../setup/bootstrap.js';
 import { databaseInteger } from '../store/database.js';
-import { validatedMarkdownMetadata, type DocumentFileStore } from '../storage/document-files.js';
-import { acceptMarkdownUpload, uploadRequestDigestInput } from '../ingest/upload.js';
+import {
+  validatedDocumentMetadata,
+  validateStagedDocumentSignature,
+  type DocumentFileStore,
+  type StagedUpload,
+} from '../storage/document-files.js';
+import { acceptDocumentUpload, uploadRequestDigestInput } from '../ingest/upload.js';
 import type { RequestAuthenticator } from './authentication.js';
 import { coordinatedEmbedder } from '../store/resources.js';
 
@@ -97,13 +102,13 @@ export const registerContentRoutes = (
     }
     if (part === undefined) return reply.code(400).send(problem(400, 'file_required', request.id));
     try {
-      validatedMarkdownMetadata(part.filename, part.mimetype);
+      validatedDocumentMetadata(part.filename, part.mimetype);
     } catch (error) {
       part.file.resume();
       const code = error instanceof Error ? error.message : 'invalid-upload';
       return reply.code(415).send(problem(415, code, request.id));
     }
-    let staged;
+    let staged: StagedUpload | undefined;
     try {
       staged = await options.files.stageUpload(
         part.file,
@@ -114,6 +119,8 @@ export const registerContentRoutes = (
         await rm(staged.temporaryPath, { force: true });
         return reply.code(413).send(problem(413, 'upload-too-large', request.id));
       }
+      const metadata = validatedDocumentMetadata(part.filename, part.mimetype);
+      await validateStagedDocumentSignature(staged, metadata.extension);
     } catch (error) {
       const code = error instanceof Error ? error.message : 'upload-failed';
       const status =
@@ -122,7 +129,10 @@ export const registerContentRoutes = (
           : code === 'upload-too-large' ||
               (error instanceof Error && 'code' in error && error.code === 'FST_REQ_FILE_TOO_LARGE')
             ? 413
-            : 400;
+            : code === 'document-signature-mismatch' || code === 'document-package-mismatch'
+              ? 415
+              : 400;
+      if (staged !== undefined) await rm(staged.temporaryPath, { force: true });
       return reply.code(status).send(problem(status, code, request.id));
     }
     try {
@@ -144,7 +154,7 @@ export const registerContentRoutes = (
           await database.query(`SELECT set_config('app.silo_ids', $1, true)`, [
             scope.postgresArray(),
           ]);
-          const accepted = await acceptMarkdownUpload(database, options.files, {
+          const accepted = await acceptDocumentUpload(database, options.files, {
             siloId,
             principalId: principal.principalId,
             filename: part.filename,

@@ -1,6 +1,6 @@
 # Milestone 10 Checklist — Production SPK and Simulated Lifecycle
 
-Status: testbed complete; final certification workflow and tag pending
+Status: testbed-complete
 
 ## Runtime and archive
 
@@ -43,7 +43,7 @@ Status: testbed complete; final certification workflow and tag pending
 - [x] The old package data is retained by default; deletion requires `wizard_delete_data=true` or the simulator-only compatibility control.
 - [x] GitHub M10 workflow is green on the implementation commit.
 - [x] Proof-closure and test-stabilization commit is green on GitHub.
-- [x] The final certification commit must pass all four jobs before annotated tag `m10-complete` is created and verified remotely.
+- [x] The final certification commit passes all four jobs before annotated tag `m10-complete` is created and verified remotely.
 
 ## Claims boundary
 

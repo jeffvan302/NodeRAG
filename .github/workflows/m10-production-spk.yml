@@ -81,10 +81,18 @@ jobs:
   linux-compatibility:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    concurrency:
+      group: m01-model-${{ github.ref }}
+      cancel-in-progress: false
     env:
       NODERAG_M01_CPU_LIMIT: 2
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Restore the checksum-verified M01 model cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: docker-testbed/runtime/models/qwen3-embedding-0.6b/bd58e9fd4b0467770da53678d8da25481c0f959b
+          key: m01-qwen3-embedding-${{ hashFiles('docker-testbed/m01/model-manifest.json') }}
       - run: bash docker-testbed/scripts/verify-m01.sh
       - if: always()
         run: bash docker-testbed/scripts/down.sh
@@ -112,9 +120,21 @@ jobs:
         env:
           NODERAG_M10_REUSE_RUNTIME: ${{ steps.runtime-cache.outputs.cache-hit == 'true' && '1' || '0' }}
         run: |
-          pnpm package:candidate
+          build_candidate() {
+            for attempt in 1 2 3; do
+              if pnpm package:candidate; then
+                return 0
+              fi
+              if [ "${attempt}" = 3 ]; then
+                return 1
+              fi
+              echo "Pinned candidate build failed; retrying after verified download state is reset by spksrc."
+              sleep "$((attempt * 15))"
+            done
+          }
+          build_candidate
           first_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64-production.spk | awk '{print $1}')"
-          pnpm package:candidate
+          build_candidate
           second_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64-production.spk | awk '{print $1}')"
           test "${first_sha}" = "${second_sha}"
           NODERAG_M10_REUSE_RUNTIME=1 pnpm package:runtime

@@ -4,20 +4,20 @@ on:
   push:
     branches: [main]
     paths:
-      - ".github/workflows/m01-feasibility.yml"
-      - "docker-testbed/**"
-      - "fixtures/**"
-      - "docs/Implementation/checklists/m01-checklist.md"
-      - "docs/Implementation/proofs/m01-proof.json"
-      - "docs/planning/M1-TESTBED-FEASIBILITY.md"
+      - '.github/workflows/m01-feasibility.yml'
+      - 'docker-testbed/**'
+      - 'fixtures/**'
+      - 'docs/Implementation/checklists/m01-checklist.md'
+      - 'docs/Implementation/proofs/m01-proof.json'
+      - 'docs/planning/M1-TESTBED-FEASIBILITY.md'
   pull_request:
     paths:
-      - ".github/workflows/m01-feasibility.yml"
-      - "docker-testbed/**"
-      - "fixtures/**"
-      - "docs/Implementation/checklists/m01-checklist.md"
-      - "docs/Implementation/proofs/m01-proof.json"
-      - "docs/planning/M1-TESTBED-FEASIBILITY.md"
+      - '.github/workflows/m01-feasibility.yml'
+      - 'docker-testbed/**'
+      - 'fixtures/**'
+      - 'docs/Implementation/checklists/m01-checklist.md'
+      - 'docs/Implementation/proofs/m01-proof.json'
+      - 'docs/planning/M1-TESTBED-FEASIBILITY.md'
   workflow_dispatch:
 
 permissions:
@@ -31,11 +31,20 @@ jobs:
   feasibility:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    concurrency:
+      group: m01-model-${{ github.ref }}
+      cancel-in-progress: false
     env:
       NODERAG_M01_CPU_LIMIT: 2
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Restore the checksum-verified M01 model cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: docker-testbed/runtime/models/qwen3-embedding-0.6b/bd58e9fd4b0467770da53678d8da25481c0f959b
+          key: m01-qwen3-embedding-${{ hashFiles('docker-testbed/m01/model-manifest.json') }}
 
       - name: Validate shell syntax
         run: |

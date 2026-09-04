@@ -1,8 +1,8 @@
 # M00 — WSL/Docker Testbed Foundation Checklist
 
-Status: awaiting remote CI
+Status: awaiting proof-closure CI and milestone tag
 Environment: Docker testbed
-Recorded: 2026-09-04T05:30:53Z
+Recorded: 2026-09-04T05:37:14Z
 
 ## Repository and documentation
 
@@ -40,8 +40,8 @@ Recorded: 2026-09-04T05:30:53Z
 - [x] Local M0 validation suite passes.
 - [x] Git diff and secret hygiene checks pass.
 - [x] Clean-checkout GitHub Actions workflow added.
-- [ ] M00 implementation commit pushed to `main`.
-- [ ] GitHub Actions passes on the exact implementation commit.
-- [ ] `m00-proof.json` updated with commit and workflow evidence.
+- [x] M00 implementation commit pushed to `main`.
+- [x] GitHub Actions passes on the exact implementation commit.
+- [x] `m00-proof.json` updated with commit and workflow evidence.
 
 After every unchecked item above is complete, push the proof-closure commit, require its own workflow to pass, and create the annotated `m00-complete` tag. These externally verifiable delivery events are the final M00 gate; M01 is not authorized before they succeed.

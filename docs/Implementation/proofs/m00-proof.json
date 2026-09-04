@@ -1,10 +1,10 @@
 {
   "version": 1,
   "milestone": "M00",
-  "recordedAt": "2026-09-04T05:30:53Z",
+  "recordedAt": "2026-09-04T05:37:14Z",
   "reviewer": "Codex with executable local gates",
-  "milestoneCommit": null,
-  "upstreamCommit": null,
+  "milestoneCommit": "8328b5ec73e3e14c44340d9279947c31c4dfbf2d",
+  "upstreamCommit": "8328b5ec73e3e14c44340d9279947c31c4dfbf2d",
   "migrationHead": null,
   "dependencyLockSha256": null,
   "modelManifestRevision": null,
@@ -21,6 +21,15 @@
     "baseline": "docker-testbed/M00-BASELINE.md",
     "checklist": "docs/Implementation/checklists/m00-checklist.md",
     "workflow": ".github/workflows/m00-testbed.yml",
+    "implementationWorkflowRun": {
+      "runId": 33841085298,
+      "jobId": 100923349826,
+      "headSha": "8328b5ec73e3e14c44340d9279947c31c4dfbf2d",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33841085298",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T05:36:35Z"
+    },
     "host": {
       "os": "Microsoft Windows 11 Pro 10.0.26200 build 26200",
       "cpu": "AMD Ryzen 9 5900X",
@@ -82,11 +91,11 @@
     "resetGuard": "passed",
     "statusAndLogs": "passed",
     "gitDiffCheck": "passed",
-    "remoteCi": "pending"
+    "remoteCi": "passed"
   },
   "liveEvidence": {},
   "environment": "docker-testbed",
-  "certification": "local-gates-passed",
+  "certification": "implementation-gates-passed",
   "deferredDsmChecks": [
     "Synology runtime ABI and ONNX",
     "package-created user and bundled PostgreSQL/pgvector startup",
@@ -95,6 +104,6 @@
     "NAS reboot, performance, thermal, and service-impact behavior"
   ],
   "failures": [],
-  "gate": "awaiting_remote_ci",
+  "gate": "awaiting_proof_closure_ci_and_tag",
   "nextMilestoneAuthorized": false
 }

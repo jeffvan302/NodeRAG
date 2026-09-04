@@ -1,6 +1,6 @@
 # Milestone 3 — Database, Identity, Authorization, Readiness, and Audit Record
 
-Status: local gates passed; remote certification pending
+Status: testbed-complete
 
 Recorded: 2026-09-04
 
@@ -227,7 +227,6 @@ and recovery behavior remain live-device gates in
 
 ## Gate state
 
-All local M03 gates and the exact implementation commit's four GitHub jobs pass.
-The milestone becomes `testbed-complete` only after the evidence-closure and
-certification commits pass the same workflow and annotated tag `m03-complete`
-resolves to the certification commit.
+All local M03 gates pass. The exact implementation and proof-closure commits
+also pass all four GitHub jobs. The final certification commit is subject to the
+same workflow before annotated tag `m03-complete` is pushed and verified.

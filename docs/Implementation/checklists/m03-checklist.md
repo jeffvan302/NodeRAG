@@ -1,6 +1,6 @@
 # M03 — Database, Identity, Authorization, Readiness, and Audit Checklist
 
-Status: local gates passed; remote certification pending
+Status: testbed-complete
 
 Environment: Docker testbed and Linux package simulation
 
@@ -84,8 +84,8 @@ Recorded: 2026-09-04
 - [x] The thin SPK builds twice with the same SHA-256 and passes static and non-root lifecycle verification.
 - [x] The implementation commit is pushed to `main` and all four M03 GitHub Actions jobs succeed.
 - [x] `m03-proof.json` records the implementation workflow, exact artifacts, and successful jobs.
-- [ ] The proof-closure commit and final certification commit each pass their own M03 workflow.
-- [ ] Annotated tag `m03-complete` resolves to the final certification commit on the remote.
+- [x] The proof-closure commit and final certification commit each pass their own M03 workflow.
+- [x] Annotated tag `m03-complete` resolves to the final certification commit on the remote.
 
 M04 is authorized only after every item above is complete. `testbed-complete`
 does not close any live DSM register row.

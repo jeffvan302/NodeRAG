@@ -1,10 +1,10 @@
 {
   "version": 1,
   "milestone": "M03",
-  "recordedAt": "2026-09-04T08:31:42Z",
+  "recordedAt": "2026-09-04T08:34:38Z",
   "reviewer": "Codex with executable local gates",
   "milestoneCommit": "637e9e14a1213b0c33df1f15c383bfaa13426f8c",
-  "upstreamCommit": null,
+  "upstreamCommit": "deac33565fbaf78e534758d06bb202677914d98c",
   "migrationHead": "000002_identity_foundation",
   "dependencyLockSha256": "cf20db0555b9536b07563e7b717b2687f273fba4202433a10dec7170f53ba333",
   "readinessState": "operational-after-one-time-bootstrap",
@@ -35,11 +35,30 @@
         { "name": "thin-spk", "jobId": 100962083400, "conclusion": "success" }
       ]
     },
-    "proofClosureCommit": null,
-    "proofClosureWorkflowRun": null,
-    "certificationCommit": null,
-    "certificationWorkflowRun": null,
-    "completionTag": null,
+    "proofClosureCommit": "deac33565fbaf78e534758d06bb202677914d98c",
+    "proofClosureWorkflowRun": {
+      "runId": 33853940269,
+      "headSha": "deac33565fbaf78e534758d06bb202677914d98c",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33853940269",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T08:34:38Z",
+      "jobs": [
+        {
+          "name": "linux-compatibility",
+          "jobId": 100962775765,
+          "conclusion": "success"
+        },
+        { "name": "quality", "jobId": 100962775984, "conclusion": "success" },
+        { "name": "thin-spk", "jobId": 100962776016, "conclusion": "success" },
+        {
+          "name": "identity-integration",
+          "jobId": 100962776056,
+          "conclusion": "success"
+        }
+      ]
+    },
+    "completionTag": "m03-complete",
     "toolchain": {
       "nodeCompatibility": ">=22.13 <23",
       "ciNode": "22.22.0",
@@ -146,11 +165,11 @@
     "thinSpkRepeatBuild": "passed",
     "thinSpkStaticVerification": "passed",
     "nonRootLifecycleSimulation": "passed",
-    "remoteCi": "implementation-run-passed; evidence-closure pending"
+    "remoteCi": "passed"
   },
   "liveEvidence": {},
   "environment": "docker-testbed",
-  "certification": "local-passed-remote-pending",
+  "certification": "testbed-complete",
   "deferredDsmChecks": [
     "Package Center installation and upgrade",
     "Synology Node runtime and package-user ABI",
@@ -159,6 +178,6 @@
     "live backup, restore, recovery, and uninstall persistence"
   ],
   "failures": [],
-  "gate": "pending-remote",
-  "nextMilestoneAuthorized": false
+  "gate": "passed",
+  "nextMilestoneAuthorized": true
 }

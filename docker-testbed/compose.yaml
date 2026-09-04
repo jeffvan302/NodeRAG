@@ -31,10 +31,11 @@ services:
     profiles:
       - m01
     user: "0:0"
+    network_mode: none
     command:
       - sh
       - -ec
-      - install -d -o node -g node -m 0700 /probe-volume
+      - mkdir -p /probe-volume && chown 1000:1000 /probe-volume && chmod 0700 /probe-volume
     volumes:
       - m01-storage:/probe-volume
 

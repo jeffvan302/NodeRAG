@@ -26,6 +26,9 @@ noderag_start() {
   NODERAG_UI_ROOT="${SYNOPKG_PKGDEST}/ui" \
   NODERAG_MIGRATION_MANIFEST="${SYNOPKG_PKGDEST}/platform/migration-checksums.v1.json" \
   NODERAG_MIGRATIONS_DIRECTORY="${SYNOPKG_PKGDEST}/migrations" \
+  NODERAG_ROUTE_AUTHORIZATION="${SYNOPKG_PKGDEST}/platform/route-authorization.v1.json" \
+  NODERAG_OPENAPI="${SYNOPKG_PKGDEST}/platform/openapi.m03.json" \
+  NODERAG_SECRET_ROOT="${SYNOPKG_PKGVAR}/secrets/root.key" \
     "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/server.cjs" >>"${NODERAG_LOG_FILE}" 2>&1 &
   noderag_pid="$!"
   printf '%s\n' "${noderag_pid}" >"${NODERAG_PID_FILE}"

@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "milestone": "M03",
+  "recordedAt": "2026-09-04T08:27:40Z",
+  "reviewer": "Codex with executable local gates",
+  "milestoneCommit": null,
+  "upstreamCommit": null,
+  "migrationHead": "000002_identity_foundation",
+  "dependencyLockSha256": "cf20db0555b9536b07563e7b717b2687f273fba4202433a10dec7170f53ba333",
+  "readinessState": "operational-after-one-time-bootstrap",
+  "evidence": {
+    "identityRecord": "docs/planning/M3-IDENTITY-AUTHORIZATION.md",
+    "checklist": "docs/Implementation/checklists/m03-checklist.md",
+    "deferredDsmRegister": "docs/Implementation/dsm-deferred-register.md",
+    "workflow": ".github/workflows/m03-identity.yml",
+    "implementationWorkflowRun": null,
+    "proofClosureCommit": null,
+    "proofClosureWorkflowRun": null,
+    "certificationCommit": null,
+    "certificationWorkflowRun": null,
+    "completionTag": null,
+    "toolchain": {
+      "nodeCompatibility": ">=22.13 <23",
+      "ciNode": "22.22.0",
+      "pnpm": "11.25.0",
+      "typescript": "6.0.3",
+      "hashWasm": "4.12.0"
+    },
+    "database": {
+      "postgresMajor": 17,
+      "pgvectorVersion": "0.8.6",
+      "migrationSha256": "ce6c98fea8603e0823544255408f4d5bd4a50ee360430f55e2ffc92327753cc3",
+      "migrationAppliedTwice": true,
+      "forcedRlsTables": [
+        "source",
+        "document",
+        "document_page",
+        "document_image",
+        "chunk",
+        "direct chunk partition"
+      ]
+    },
+    "authorization": {
+      "capabilities": ["read", "upload", "delete"],
+      "capabilityCombinationsTested": 8,
+      "routeInventoryEntries": 74,
+      "routeInventorySha256": "158e6bae4b1a51efb993c3a9947797bde5137baa51808d6b4f1d0473de67b1c9",
+      "openApiSha256": "85578787006988c1a3015b4650fb87940b991f24bee934ef42e9c17e2fb9bbcb",
+      "zeroGrantTested": true,
+      "crossSiloGuessingTested": true,
+      "searchOnlyNarrowingTested": true
+    },
+    "identity": {
+      "passwordKdf": "Argon2id v19 m=65536KiB,t=2,p=1,salt=16B,hash=32B",
+      "sessionTokenStorage": "SHA-256 only",
+      "apiKeyStorage": "SHA-256 only; one-time reveal",
+      "secretEnvelope": "AES-256-GCM with AAD",
+      "secretResponse": "existence plus HMAC-keyed fingerprint only"
+    },
+    "thinSpk": {
+      "name": "noderag-0.2.0-1-x86_64.spk",
+      "bytes": 675840,
+      "sha256": "812a3846629cbd3d491d7b67ecf17f053d07e338deec83bbe142852edf70a038",
+      "repeatSha256": "812a3846629cbd3d491d7b67ecf17f053d07e338deec83bbe142852edf70a038",
+      "serverBundleSha256": "8ccedfdcf2e3e9e9088eafa0bd6444bdd717d38babdcdda449061b1f4f6cf93a",
+      "workerBundleSha256": "47205c2b0de3b30faeff0c3fc19044c43058edb68070e6e236b380bb3377ec7f",
+      "secretRootBytes": 32,
+      "secretRootMode": "0600",
+      "secretRootPersistenceSimulated": true,
+      "runAs": "package",
+      "declaredPort": 8787,
+      "minimumDsm": "7.2",
+      "architecture": "x86_64"
+    },
+    "spksrc": {
+      "commit": "1f638f9f331d881b2fd5cb45bb24071e9f723400",
+      "shallowSubmodule": true,
+      "sourceTreeCleanAfterNormalization": true
+    },
+    "resolvedIssues": [
+      "Used portable bundled hash-wasm Argon2id instead of adding a native-addon ABI dependency to the thin DSM package.",
+      "Kept read, upload, and delete as three exact independent grants despite the older Railway reference project's broader permission grouping.",
+      "Made idempotent operations receive the owning SQL transaction so password change and its replay record cannot deadlock or split durability.",
+      "Forced row-level security on direct chunk partitions as well as the partitioned parent so explicit partition access cannot bypass scope.",
+      "Created and persisted a package-local 0600 secret root in lifecycle simulation without claiming DSM ACL certification.",
+      "Converted the broad M02 push workflow to manual-only so later commits cannot rewrite historical milestone evidence."
+    ]
+  },
+  "invariants": {
+    "strictTypeScriptPassed": true,
+    "dependencyBoundariesPassed": true,
+    "completeInitialSchemaExists": true,
+    "migrationManifestCompleteAndImmutable": true,
+    "migrationIdempotencePassed": true,
+    "siloPartitionCreationAndDropPassed": true,
+    "productionPurgeDisabled": true,
+    "siloScopePrivateAndNarrowingOnly": true,
+    "independentCapabilityMatrixPassed": true,
+    "forcedRlsPassed": true,
+    "rawPasswordSessionApiKeyAndSecretValuesNotStored": true,
+    "readinessAndWorkerFailClosed": true,
+    "idempotencyReplayAndConflictPassed": true,
+    "auditQueryAndSecretPrivacyPassed": true,
+    "routeInventoryMachineValidated": true,
+    "structuredLoggingRedactsSecrets": true,
+    "thinSpkDeterministic": true,
+    "nonRootLifecycleSimulationPassed": true,
+    "testbedEvidenceNotRepresentedAsDsmEvidence": true
+  },
+  "tests": {
+    "frozenInstall": "passed",
+    "peerDependencies": "passed",
+    "migrationVerification": "passed",
+    "typecheck": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "dependencyBoundaries": "passed-38-modules-30-dependencies",
+    "unit": "passed-7-files-14-tests",
+    "postgres17PgvectorIntegration": "passed-2-files-17-tests",
+    "productionBuild": "passed",
+    "builtServerSmoke": "passed",
+    "licensePolicy": "passed-4-classes",
+    "secretScan": "passed",
+    "repositoryHygiene": "passed",
+    "thinSpkRepeatBuild": "passed",
+    "thinSpkStaticVerification": "passed",
+    "nonRootLifecycleSimulation": "passed",
+    "remoteCi": "pending"
+  },
+  "liveEvidence": {},
+  "environment": "docker-testbed",
+  "certification": "local-passed-remote-pending",
+  "deferredDsmChecks": [
+    "Package Center installation and upgrade",
+    "Synology Node runtime and package-user ABI",
+    "package-local secret-root and database filesystem ACLs",
+    "reverse-proxy Origin, cookie, and one-port behavior",
+    "live backup, restore, recovery, and uninstall persistence"
+  ],
+  "failures": [],
+  "gate": "pending-remote",
+  "nextMilestoneAuthorized": false
+}

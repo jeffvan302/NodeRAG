@@ -9,6 +9,7 @@ export const unavailableReadiness = async (): Promise<ReadinessResponse> => {
   return {
     service: 'noderag',
     status: 'unavailable',
+    state: 'unconfigured',
     migrationHead: null,
     expectedMigrationHead: manifest.expectedHead,
     reasons: ['database-not-configured'],
@@ -36,9 +37,27 @@ export const createDatabaseReadinessProbe =
       const reasons: string[] = [];
       if (migrationHead !== manifest.expectedHead) reasons.push('migration-head-mismatch');
       if (!checksumMatches) reasons.push('migration-checksum-mismatch');
+      const setup = await client.query<{ state: ReadinessResponse['state'] }>(
+        'SELECT state FROM noderag.setup_state WHERE id = 1',
+      );
+      let state = setup.rows[0]?.state ?? 'unavailable';
+      if (migrationHead !== manifest.expectedHead || !checksumMatches) {
+        const known = manifest.migrations.map(({ id }) => id);
+        state =
+          migrationHead !== null && !known.includes(migrationHead)
+            ? 'database_ahead'
+            : 'upgrade_required';
+      }
+      if (state !== 'operational') reasons.push(`readiness-state:${state}`);
       return {
         service: 'noderag',
-        status: reasons.length === 0 ? 'ok' : 'unavailable',
+        status:
+          state === 'operational' && reasons.length === 0
+            ? 'ok'
+            : state === 'degraded'
+              ? 'degraded'
+              : 'unavailable',
+        state,
         migrationHead,
         expectedMigrationHead: manifest.expectedHead,
         reasons,
@@ -47,6 +66,7 @@ export const createDatabaseReadinessProbe =
       return {
         service: 'noderag',
         status: 'unavailable',
+        state: 'unavailable',
         migrationHead: null,
         expectedMigrationHead: manifest.expectedHead,
         reasons: [`database-check-failed:${error instanceof Error ? error.name : 'unknown'}`],

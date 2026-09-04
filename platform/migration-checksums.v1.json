@@ -1,11 +1,17 @@
 {
   "version": 1,
-  "expectedHead": "000001_foundation",
+  "expectedHead": "000002_identity_foundation",
   "migrations": [
     {
       "id": "000001_foundation",
       "path": "packages/server/migrations/000001_foundation.sql",
       "sha256": "e9a9aa52c0c2462daad199c44414d27d93fcc515d60abd32b1eced9f157caa39",
+      "direction": "up-only"
+    },
+    {
+      "id": "000002_identity_foundation",
+      "path": "packages/server/migrations/000002_identity_foundation.sql",
+      "sha256": "ce6c98fea8603e0823544255408f4d5bd4a50ee360430f55e2ffc92327753cc3",
       "direction": "up-only"
     }
   ]

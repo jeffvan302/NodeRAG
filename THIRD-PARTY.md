@@ -4,9 +4,9 @@ This milestone establishes the notice process; release notices are generated
 from the exact lockfile and manually supplemented for non-npm artifacts.
 
 Current direct runtime components include Fastify (MIT), Pino (MIT), PostgreSQL
-client `pg` (MIT), node-pg-migrate (MIT), Preact (MIT), Zod (MIT), and the
-Qwen3-Embedding-0.6B model (Apache-2.0). PostgreSQL and pgvector use the
-PostgreSQL License. Transitive identities and versions are locked in
+client `pg` (MIT), node-pg-migrate (MIT), Preact (MIT), Zod (MIT), hash-wasm
+(MIT), and the Qwen3-Embedding-0.6B model (Apache-2.0). PostgreSQL and pgvector
+use the PostgreSQL License. Transitive identities and versions are locked in
 `pnpm-lock.yaml`.
 
 Before a release:

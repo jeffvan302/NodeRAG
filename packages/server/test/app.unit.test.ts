@@ -8,6 +8,7 @@ describe('Fastify service skeleton', () => {
       readiness: async () => ({
         service: 'noderag',
         status: 'ok',
+        state: 'operational',
         migrationHead: '000001_foundation',
         expectedMigrationHead: '000001_foundation',
         reasons: [],
@@ -26,6 +27,7 @@ describe('Fastify service skeleton', () => {
       readiness: async () => ({
         service: 'noderag',
         status: 'unavailable',
+        state: 'unavailable',
         migrationHead: null,
         expectedMigrationHead: '000001_foundation',
         reasons: ['database-not-configured'],
@@ -45,6 +47,7 @@ describe('Fastify service skeleton', () => {
       readiness: async () => ({
         service: 'noderag',
         status: 'ok',
+        state: 'operational',
         migrationHead: '000001_foundation',
         expectedMigrationHead: '000001_foundation',
         reasons: [],

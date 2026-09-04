@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { readinessStateSchema } from './identity.js';
 
 export const serviceStateSchema = z.enum(['ok', 'degraded', 'unavailable']);
 
@@ -11,6 +12,7 @@ export const healthResponseSchema = z.object({
 export const readinessResponseSchema = z.object({
   service: z.literal('noderag'),
   status: serviceStateSchema,
+  state: readinessStateSchema,
   migrationHead: z.string().nullable(),
   expectedMigrationHead: z.string().min(1),
   reasons: z.array(z.string()),

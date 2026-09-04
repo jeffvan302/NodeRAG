@@ -1,0 +1,172 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "NodeRag API",
+    "version": "0.2.0",
+    "description": "Milestone 3 setup, identity, readiness, and silo-list contract. Later milestone paths remain intentionally absent."
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "security": [],
+        "responses": { "200": { "description": "Process is alive" } }
+      }
+    },
+    "/ready": {
+      "get": {
+        "operationId": "readiness",
+        "security": [],
+        "responses": {
+          "200": { "description": "Operational" },
+          "503": { "description": "Not operational" }
+        }
+      }
+    },
+    "/v1/setup/status": {
+      "get": {
+        "operationId": "setupStatus",
+        "security": [],
+        "responses": { "200": { "description": "Setup state" } }
+      }
+    },
+    "/v1/setup/verify-token": {
+      "post": {
+        "operationId": "verifySetupToken",
+        "security": [],
+        "responses": { "200": { "description": "Token disposition" } }
+      }
+    },
+    "/v1/setup/configure": {
+      "post": {
+        "operationId": "configure",
+        "security": [],
+        "responses": {
+          "201": { "description": "Configured" },
+          "409": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "operationId": "login",
+        "security": [],
+        "responses": {
+          "200": { "description": "Session and CSRF token created" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "204": { "description": "Session revoked" },
+          "403": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "operationId": "currentPrincipal",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "responses": {
+          "200": { "description": "Current principal" },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/auth/password": {
+      "patch": {
+        "operationId": "changePassword",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/CsrfToken" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currentPassword", "nextPassword"],
+                "properties": {
+                  "currentPassword": { "type": "string", "minLength": 1, "maxLength": 1024 },
+                  "nextPassword": { "type": "string", "minLength": 12, "maxLength": 1024 }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Password changed and sessions revoked" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/silos": {
+      "get": {
+        "operationId": "listSilos",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "responses": {
+          "200": { "description": "Only silos with at least one exact grant" },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/openapi.json": {
+      "get": {
+        "operationId": "openApi",
+        "security": [{ "sessionCookie": [] }, { "bearerApiKey": [] }],
+        "responses": { "200": { "description": "This document" } }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "CsrfToken": {
+        "name": "X-CSRF-Token",
+        "in": "header",
+        "required": true,
+        "schema": { "type": "string" }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": { "type": "string", "minLength": 8, "maxLength": 200 }
+      }
+    },
+    "securitySchemes": {
+      "sessionCookie": { "type": "apiKey", "in": "cookie", "name": "noderag_session" },
+      "bearerApiKey": { "type": "http", "scheme": "bearer" }
+    },
+    "responses": {
+      "Problem": {
+        "description": "RFC 9457 problem detail",
+        "content": {
+          "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } }
+        }
+      }
+    },
+    "schemas": {
+      "Problem": {
+        "type": "object",
+        "required": ["type", "title", "status", "code", "requestId"],
+        "properties": {
+          "type": { "type": "string", "format": "uri" },
+          "title": { "type": "string" },
+          "status": { "type": "integer" },
+          "code": { "type": "string" },
+          "requestId": { "type": "string" }
+        }
+      }
+    }
+  }
+}

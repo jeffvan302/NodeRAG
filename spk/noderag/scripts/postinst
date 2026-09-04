@@ -2,5 +2,19 @@
 set -eu
 : "${SYNOPKG_PKGVAR:?SYNOPKG_PKGVAR is required}"
 umask 077
-mkdir -p "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log" "${SYNOPKG_PKGVAR}/data"
-chmod 700 "${SYNOPKG_PKGVAR}" "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log" "${SYNOPKG_PKGVAR}/data"
+mkdir -p "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log" "${SYNOPKG_PKGVAR}/data" \
+  "${SYNOPKG_PKGVAR}/secrets"
+chmod 700 "${SYNOPKG_PKGVAR}" "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log" \
+  "${SYNOPKG_PKGVAR}/data" "${SYNOPKG_PKGVAR}/secrets"
+secret_root="${SYNOPKG_PKGVAR}/secrets/root.key"
+if [ ! -e "${secret_root}" ]; then
+  temporary_root="${secret_root}.new"
+  head -c 32 /dev/urandom >"${temporary_root}"
+  chmod 600 "${temporary_root}"
+  mv "${temporary_root}" "${secret_root}"
+fi
+if [ -L "${secret_root}" ] || [ ! -f "${secret_root}" ] || [ "$(wc -c <"${secret_root}")" -ne 32 ]; then
+  echo "Package secret root is not a regular 32-byte file." >&2
+  exit 1
+fi
+chmod 600 "${secret_root}"

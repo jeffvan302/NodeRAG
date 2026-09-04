@@ -16,6 +16,11 @@ export NODERAG_PORT=8787
 
 /work/outer/scripts/postinst
 [[ "$(stat -c '%a' /work/var)" == "700" ]]
+[[ "$(stat -c '%a' /work/var/secrets/root.key)" == "600" ]]
+[[ "$(wc -c </work/var/secrets/root.key)" == "32" ]]
+secret_root_sha="$(sha256sum /work/var/secrets/root.key | awk '{print $1}')"
+/work/outer/scripts/postinst
+[[ "$(sha256sum /work/var/secrets/root.key | awk '{print $1}')" == "${secret_root_sha}" ]]
 printf 'retain-me\n' >/work/var/data/operator-state
 
 health_check() {

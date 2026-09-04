@@ -1,51 +1,6 @@
 name: M02 repository and thin SPK
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/m02-foundation.yml"
-      - ".dependency-cruiser.cjs"
-      - ".gitignore"
-      - ".gitmodules"
-      - ".prettierignore"
-      - ".prettierrc.json"
-      - "adapters/**"
-      - "packages/**"
-      - "platform/**"
-      - "scripts/**"
-      - "spk/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "tsconfig.base.json"
-      - "vitest.config.ts"
-      - "eslint.config.mjs"
-      - "docs/Implementation/checklists/m02-checklist.md"
-      - "docs/Implementation/proofs/m02-proof.json"
-      - "docs/planning/M2-REPOSITORY-THIN-SPK.md"
-  pull_request:
-    paths:
-      - ".github/workflows/m02-foundation.yml"
-      - ".dependency-cruiser.cjs"
-      - ".gitignore"
-      - ".gitmodules"
-      - ".prettierignore"
-      - ".prettierrc.json"
-      - "adapters/**"
-      - "packages/**"
-      - "platform/**"
-      - "scripts/**"
-      - "spk/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "tsconfig.base.json"
-      - "vitest.config.ts"
-      - "eslint.config.mjs"
-      - "docs/Implementation/checklists/m02-checklist.md"
-      - "docs/Implementation/proofs/m02-proof.json"
-      - "docs/planning/M2-REPOSITORY-THIN-SPK.md"
   workflow_dispatch:
 
 permissions:

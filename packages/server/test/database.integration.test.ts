@@ -29,10 +29,11 @@ describe('foundation migration', () => {
       const readiness = await createDatabaseReadinessProbe(database)();
       expect(readiness).toEqual({
         service: 'noderag',
-        status: 'ok',
-        migrationHead: '000001_foundation',
-        expectedMigrationHead: '000001_foundation',
-        reasons: [],
+        status: 'unavailable',
+        state: 'unconfigured',
+        migrationHead: '000002_identity_foundation',
+        expectedMigrationHead: '000002_identity_foundation',
+        reasons: ['readiness-state:unconfigured'],
       });
 
       const client = new Client(database);

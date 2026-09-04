@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "milestone": "M10",
+  "recordedAt": "2026-09-04T16:31:18Z",
+  "reviewer": "Codex with executable local and GitHub gates",
+  "implementationBaseCommit": "e9fcc86120da4d4ca1013cf878fdd3f357376b77",
+  "milestoneCommit": "ab0a31d0af1bbe5c638e5eee486348fcd90dafa1",
+  "upstreamCommit": "ab0a31d0af1bbe5c638e5eee486348fcd90dafa1",
+  "migrationHead": "000008_package_lifecycle",
+  "dependencyLockSha256": "650d397622523a38cc29d0c2b8ebffbb04b5b65f351e76b26cbac6114fa42ea7",
+  "modelManifestRevision": "bd58e9fd4b0467770da53678d8da25481c0f959b",
+  "readinessState": "database-free-setup-surface-before-private-postgresql-bootstrap",
+  "contracts": {
+    "authorizationInventory": "platform/route-authorization.v1.json",
+    "authorizationRouteCount": 83,
+    "openApi": "platform/openapi.m10.json",
+    "openApiVersion": "3.1.1",
+    "openApiSha256": "5f039d6b0de2e9f4a4aef76b915dd484db693ace9d0e643f0da1be5f20c43245",
+    "migrationSha256": "d10bc999506272fbf8ca8342964db5036a1b44964f29a755d9383c5206f3df81",
+    "packageName": "noderag",
+    "packageIdentity": "sc-noderag",
+    "packageVersion": "0.2.0-1",
+    "packageArchitecture": "x86_64",
+    "minimumDsmVersion": "7.2",
+    "fallbackPort": 8787,
+    "databaseTcpEnabledByDefault": false,
+    "databaseSocketMode": "0700",
+    "uninstallPreservesDataByDefault": true
+  },
+  "evidence": {
+    "milestonePlan": "docs/Implementation/staged implementation.md#16-milestone-10--production-spk-storage-transport-and-simulated-lifecycle",
+    "checklist": "docs/Implementation/checklists/m10-checklist.md",
+    "operationsGuide": "docs/Implementation/m10-package-operations.md",
+    "deferredDsmRegister": "docs/Implementation/dsm-deferred-register.md#dsm-021",
+    "workflow": ".github/workflows/m10-production-spk.yml",
+    "implementationWorkflowRun": {
+      "runId": 33892748698,
+      "headSha": "ab0a31d0af1bbe5c638e5eee486348fcd90dafa1",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33892748698",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T16:30:33Z",
+      "jobs": [
+        {
+          "name": "quality",
+          "jobId": 101088103747,
+          "conclusion": "success"
+        },
+        {
+          "name": "postgres-integration",
+          "jobId": 101088104129,
+          "conclusion": "success"
+        },
+        {
+          "name": "linux-compatibility",
+          "jobId": 101088104171,
+          "conclusion": "success"
+        },
+        {
+          "name": "production-package",
+          "jobId": 101088104230,
+          "conclusion": "success"
+        }
+      ]
+    },
+    "regressionWorkflowRuns": [
+      {
+        "name": "M00 Docker testbed",
+        "runId": 33892748673,
+        "conclusion": "success"
+      },
+      {
+        "name": "M01 feasibility",
+        "runId": 33892748730,
+        "conclusion": "success"
+      },
+      {
+        "name": "M08 retrieval interfaces and evaluation",
+        "runId": 33892748819,
+        "conclusion": "success"
+      },
+      {
+        "name": "M09 operator UI and first-run setup",
+        "runId": 33892748725,
+        "conclusion": "success"
+      }
+    ],
+    "runtime": {
+      "builder": "ghcr.io/synocommunity/spksrc@sha256:31b66390e2357d5ab0be8c2e521dbc658a44afdfd50eb2e10346e5539f4e9811",
+      "spksrcCommit": "1f638f9f331d881b2fd5cb45bb24071e9f723400",
+      "toolchain": "dsm-7.2-x64",
+      "postgresql": "17.11",
+      "pgvector": "0.8.6",
+      "archive": "spk/generated/m10/postgresql-runtime.tar.gz",
+      "bytes": 34932208,
+      "sha256": "207ca3be6a670f8865fc244da618a0cb41743848ee441159e412b6feab2ceca1",
+      "deterministicArchive": true
+    },
+    "productionSpk": {
+      "name": "noderag-0.2.0-1-x86_64-production.spk",
+      "bytes": 63907840,
+      "sha256": "87b36b4bcfc513a2156bef9fb442f11b643f5d67ce6c4738d15251efb3d1f669",
+      "repeatSha256": "87b36b4bcfc513a2156bef9fb442f11b643f5d67ce6c4738d15251efb3d1f669",
+      "migration000008Bundled": true,
+      "openApiM10Bundled": true,
+      "linuxX64OnnxRuntimeBundled": true,
+      "canvasNativeModuleBundled": true,
+      "developmentDependenciesExcluded": true,
+      "runtimePackageInstallationExcluded": true,
+      "runAs": "package"
+    },
+    "privateDatabase": {
+      "firstStartWithoutDatabase": true,
+      "credentialGeneratedAtInitialization": true,
+      "unixSocketOnly": true,
+      "socketMode": "0700",
+      "tcp5432Refused": true,
+      "pgvectorCreateExtensionPassed": true,
+      "halfvec1024InsertAndSearchPassed": true,
+      "orderedStartupAndShutdown": true,
+      "stalePidAndSocketRecovery": true
+    },
+    "storageAndModels": {
+      "canonicalVolumePathPolicy": true,
+      "ext4BtrfsPolicy": true,
+      "writeFsyncRenameReadProbe": true,
+      "capacityAndRebuildReserve": true,
+      "encryptedSharePolicy": true,
+      "syncAndIndexWarnings": true,
+      "relocationFullSha256Manifest": true,
+      "relocationRollback": true,
+      "modelPartialAndAtomicRename": true,
+      "modelHttpsAllowlist": true,
+      "modelRangeResume": true,
+      "modelMirrorFallback": true,
+      "privatePathsExcludedFromApi": true
+    },
+    "simulatedLifecycle": {
+      "uid": 1000,
+      "gid": 1000,
+      "readOnlyContainerRoot": true,
+      "allCapabilitiesDropped": true,
+      "noNewPrivileges": true,
+      "cleanInstall": true,
+      "setup": true,
+      "fiveFormatIngest": true,
+      "watchedSourceAndSearch": true,
+      "processRestart": true,
+      "packageRestart": true,
+      "rebootStyleRestart": true,
+      "sameMajorUpgrade": true,
+      "failedStartRecovery": true,
+      "retainedUninstallAndReinstall": true,
+      "destructiveUninstall": true
+    },
+    "certificationCommitEvidence": "The commit containing the completed proof must pass the same four-job workflow before the annotated m10-complete tag is created.",
+    "completionTag": "m10-complete"
+  },
+  "invariants": {
+    "postgresqlTcpDisabledByDefault": true,
+    "databaseAndCredentialsPackageControlled": true,
+    "noRuntimeExecutableDownload": true,
+    "noPrivateFilesystemPathInApi": true,
+    "storageRelocationIsGuardedAndReversible": true,
+    "uninstallPreservesDataWithoutExplicitDestructiveChoice": true,
+    "structuredErrorsExcludeRawLogsBodiesAndSecrets": true,
+    "productionSpkDeterministic": true,
+    "nonRootLifecycleSimulationPassed": true,
+    "testbedEvidenceNotRepresentedAsDsmEvidence": true
+  },
+  "tests": {
+    "frozenInstall": "passed",
+    "migrationVerification": "passed-8-forward-only-migrations",
+    "openApiDrift": "passed-83-routes",
+    "typecheck": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "dependencyBoundaries": "passed",
+    "unit": "passed-23-files-67-tests",
+    "postgres17PgvectorIntegration": "passed-8-files-44-tests",
+    "playwrightChromium": "passed-6-journeys",
+    "productionBuild": "passed",
+    "builtServerSmoke": "passed",
+    "licensePolicy": "passed",
+    "secretScan": "passed",
+    "repositoryHygiene": "passed",
+    "linuxNodeOnnxArgon2DatabaseCompatibility": "passed",
+    "productionSpkRepeatBuild": "passed",
+    "productionSpkStaticVerification": "passed",
+    "privatePostgresqlSocketAndPgvector": "passed",
+    "setupIngestSearchAndPurge": "passed",
+    "restartUpgradeRetainedAndDestructiveLifecycle": "passed",
+    "remoteCi": "passed-implementation-run-and-triggered-regressions"
+  },
+  "liveEvidence": {},
+  "environment": "docker-testbed",
+  "certification": "testbed-complete",
+  "deferredDsmChecks": [
+    "Package Center install and lifecycle execution under the real package-created identity",
+    "DSM runtime ABI and Synology Node 22 availability",
+    "real /volumeN ext4/btrfs, encrypted-share, ACL, fsync, capacity, relocation, and rollback behavior",
+    "DSM reverse proxy, desktop/web integration, firewall, resource, and port metadata",
+    "real NAS restart, reboot, upgrade, failed-start, uninstall, and reinstall ordering",
+    "installed-device performance, memory, thermal, DSM administration, and file-sharing impact"
+  ],
+  "failures": [],
+  "gate": "passed",
+  "nextMilestoneAuthorized": false
+}

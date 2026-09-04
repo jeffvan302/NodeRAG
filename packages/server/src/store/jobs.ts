@@ -166,7 +166,7 @@ export const claimNextJob = async (
            lease_epoch = j.lease_epoch + 1, retry_at = NULL,
            frozen_config = CASE WHEN j.frozen_config = '{}'::jsonb THEN
              jsonb_build_object(
-               'schemaRevision', '000010_evaluation_baselines',
+               'schemaRevision', '000011_recovery_hardening',
                'parserRevision', 2,
                'settings', COALESCE((
                  SELECT to_jsonb(settings) - 'updated_by'

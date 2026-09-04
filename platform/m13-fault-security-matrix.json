@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "milestone": "M13",
+  "environment": "linux-amd64-docker-testbed",
+  "unknownPolicy": "fail",
+  "cases": [
+    {
+      "id": "M13-FS-001",
+      "requirement": "worker termination at ingest checkpoints",
+      "evidence": ["packages/server/test/durable-ingestion.integration.test.ts"],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-002",
+      "requirement": "database restart during claim, write, purge, and build transition",
+      "evidence": [
+        "packages/server/test/durable-ingestion.integration.test.ts",
+        "packages/server/test/retrieval-diagnostics.integration.test.ts",
+        "packages/server/test/rebuilds.unit.test.ts"
+      ],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-003",
+      "requirement": "process or host interruption during ingest, backup, relocation, and rebuild",
+      "evidence": [
+        "packages/server/test/recovery.integration.test.ts",
+        "packages/server/test/storage-lifecycle.unit.test.ts",
+        "packages/server/test/rebuilds.unit.test.ts",
+        "scripts/simulate-m10-spk.sh"
+      ],
+      "gate": "automated-with-dsm-repeat"
+    },
+    {
+      "id": "M13-FS-004",
+      "requirement": "Ollama unavailable, slow, malformed, rate-limited, and indeterminate",
+      "evidence": [
+        "packages/server/test/vision.unit.test.ts",
+        "packages/server/test/vision.integration.test.ts"
+      ],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-005",
+      "requirement": "watched share offline and restored",
+      "evidence": ["packages/server/test/durable-ingestion.integration.test.ts"],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-006",
+      "requirement": "disk capacity failure during upload, extraction, index build, backup, and restore",
+      "evidence": [
+        "packages/server/test/retrieval.integration.test.ts",
+        "packages/server/test/storage-lifecycle.unit.test.ts",
+        "packages/server/test/rebuilds.unit.test.ts",
+        "packages/server/test/recovery.unit.test.ts",
+        "packages/server/test/recovery.integration.test.ts"
+      ],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-007",
+      "requirement": "corrupt original, Markdown, cache, partition, archive volume, and manifest",
+      "evidence": [
+        "packages/server/test/durable-ingestion.integration.test.ts",
+        "packages/server/test/rebuilds.unit.test.ts",
+        "packages/server/test/recovery.unit.test.ts"
+      ],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-008",
+      "requirement": "expired leases and competing workers",
+      "evidence": ["packages/server/test/durable-ingestion.integration.test.ts"],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-009",
+      "requirement": "path traversal in upload, archive, restore, and download paths",
+      "evidence": [
+        "packages/server/test/retrieval.integration.test.ts",
+        "packages/server/test/recovery.unit.test.ts",
+        "packages/server/test/recovery.integration.test.ts",
+        "scripts/verify-thin-spk.sh"
+      ],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-010",
+      "requirement": "decompression bombs, oversized XML, and bounded parsing",
+      "evidence": [
+        "packages/server/test/extractors.unit.test.ts",
+        "packages/server/test/recovery.unit.test.ts"
+      ],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-011",
+      "requirement": "SQL, JSON, Markdown/HTML, header, and log injection",
+      "evidence": [
+        "packages/server/test/identity.integration.test.ts",
+        "packages/server/test/retrieval.integration.test.ts",
+        "packages/server/test/app.unit.test.ts"
+      ],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-012",
+      "requirement": "CSRF, session fixation, API-key leakage, and rate-limit bypass",
+      "evidence": [
+        "packages/server/test/identity.integration.test.ts",
+        "packages/server/test/retrieval.integration.test.ts"
+      ],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-013",
+      "requirement": "all administrative routes reject non-admin callers",
+      "evidence": [
+        "platform/route-authorization.v1.json",
+        "packages/server/test/retrieval.integration.test.ts"
+      ],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-014",
+      "requirement": "cross-silo search and retrieval by IDs, filters, gateways, and MCP",
+      "evidence": [
+        "packages/server/test/retrieval.integration.test.ts",
+        "packages/server/test/retrieval-diagnostics.integration.test.ts"
+      ],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-015",
+      "requirement": "secret scan, dependency audit, license gate, SBOM, and notices",
+      "evidence": [
+        "scripts/check-secrets.sh",
+        "scripts/check-licenses.mjs",
+        "scripts/generate-sbom.mjs",
+        "platform/sbom.spdx.json",
+        "THIRD-PARTY.md"
+      ],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-016",
+      "requirement": "encrypted archive tamper, wrong-passphrase, partial-output, and secret isolation",
+      "evidence": [
+        "packages/server/test/recovery.unit.test.ts",
+        "packages/server/test/recovery.integration.test.ts"
+      ],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-017",
+      "requirement": "maintenance drain timeout, abandoned barrier, and append-only audit repair",
+      "evidence": ["packages/server/test/recovery.integration.test.ts"],
+      "gate": "automated"
+    },
+    {
+      "id": "M13-FS-018",
+      "requirement": "same-major and PostgreSQL 16-to-17 upgrade verification and rollback",
+      "evidence": [
+        "packages/server/test/upgrade.unit.test.ts",
+        "docker-testbed/scripts/verify-m13.sh"
+      ],
+      "gate": "automated-with-dsm-repeat"
+    }
+  ],
+  "dsmRepeat": ["DSM-013", "DSM-016", "DSM-024"]
+}

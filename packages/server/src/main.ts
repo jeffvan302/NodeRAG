@@ -11,11 +11,14 @@ import { loadOrCreateSecretRoot, SecretVault } from './identity/secrets.js';
 import { GatewayListenerManager } from './api/gateway-listeners.js';
 import type { IdentityRoutesOptions } from './api/identity-routes.js';
 import type { ContentRoutesOptions } from './api/content-routes.js';
+import { recoverAbandonedMaintenance } from './recovery/maintenance.js';
+import { RecoveryRuntime } from './recovery/runtime.js';
 
 const main = async (): Promise<void> => {
   const config = await loadRuntimeConfig();
   if (config.database !== null) await runMigrations(config.database);
   const pool = config.database === null ? null : new Pool(config.database);
+  if (pool !== null) await recoverAbandonedMaintenance(pool);
   const embedder = new FramedEmbedderClient(config.embedderSocket);
   const files = new DocumentFileStore(config.dataRoot);
   const secretVault = new SecretVault(await loadOrCreateSecretRoot(config.secretRoot));
@@ -27,7 +30,7 @@ const main = async (): Promise<void> => {
     process.env['NODERAG_ORIGIN'] ?? `http://${config.host}:${String(config.port)}`;
   let identity: IdentityRoutesOptions | undefined;
   let content: ContentRoutesOptions | undefined;
-  if (pool !== null) {
+  if (pool !== null && config.database !== null) {
     const authenticate = createRequestAuthenticator(pool, expectedOrigin);
     identity = {
       pool,
@@ -35,6 +38,16 @@ const main = async (): Promise<void> => {
       secureCookie: (process.env['NODERAG_ORIGIN'] ?? '').startsWith('https://'),
       authenticate,
     };
+    const recovery = new RecoveryRuntime({
+      pool,
+      database: config.database,
+      dataRoot: config.dataRoot,
+      nodeRagVersion: '0.2.0',
+      secretVault,
+      ...(process.env['NODERAG_PG_DUMP'] === undefined
+        ? {}
+        : { pgDumpExecutable: process.env['NODERAG_PG_DUMP'] }),
+    });
     content = {
       pool,
       authenticate,
@@ -45,6 +58,7 @@ const main = async (): Promise<void> => {
         ? {}
         : { visionBearerToken: config.visionBearerToken }),
       secretVault,
+      recovery,
     };
   }
   let gatewayManager: GatewayListenerManager | undefined;

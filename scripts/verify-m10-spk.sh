@@ -24,8 +24,10 @@ for member in INFO LICENSE THIRD-PARTY.md PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG 
 done
 for member in bin/server.cjs bin/worker.cjs bin/embedder.cjs ui/index.html \
   migrations/000008_package_lifecycle.sql migrations/000009_zero_downtime_rebuilds.sql \
-  platform/openapi.m10.json platform/openapi.m11.json platform/openapi.m12.json \
-  platform/migration-checksums.v1.json platform/route-authorization.v1.json \
+  migrations/000010_evaluation_baselines.sql migrations/000011_recovery_hardening.sql \
+  platform/openapi.m10.json platform/openapi.m11.json platform/openapi.m12.json platform/openapi.m13.json \
+  platform/backup-data-classification.v1.json platform/backup-manifest.v1.schema.json platform/backup-sidecar.v1.schema.json \
+  platform/migration-checksums.v1.json platform/route-authorization.v1.json platform/sbom.spdx.json \
   runtime/postgresql-runtime.tar.gz runtime/postgresql-runtime.tar.gz.sha256 \
   bin/node_modules/onnxruntime-node/bin/napi-v6/linux/x64/onnxruntime_binding.node \
   bin/node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime.so.1 \

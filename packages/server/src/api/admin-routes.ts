@@ -26,6 +26,7 @@ import {
   runAuthorizedBuildCleanup,
   verifyStagedSilo,
 } from '../store/rebuilds.js';
+import { nextBackupScheduleAt } from '../recovery/schedule.js';
 
 const idSchema = z.coerce.number().int().positive().safe();
 const smallIdSchema = z.coerce.number().int().min(1).max(32_767);
@@ -172,10 +173,57 @@ const setupProgressSchema = z
     progress: z.number().int().min(30).max(100),
   })
   .strict();
-const backupSchema = z.object({ destinationId: smallIdSchema.optional() }).strict();
-const restoreSchema = z
-  .object({ backupId: idSchema, sourceManifest: z.record(z.string(), z.unknown()).default({}) })
-  .strict();
+const backupSchema = z.union([
+  z
+    .object({
+      action: z.literal('run').default('run'),
+      destinationId: smallIdSchema,
+      product: z.enum(['full', 'portable']).default('full'),
+      passphrase: z.string().min(12).max(1024),
+      includeModels: z.boolean().default(false),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal('schedule'),
+      name: z.string().min(1).max(120),
+      destinationId: smallIdSchema,
+      product: z.enum(['full', 'portable']).default('full'),
+      passphrase: z.string().min(12).max(1024),
+      cadence: z.enum(['daily', 'weekly']),
+      utcHour: z.number().int().min(0).max(23),
+      utcMinute: z.number().int().min(0).max(59),
+      utcWeekday: z.number().int().min(0).max(6).nullable().default(null),
+      retainCount: z.number().int().min(1).max(365).default(7),
+      enabled: z.boolean().default(false),
+    })
+    .strict()
+    .refine(
+      (value) =>
+        (value.cadence === 'daily' && value.utcWeekday === null) ||
+        (value.cadence === 'weekly' && value.utcWeekday !== null),
+      { message: 'backup_schedule_weekday_invalid' },
+    ),
+]);
+const restoreSchema = z.union([
+  z
+    .object({
+      action: z.literal('restore_full').default('restore_full'),
+      backupId: idSchema,
+      passphrase: z.string().min(12).max(1024),
+      confirmation: z.literal('RESTORE THIS INSTALLATION'),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal('import_portable'),
+      backupId: idSchema,
+      destinationSiloId: smallIdSchema,
+      passphrase: z.string().min(12).max(1024),
+      confirmation: z.literal('IMPORT PORTABLE CORPUS'),
+    })
+    .strict(),
+]);
 const evaluationSchema = z.discriminatedUnion('action', [
   z
     .object({
@@ -333,6 +381,7 @@ const mutationFailure = (
     ['overlap_exceeds_half_target', { status: 400, code: 'invalid_chunk_overlap' }],
     ['not_found', { status: 404, code: 'not_found' }],
     ['backup_not_found', { status: 404, code: 'backup_not_found' }],
+    ['backup_destination_not_found', { status: 404, code: 'backup_destination_not_found' }],
     [
       'approved_evaluation_cases_missing',
       { status: 409, code: 'approved_evaluation_cases_missing' },
@@ -1562,10 +1611,27 @@ export const registerAdminRoutes = (
     const principal = await requireAdmin(request, options, false);
     if (principal === null || principal === 'csrf')
       return sendProblem(reply, 401, 'server_admin_required', request.id);
-    const rows = await options.pool.query(
-      `SELECT id,state,destination_id AS "destinationId",manifest,error_code AS "errorCode",requested_at AS "requestedAt",finished_at AS "finishedAt" FROM noderag.backup_operation ORDER BY id DESC`,
-    );
-    return reply.send({ items: rows.rows });
+    const [rows, schedules] = await Promise.all([
+      options.pool.query(
+        `SELECT id,state,product,destination_id AS "destinationId",archive_version AS "archiveVersion",
+              sidecar_path AS "sidecarPath",archive_sha256 AS "archiveSha256",
+              archive_bytes AS "archiveBytes",volume_count AS "volumeCount",
+              verification_state AS "verificationState",include_models AS "includeModels",
+              manifest,error_code AS "errorCode",requested_at AS "requestedAt",
+              started_at AS "startedAt",verified_at AS "verifiedAt",finished_at AS "finishedAt"
+       FROM noderag.backup_operation ORDER BY id DESC`,
+      ),
+      options.pool.query(
+        `SELECT id,name,product,destination_id AS "destinationId",cadence,
+                utc_hour AS "utcHour",utc_minute AS "utcMinute",utc_weekday AS "utcWeekday",
+                enabled,secret_fingerprint AS "secretFingerprint",retain_count AS "retainCount",
+                next_run_at AS "nextRunAt",last_run_at AS "lastRunAt",
+                last_backup_id AS "lastBackupId",last_result AS "lastResult",
+                created_at AS "createdAt",updated_at AS "updatedAt"
+         FROM noderag.backup_schedule ORDER BY id`,
+      ),
+    ]);
+    return reply.send({ items: rows.rows, schedules: schedules.rows });
   });
   app.post('/v1/admin/backups', async (request, reply) => {
     const principal = await requireAdmin(request, options, true);
@@ -1578,16 +1644,98 @@ export const registerAdminRoutes = (
         request,
         principal,
         options,
-        'admin-backup-create',
+        `admin-backup-${body.data.action}`,
         body.data,
         async (database) => {
+          if (body.data.action === 'schedule') {
+            if (options.secretVault === undefined) throw new Error('secret_vault_unavailable');
+            const databaseClock = await database.query<{ now: Date }>(
+              `SELECT clock_timestamp() AS now`,
+            );
+            const now = databaseClock.rows[0]?.now;
+            if (now === undefined) throw new Error('database_clock_unavailable');
+            const secretName = `schedule:${body.data.name}`;
+            const secret = await options.secretVault.store(
+              database,
+              'backup-schedule',
+              secretName,
+              body.data.passphrase,
+              principal.principalId,
+            );
+            const nextRunAt = nextBackupScheduleAt(
+              body.data.cadence,
+              body.data.utcHour,
+              body.data.utcMinute,
+              body.data.utcWeekday,
+              now,
+            );
+            const row = await database.query(
+              `INSERT INTO noderag.backup_schedule
+                 (name,product,destination_id,cadence,utc_hour,utc_minute,utc_weekday,
+                  enabled,secret_name,secret_fingerprint,retain_count,next_run_at,created_by)
+               SELECT $2,$3,location.id,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+               FROM noderag.storage_location location
+               WHERE location.id=$1 AND location.enabled AND location.purpose='backup'
+               RETURNING id,name,product,enabled,secret_fingerprint AS "secretFingerprint",
+                         next_run_at AS "nextRunAt"`,
+              [
+                body.data.destinationId,
+                body.data.name,
+                body.data.product,
+                body.data.cadence,
+                body.data.utcHour,
+                body.data.utcMinute,
+                body.data.utcWeekday,
+                body.data.enabled,
+                secretName,
+                secret.fingerprint,
+                body.data.retainCount,
+                nextRunAt,
+                principal.principalId,
+              ],
+            );
+            if (row.rows[0] === undefined) throw new Error('backup_destination_not_found');
+            return { status: 201, body: row.rows[0] };
+          }
           const row = await database.query(
-            `INSERT INTO noderag.backup_operation(destination_id,requested_by) VALUES($1,$2) RETURNING id,state,requested_at AS "requestedAt"`,
-            [body.data.destinationId ?? null, principal.principalId],
+            `INSERT INTO noderag.backup_operation
+               (destination_id,requested_by,product,include_models)
+             SELECT id,$2,$3,$4 FROM noderag.storage_location
+             WHERE id=$1 AND enabled AND purpose='backup'
+             RETURNING id,state,product,include_models AS "includeModels",
+                       requested_at AS "requestedAt"`,
+            [
+              body.data.destinationId,
+              principal.principalId,
+              body.data.product,
+              body.data.includeModels,
+            ],
           );
+          if (row.rows[0] === undefined) throw new Error('backup_destination_not_found');
           return { status: 202, body: row.rows[0] };
         },
       );
+      const operationId = Number((result.response.body as { id?: unknown }).id);
+      if (
+        !result.replayed &&
+        body.data.action === 'run' &&
+        options.recovery !== undefined &&
+        Number.isSafeInteger(operationId)
+      ) {
+        void options.recovery
+          .startBackup({
+            operationId,
+            product: body.data.product,
+            passphrase: body.data.passphrase,
+            includeModels: body.data.includeModels,
+          })
+          .catch((error: unknown) =>
+            request.log.error(
+              { errorName: error instanceof Error ? error.name : 'unknown', operationId },
+              'backup operation failed',
+            ),
+          );
+      }
       return reply.code(result.response.status).send(result.response.body);
     } catch (error) {
       return mutationFailure(reply, request, error);
@@ -1613,17 +1761,49 @@ export const registerAdminRoutes = (
         request,
         principal,
         options,
-        'admin-restore-create',
+        `admin-restore-${body.data.action}`,
         body.data,
         async (database) => {
           const row = await database.query(
-            `INSERT INTO noderag.restore_operation(backup_id,source_manifest,requested_by) SELECT $1,$2,$3 WHERE EXISTS(SELECT 1 FROM noderag.backup_operation WHERE id=$1) RETURNING id,state,requested_at AS "requestedAt"`,
-            [body.data.backupId, body.data.sourceManifest, principal.principalId],
+            `INSERT INTO noderag.restore_operation(backup_id,source_manifest,requested_by)
+             SELECT backup.id,backup.manifest,$2
+             FROM noderag.backup_operation backup
+             WHERE backup.id=$1 AND backup.state='succeeded'
+               AND backup.verification_state='verified' AND backup.product=$3
+               AND backup.sidecar_path IS NOT NULL
+             RETURNING id,state,requested_at AS "requestedAt"`,
+            [
+              body.data.backupId,
+              principal.principalId,
+              body.data.action === 'restore_full' ? 'full' : 'portable',
+            ],
           );
           if (row.rows[0] === undefined) throw new Error('backup_not_found');
           return { status: 202, body: row.rows[0] };
         },
       );
+      const operationId = Number((result.response.body as { id?: unknown }).id);
+      if (!result.replayed && options.recovery !== undefined && Number.isSafeInteger(operationId)) {
+        void options.recovery
+          .startRestore({
+            operationId,
+            passphrase: body.data.passphrase,
+            confirmation: body.data.confirmation,
+            mode: body.data.action === 'restore_full' ? 'full' : 'portable',
+            ...(body.data.action === 'import_portable'
+              ? {
+                  destinationSiloId: body.data.destinationSiloId,
+                  ownerPrincipalId: principal.principalId,
+                }
+              : {}),
+          })
+          .catch((error: unknown) =>
+            request.log.error(
+              { errorName: error instanceof Error ? error.name : 'unknown', operationId },
+              'restore operation failed',
+            ),
+          );
+      }
       return reply.code(result.response.status).send(result.response.body);
     } catch (error) {
       return mutationFailure(reply, request, error);
@@ -1856,7 +2036,7 @@ export const registerAdminRoutes = (
               `INSERT INTO noderag.evaluation_run
                  (mode,workload,created_by,config,corpus_snapshot_id,settings_revision_id,
                   commit_sha,migration_head,build_snapshot,model_snapshot,thresholds)
-               VALUES($1,$2,$3,$4,$5,$6,$7,'000010_evaluation_baselines',$8,$9,$10)
+               VALUES($1,$2,$3,$4,$5,$6,$7,'000011_recovery_hardening',$8,$9,$10)
                RETURNING id,mode,workload,state,created_at AS "createdAt"`,
               [
                 mode,

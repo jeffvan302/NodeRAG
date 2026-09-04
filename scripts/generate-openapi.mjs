@@ -4,7 +4,7 @@ import { format, resolveConfig } from 'prettier';
 
 const root = resolve(import.meta.dirname, '..');
 const inventoryPath = resolve(root, 'platform/route-authorization.v1.json');
-const outputPath = resolve(root, 'platform/openapi.m12.json');
+const outputPath = resolve(root, 'platform/openapi.m13.json');
 const inventory = JSON.parse(await readFile(inventoryPath, 'utf8'));
 
 const pathParameters = (path) =>
@@ -116,7 +116,7 @@ const document = {
     title: 'NodeRag API',
     version: '0.2.0',
     description:
-      'M12 contract for reproducible retrieval evaluation, frozen baselines, measured defaults, production package lifecycle, operator UI, scoped retrieval and ingestion operations.',
+      'M13 contract for encrypted backup, staged restore, upgrade recovery, security hardening, reproducible evaluation, production package lifecycle, and scoped retrieval and ingestion operations.',
   },
   servers: [{ url: '/', description: 'Control or narrowed gateway listener' }],
   paths,
@@ -333,7 +333,7 @@ const rendered = await format(JSON.stringify(document), {
 if (process.argv.includes('--check')) {
   const current = await readFile(outputPath, 'utf8').catch(() => '');
   if (current !== rendered) {
-    console.error('platform/openapi.m12.json is out of date; run pnpm openapi:generate');
+    console.error('platform/openapi.m13.json is out of date; run pnpm openapi:generate');
     process.exitCode = 1;
   }
 } else {

@@ -6,6 +6,16 @@ From WSL/Linux with Docker available, `pnpm package:candidate` builds the pinned
 
 Generated PostgreSQL and SPK outputs stay under `spk/generated`, `spk/work`, and `spk/artifacts`; Git ignores them. Docker evidence is testbed-only and must not be recorded as live DSM evidence.
 
+## Milestone 13 recovery and upgrade rehearsal
+
+`bash docker-testbed/scripts/verify-m13.sh --docker` builds the pinned Node 22
+test runner, exercises encrypted full and portable archives against PostgreSQL
+17, verifies wrong-password/tamper/fault behavior, and performs a logical
+PostgreSQL 16.15 to 17 restore with typed JSON/array and stable-ID checks. The
+PostgreSQL 16 source is digest-pinned and disposable; the rehearsal retains the
+source until the restored database has passed verification, then proves the
+source remains usable after the target is removed as the rollback case.
+
 This directory is the repository-owned development and test environment for
 NodeRag Milestones 0 through 14. It is not the production deployment model:
 the released product remains one Synology DSM package, and Docker is never

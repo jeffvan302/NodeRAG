@@ -11,6 +11,9 @@ import { enqueueDueSourceCrawls } from './ingest/sources.js';
 import { createRuntimeVisionProcessor } from './vision/runtime.js';
 import { loadOrCreateSecretRoot, SecretVault } from './identity/secrets.js';
 import { processOneEvaluationRun } from './search/evaluation-runner.js';
+import { recoverAbandonedMaintenance } from './recovery/maintenance.js';
+import { RecoveryRuntime } from './recovery/runtime.js';
+import { processOneScheduledBackup } from './recovery/schedule.js';
 
 const main = async (): Promise<void> => {
   const once = process.argv.includes('--once');
@@ -18,9 +21,20 @@ const main = async (): Promise<void> => {
   if (config.database === null) throw new Error('The worker requires PostgreSQL configuration.');
   await runMigrations(config.database);
   const pool = new Pool(config.database);
+  await recoverAbandonedMaintenance(pool);
   const embedder = new FramedEmbedderClient(config.embedderSocket);
   const files = new DocumentFileStore(config.dataRoot);
   const secretVault = new SecretVault(await loadOrCreateSecretRoot(config.secretRoot));
+  const recovery = new RecoveryRuntime({
+    pool,
+    database: config.database,
+    dataRoot: config.dataRoot,
+    nodeRagVersion: '0.2.0',
+    secretVault,
+    ...(process.env['NODERAG_PG_DUMP'] === undefined
+      ? {}
+      : { pgDumpExecutable: process.env['NODERAG_PG_DUMP'] }),
+  });
   await files.initialize();
   await enqueueNightlyIntegrityJob(pool);
   const leaseOwner = `${process.pid}-${randomUUID()}`;
@@ -33,6 +47,9 @@ const main = async (): Promise<void> => {
   console.info(JSON.stringify({ service: 'noderag-worker', event: 'started', once, leaseOwner }));
   try {
     do {
+      const backupProcessed = await processOneScheduledBackup(pool, secretVault, (request) =>
+        recovery.startBackup(request),
+      );
       const evaluationProcessed = await processOneEvaluationRun({
         pool,
         embedder,
@@ -57,7 +74,7 @@ const main = async (): Promise<void> => {
           }),
       });
       if (once) break;
-      if (!evaluationProcessed && !documentProcessed) {
+      if (!backupProcessed && !evaluationProcessed && !documentProcessed) {
         await enqueueDueSourceCrawls(pool);
         await delay(500);
       }

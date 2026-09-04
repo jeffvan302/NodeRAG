@@ -10,6 +10,7 @@ import { createDeterministicRuntime } from '../../embedder/src/runtime.js';
 import { buildApp } from '../src/app.js';
 import { createRequestAuthenticator } from '../src/api/authentication.js';
 import { createApiKey } from '../src/identity/api-keys.js';
+import { SecretVault } from '../src/identity/secrets.js';
 import { setSiloCapability, createSilo } from '../src/store/silos.js';
 import { bootstrapFirstAdministrator, issueSetupToken } from '../src/setup/bootstrap.js';
 import { DocumentFileStore } from '../src/storage/document-files.js';
@@ -114,6 +115,7 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
       embedder,
       maximumUploadBytes: 2 * 1024 * 1024,
       minimumFreeBytes: 0,
+      secretVault: new SecretVault(Buffer.alloc(32, 0x31)),
     };
     app = buildApp({
       logger: false,
@@ -1194,12 +1196,59 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
     });
     expect(storage.statusCode, storage.body).toBe(201);
     const storageId = storage.json<{ id: number }>().id;
-    const backup = await mutate('POST', '/v1/admin/backups', { destinationId: storageId });
+    const backup = await mutate('POST', '/v1/admin/backups', {
+      destinationId: storageId,
+      product: 'full',
+      passphrase: 'synthetic backup test passphrase',
+      includeModels: false,
+    });
     expect(backup.statusCode, backup.body).toBe(202);
     const backupId = Number(backup.json<{ id: number | string }>().id);
-    expect(
-      (await mutate('POST', '/v1/admin/restores', { backupId, sourceManifest: {} })).statusCode,
-    ).toBe(202);
+    await pool.query(
+      `UPDATE noderag.backup_operation
+       SET state='succeeded',verification_state='verified',
+           sidecar_path='/tmp/noderag-m13-route-test.sidecar.json',manifest='{}'::jsonb,
+           finished_at=now()
+       WHERE id=$1`,
+      [backupId],
+    );
+    const schedule = await mutate('POST', '/v1/admin/backups', {
+      action: 'schedule',
+      name: 'm08-nightly-test',
+      destinationId: storageId,
+      product: 'full',
+      passphrase: 'synthetic scheduled backup passphrase',
+      cadence: 'daily',
+      utcHour: 2,
+      utcMinute: 15,
+      enabled: false,
+    });
+    expect(schedule.statusCode, schedule.body).toBe(201);
+    expect(schedule.body).not.toContain('synthetic scheduled backup passphrase');
+    const fullRestore = await mutate('POST', '/v1/admin/restores', {
+      backupId,
+      passphrase: 'synthetic restore test passphrase',
+      confirmation: 'RESTORE THIS INSTALLATION',
+    });
+    expect(fullRestore.statusCode, fullRestore.body).toBe(202);
+    await pool.query(`UPDATE noderag.restore_operation SET state='cancelled' WHERE id=$1`, [
+      Number(fullRestore.json<{ id: number | string }>().id),
+    ]);
+    const portableBackup = await pool.query<{ id: string }>(
+      `INSERT INTO noderag.backup_operation
+         (state,verification_state,product,sidecar_path,manifest,finished_at)
+       VALUES ('succeeded','verified','portable',
+               '/tmp/noderag-m13-portable-route-test.sidecar.json','{}'::jsonb,now())
+       RETURNING id::text`,
+    );
+    const portableImport = await mutate('POST', '/v1/admin/restores', {
+      action: 'import_portable',
+      backupId: Number(portableBackup.rows[0]?.id),
+      destinationSiloId: siloId,
+      passphrase: 'synthetic portable import passphrase',
+      confirmation: 'IMPORT PORTABLE CORPUS',
+    });
+    expect(portableImport.statusCode, portableImport.body).toBe(202);
 
     const evaluationCase = await mutate('POST', '/v1/admin/evaluation', {
       action: 'add_case',
@@ -1263,10 +1312,14 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
 
     expect(
       (
-        await mutate('DELETE', `/v1/admin/silos/${String(siloId)}`, {
-          confirmSlug: 'm08-api-silo',
-        })
-      ).statusCode,
-    ).toBe(202);
+        await pool.query(`SELECT count(*)::integer AS count FROM noderag.silo WHERE id=$1`, [
+          siloId,
+        ])
+      ).rows[0],
+    ).toEqual({ count: 1 });
+    const siloDelete = await mutate('DELETE', `/v1/admin/silos/${String(siloId)}`, {
+      confirmSlug: 'm08-api-silo',
+    });
+    expect(siloDelete.statusCode, siloDelete.body).toBe(202);
   }, 30_000);
 });

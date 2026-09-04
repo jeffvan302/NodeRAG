@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noderag.local/schemas/backup-sidecar.v1.json",
+  "title": "NodeRag encrypted recovery archive sidecar",
+  "type": "object",
+  "required": ["version", "product", "archive", "encryption", "volumes", "createdAt"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "product": { "enum": ["full", "portable"] },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "archive": {
+      "type": "object",
+      "required": ["sha256", "bytes", "migrationHead", "postgresMajor"],
+      "additionalProperties": false,
+      "properties": {
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "bytes": { "type": "integer", "minimum": 1 },
+        "migrationHead": { "type": "string", "minLength": 1 },
+        "postgresMajor": { "type": "integer", "minimum": 1 },
+        "nodeRagVersion": { "type": "string" }
+      }
+    },
+    "encryption": {
+      "type": "object",
+      "required": ["algorithm", "kdf", "salt", "nonce", "authTag", "keyFingerprint"],
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": { "const": "aes-256-gcm" },
+        "kdf": { "const": "scrypt-v1" },
+        "salt": { "type": "string" },
+        "nonce": { "type": "string" },
+        "authTag": { "type": "string" },
+        "keyFingerprint": { "type": "string", "pattern": "^[a-f0-9]{16}$" }
+      }
+    },
+    "volumes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["index", "file", "bytes", "sha256"],
+        "additionalProperties": false,
+        "properties": {
+          "index": { "type": "integer", "minimum": 1 },
+          "file": { "type": "string", "pattern": "^[^/\\\\]+$" },
+          "bytes": { "type": "integer", "minimum": 1 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        }
+      }
+    }
+  }
+}

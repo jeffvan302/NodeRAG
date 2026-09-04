@@ -46,6 +46,8 @@ cp -R -- "${repository_root}/packages/server/migrations" "${payload_root}/migrat
 cp -- "${repository_root}/platform/migration-checksums.v1.json" "${payload_root}/platform/"
 cp -- "${repository_root}/platform/route-authorization.v1.json" "${payload_root}/platform/"
 cp -- "${repository_root}/platform/openapi.m"*.json "${payload_root}/platform/"
+cp -- "${repository_root}/platform/backup-"*.json "${payload_root}/platform/"
+cp -- "${repository_root}/platform/sbom.spdx.json" "${payload_root}/platform/"
 cp -- "${runtime_root}/postgresql-runtime.tar.gz" "${payload_root}/runtime/"
 cp -- "${runtime_root}/postgresql-runtime.tar.gz.sha256" "${payload_root}/runtime/"
 cp -- "${runtime_root}/postgresql-runtime.txt" "${payload_root}/runtime/"

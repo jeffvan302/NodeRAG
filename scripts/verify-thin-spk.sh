@@ -31,7 +31,7 @@ tar -tzf "${verify_root}/outer/package.tgz" | while IFS= read -r entry; do
 done
 tar -xzf "${verify_root}/outer/package.tgz" -C "${verify_root}/payload"
 
-for required in INFO PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG package.tgz conf/privilege conf/resource \
+for required in INFO LICENSE THIRD-PARTY.md PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG package.tgz conf/privilege conf/resource \
   conf/port_conf/NodeRag.sc scripts/service-setup scripts/start-stop-status scripts/postinst \
   WIZARD_UIFILES/install_uifile ui/config; do
   [[ -e "${verify_root}/outer/${required}" ]] || { echo "Missing SPK member: ${required}" >&2; exit 1; }
@@ -41,10 +41,12 @@ for required in bin/server.cjs bin/worker.cjs bin/embedder.cjs ui/index.html \
   migrations/000001_foundation.sql migrations/000002_identity_foundation.sql \
   migrations/000003_markdown_slice.sql migrations/000004_durable_ingestion.sql \
   migrations/000005_vision_recovery.sql migrations/000006_retrieval_interfaces.sql \
-  migrations/000007_operator_ui.sql \
+  migrations/000007_operator_ui.sql migrations/000008_package_lifecycle.sql \
+  migrations/000009_zero_downtime_rebuilds.sql migrations/000010_evaluation_baselines.sql \
+  migrations/000011_recovery_hardening.sql \
   bin/node_modules/@napi-rs/canvas/index.js \
   bin/node_modules/@napi-rs/canvas-linux-x64-gnu/skia.linux-x64-gnu.node \
-  platform/migration-checksums.v1.json; do
+  platform/migration-checksums.v1.json platform/sbom.spdx.json; do
   [[ -e "${verify_root}/payload/${required}" ]] || { echo "Missing payload member: ${required}" >&2; exit 1; }
 done
 [[ -e "${verify_root}/payload/platform/route-authorization.v1.json" ]] || {
@@ -79,6 +81,10 @@ done
   echo "Missing payload member: platform/openapi.m12.json" >&2
   exit 1
 }
+[[ -e "${verify_root}/payload/platform/openapi.m13.json" ]] || {
+  echo "Missing payload member: platform/openapi.m13.json" >&2
+  exit 1
+}
 
 grep -q '^package="noderag"$' "${verify_root}/outer/INFO"
 grep -q '^arch="x86_64"$' "${verify_root}/outer/INFO"
@@ -103,6 +109,14 @@ grep -F '"openapi": "3.1.1"' \
   "${verify_root}/payload/platform/openapi.m09.json"
 grep -F '"openapi": "3.1.1"' \
   "${verify_root}/payload/platform/openapi.m12.json"
+grep -F '"openapi": "3.1.1"' \
+  "${verify_root}/payload/platform/openapi.m13.json"
+for recovery_contract in \
+  backup-data-classification.v1.json backup-manifest.v1.schema.json backup-sidecar.v1.schema.json \
+  sbom.spdx.json; do
+  node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' \
+    "${verify_root}/payload/platform/${recovery_contract}"
+done
 grep -q '"run-as": "package"' "${verify_root}/outer/conf/privilege"
 grep -q '127.0.0.1:8787' "${verify_root}/outer/conf/resource"
 

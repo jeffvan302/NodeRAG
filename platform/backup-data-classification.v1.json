@@ -1,0 +1,269 @@
+{
+  "version": 1,
+  "migrationHead": "000011_recovery_hardening",
+  "unknownPolicy": "fail",
+  "classes": {
+    "source-of-truth": "Always include in full recovery and portable export.",
+    "behavioral-provenance": "Include so restored content remains interpretable.",
+    "derived": "Include in full recovery; portable export may rebuild it.",
+    "secrets": "Include only in the encrypted full recovery product.",
+    "security-history": "Include only in full recovery according to retention policy.",
+    "ephemeral": "Never restore as active state.",
+    "installation-local": "Never import from another installation."
+  },
+  "tables": [
+    {
+      "table": "system_metadata",
+      "class": "installation-local",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "migration_checksums",
+      "class": "installation-local",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "silo",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "include-redacted",
+      "portableExcludedColumns": ["created_by"]
+    },
+    { "table": "principal", "class": "security-history", "full": "include", "portable": "exclude" },
+    { "table": "app_user", "class": "secrets", "full": "include", "portable": "exclude" },
+    { "table": "api_key", "class": "secrets", "full": "include", "portable": "exclude" },
+    {
+      "table": "silo_grant",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    { "table": "session", "class": "ephemeral", "full": "exclude", "portable": "exclude" },
+    {
+      "table": "encrypted_secret",
+      "class": "secrets",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "model_manifest",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "include"
+    },
+    {
+      "table": "settings",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "include-redacted",
+      "portableExcludedColumns": ["ollama_base_url", "ollama_secret_id", "updated_by"]
+    },
+    {
+      "table": "build",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "include-redacted",
+      "portableExcludedColumns": ["confirmed_by"]
+    },
+    {
+      "table": "silo_build_state",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "include"
+    },
+    {
+      "table": "source",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "document",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "include-redacted",
+      "portableExcludedColumns": ["source_id", "uploaded_by"]
+    },
+    {
+      "table": "document_page",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "include"
+    },
+    {
+      "table": "document_image",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "include"
+    },
+    { "table": "chunk", "class": "derived", "full": "include", "portable": "exclude" },
+    { "table": "job", "class": "ephemeral", "full": "exclude", "portable": "exclude" },
+    { "table": "job_event", "class": "ephemeral", "full": "exclude", "portable": "exclude" },
+    { "table": "embedding_cache", "class": "derived", "full": "include", "portable": "exclude" },
+    { "table": "vision_cache", "class": "derived", "full": "include", "portable": "exclude" },
+    { "table": "gateway", "class": "installation-local", "full": "exclude", "portable": "exclude" },
+    { "table": "audit_log", "class": "security-history", "full": "include", "portable": "exclude" },
+    {
+      "table": "idempotency_record",
+      "class": "ephemeral",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "setup_state",
+      "class": "installation-local",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "document_dispatch",
+      "class": "ephemeral",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    { "table": "integrity_finding", "class": "derived", "full": "include", "portable": "exclude" },
+    { "table": "purge_operation", "class": "ephemeral", "full": "exclude", "portable": "exclude" },
+    { "table": "resource_lease", "class": "ephemeral", "full": "exclude", "portable": "exclude" },
+    { "table": "vision_dispatch", "class": "ephemeral", "full": "exclude", "portable": "exclude" },
+    {
+      "table": "storage_location",
+      "class": "installation-local",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "backup_operation",
+      "class": "installation-local",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "restore_operation",
+      "class": "installation-local",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "evaluation_case",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "include-redacted",
+      "portableExcludedColumns": ["created_by", "reviewed_by", "updated_by"]
+    },
+    { "table": "evaluation_run", "class": "derived", "full": "include", "portable": "exclude" },
+    {
+      "table": "retrieval_diagnostic",
+      "class": "derived",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "setup_event",
+      "class": "installation-local",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "storage_relocation_operation",
+      "class": "installation-local",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "model_artifact",
+      "class": "installation-local",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    { "table": "rebuild_proposal", "class": "ephemeral", "full": "exclude", "portable": "exclude" },
+    {
+      "table": "build_document_checkpoint",
+      "class": "ephemeral",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    { "table": "build_verification", "class": "derived", "full": "include", "portable": "exclude" },
+    {
+      "table": "build_activation_history",
+      "class": "security-history",
+      "full": "include",
+      "portable": "exclude"
+    },
+    { "table": "build_cleanup", "class": "ephemeral", "full": "exclude", "portable": "exclude" },
+    {
+      "table": "evaluation_corpus_snapshot",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "include-redacted",
+      "portableExcludedColumns": ["frozen_by"]
+    },
+    {
+      "table": "evaluation_settings_revision",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "include-redacted",
+      "portableExcludedColumns": ["created_by"]
+    },
+    {
+      "table": "evaluation_observation",
+      "class": "derived",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "evaluation_baseline",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    { "table": "evaluation_alert", "class": "derived", "full": "include", "portable": "exclude" },
+    {
+      "table": "restore_finding",
+      "class": "installation-local",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "maintenance_barrier",
+      "class": "ephemeral",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "backup_schedule",
+      "class": "installation-local",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "upgrade_rehearsal",
+      "class": "installation-local",
+      "full": "exclude",
+      "portable": "exclude"
+    }
+  ],
+  "fileClasses": [
+    {
+      "pathPrefix": "documents/",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "include"
+    },
+    { "pathPrefix": "models/", "class": "derived", "full": "optional", "portable": "exclude" },
+    { "pathPrefix": "tmp/", "class": "ephemeral", "full": "exclude", "portable": "exclude" },
+    { "pathPrefix": "run/", "class": "ephemeral", "full": "exclude", "portable": "exclude" },
+    { "pathPrefix": "secrets/", "class": "secrets", "full": "exclude", "portable": "exclude" }
+  ],
+  "restoreRules": {
+    "preserveStableIds": true,
+    "invalidateSessions": true,
+    "invalidateSetupTokens": true,
+    "resetActiveJobs": true,
+    "disableSchedules": true,
+    "disableGateways": true,
+    "disableExternalProviders": true,
+    "reencryptSecretsOnDestination": true
+  }
+}

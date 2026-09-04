@@ -17,6 +17,7 @@ import {
 import { acceptDocumentUpload, uploadRequestDigestInput } from '../ingest/upload.js';
 import type { RequestAuthenticator } from './authentication.js';
 import type { SecretVault } from '../identity/secrets.js';
+import type { BackupProduct } from '../recovery/archive.js';
 
 const uploadQuerySchema = z.object({ siloId: z.coerce.number().int().min(1).max(32_767) });
 
@@ -38,6 +39,22 @@ export interface ContentRoutesOptions {
   readonly sourceRoots?: readonly string[];
   readonly visionBearerToken?: string;
   readonly secretVault?: SecretVault;
+  readonly recovery?: {
+    startBackup(input: {
+      readonly operationId: number;
+      readonly product: BackupProduct;
+      readonly passphrase: string;
+      readonly includeModels: boolean;
+    }): Promise<void>;
+    startRestore(input: {
+      readonly operationId: number;
+      readonly passphrase: string;
+      readonly confirmation: string;
+      readonly mode?: 'full' | 'portable';
+      readonly destinationSiloId?: number;
+      readonly ownerPrincipalId?: number;
+    }): Promise<void>;
+  };
 }
 
 export const registerContentRoutes = (

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noderag.local/schemas/backup-manifest.v1.json",
+  "title": "NodeRag encrypted recovery archive inner manifest",
+  "type": "object",
+  "required": ["version", "product", "consistencyAt", "migrationHead", "postgresMajor", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "product": { "enum": ["full", "portable"] },
+    "consistencyAt": { "type": "string", "format": "date-time" },
+    "migrationHead": { "type": "string", "minLength": 1 },
+    "postgresMajor": { "type": "integer", "minimum": 1 },
+    "nodeRagVersion": { "type": "string" },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "bytes", "sha256", "class", "owner"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string", "pattern": "^(database|documents|models)/" },
+          "bytes": { "type": "integer", "minimum": 0 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "class": {
+            "enum": [
+              "source-of-truth",
+              "behavioral-provenance",
+              "derived",
+              "secrets",
+              "security-history"
+            ]
+          },
+          "owner": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

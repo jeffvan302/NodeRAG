@@ -73,9 +73,12 @@ export const cleanExpiredAuditEvents = async (
     throw new Error('Audit cleanup batch must be between 1 and 10000.');
   }
   const deleted = await database.query(
-    `WITH expired AS (
+    `WITH retention_mode AS MATERIALIZED (
+       SELECT set_config('app.audit_retention','on',true)
+     ), expired AS (
        SELECT a.id FROM noderag.audit_log a
        CROSS JOIN noderag.settings s
+       CROSS JOIN retention_mode
        WHERE a.occurred_at < now() - make_interval(days => s.audit_retention_days)
        ORDER BY a.id LIMIT $1
      )

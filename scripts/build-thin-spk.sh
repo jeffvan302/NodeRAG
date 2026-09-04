@@ -30,6 +30,8 @@ cp -- "${repository_root}/spk/generated/m02/icons/PACKAGE_ICON_256.PNG" "${outer
 cp -- "${repository_root}/spk/generated/m02/icons/PACKAGE_ICON_72.PNG" "${outer_root}/ui/images/icon_72.png"
 cp -- "${repository_root}/spk/generated/m02/icons/PACKAGE_ICON_256.PNG" "${outer_root}/ui/images/icon_256.png"
 cp -- "${package_source}/scripts/"* "${outer_root}/scripts/"
+cp -- "${repository_root}/LICENSE" "${outer_root}/LICENSE"
+cp -- "${repository_root}/THIRD-PARTY.md" "${outer_root}/THIRD-PARTY.md"
 chmod 755 -- "${outer_root}/scripts/"*
 
 cp -- "${repository_root}/packages/server/dist/server.cjs" "${payload_root}/bin/server.cjs"
@@ -48,7 +50,13 @@ cp -- "${repository_root}/platform/openapi.m06.json" "${payload_root}/platform/o
 cp -- "${repository_root}/platform/openapi.m07.json" "${payload_root}/platform/openapi.m07.json"
 cp -- "${repository_root}/platform/openapi.m09.json" "${payload_root}/platform/openapi.m09.json"
 cp -- "${repository_root}/platform/openapi.m10.json" "${payload_root}/platform/openapi.m10.json"
+cp -- "${repository_root}/platform/openapi.m11.json" "${payload_root}/platform/openapi.m11.json"
 cp -- "${repository_root}/platform/openapi.m12.json" "${payload_root}/platform/openapi.m12.json"
+cp -- "${repository_root}/platform/openapi.m13.json" "${payload_root}/platform/openapi.m13.json"
+cp -- "${repository_root}/platform/backup-data-classification.v1.json" "${payload_root}/platform/backup-data-classification.v1.json"
+cp -- "${repository_root}/platform/backup-manifest.v1.schema.json" "${payload_root}/platform/backup-manifest.v1.schema.json"
+cp -- "${repository_root}/platform/backup-sidecar.v1.schema.json" "${payload_root}/platform/backup-sidecar.v1.schema.json"
+cp -- "${repository_root}/platform/sbom.spdx.json" "${payload_root}/platform/sbom.spdx.json"
 
 tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
   -czf "${outer_root}/package.tgz" -C "${payload_root}" .

@@ -30,8 +30,8 @@ describe('foundation migration', () => {
         service: 'noderag',
         status: 'unavailable',
         state: 'unconfigured',
-        migrationHead: '000010_evaluation_baselines',
-        expectedMigrationHead: '000010_evaluation_baselines',
+        migrationHead: '000011_recovery_hardening',
+        expectedMigrationHead: '000011_recovery_hardening',
         reasons: ['readiness-state:unconfigured'],
       });
 

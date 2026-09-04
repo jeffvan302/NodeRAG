@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expectedHead": "000010_evaluation_baselines",
+  "expectedHead": "000011_recovery_hardening",
   "migrations": [
     {
       "id": "000001_foundation",
@@ -60,6 +60,12 @@
       "id": "000010_evaluation_baselines",
       "path": "packages/server/migrations/000010_evaluation_baselines.sql",
       "sha256": "d424b0b0c7fb91a1a40b425ebe57a53cb9b7b77a4756c3a95602b2a9630a93b0",
+      "direction": "up-only"
+    },
+    {
+      "id": "000011_recovery_hardening",
+      "path": "packages/server/migrations/000011_recovery_hardening.sql",
+      "sha256": "989221319bbd3a50af4894510f54f8be3b4f5abe43ea7580dbe2a1e3aced2f76",
       "direction": "up-only"
     }
   ]

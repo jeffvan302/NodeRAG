@@ -4,7 +4,7 @@
     "items": [
       {
         "type": "singletext",
-        "desc": "NodeRag runs as its package identity and stores data only in its package data directory and acquired share. Live DSM validation is required before release."
+        "desc": "NodeRag runs as the dedicated sc-noderag package identity, keeps PostgreSQL private to a Unix socket, and preserves package data on uninstall unless you explicitly choose deletion. Live DSM validation is required before release."
       }
     ]
   }

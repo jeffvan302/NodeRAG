@@ -8,15 +8,46 @@ NODERAG_NODE_BIN="${NODERAG_NODE_BIN:-/var/packages/Node.js_v22/target/usr/local
 NODERAG_PID_FILE="${SYNOPKG_PKGVAR}/run/noderag.pid"
 NODERAG_WORKER_PID_FILE="${SYNOPKG_PKGVAR}/run/worker.pid"
 NODERAG_EMBEDDER_PID_FILE="${SYNOPKG_PKGVAR}/run/embedder.pid"
+NODERAG_BOOTSTRAP_PID_FILE="${SYNOPKG_PKGVAR}/run/bootstrap.pid"
 NODERAG_LOG_FILE="${SYNOPKG_PKGVAR}/log/noderag.log"
 NODERAG_WORKER_LOG_FILE="${SYNOPKG_PKGVAR}/log/worker.log"
 NODERAG_EMBEDDER_LOG_FILE="${SYNOPKG_PKGVAR}/log/embedder.log"
+NODERAG_POSTGRES_LOG_FILE="${SYNOPKG_PKGVAR}/log/postgresql.log"
 NODERAG_EMBEDDER_SOCKET="${SYNOPKG_PKGVAR}/run/embedder.sock"
+NODERAG_PG_ROOT="${SYNOPKG_PKGVAR}/runtime/postgresql"
+NODERAG_PGDATA="${SYNOPKG_PKGVAR}/postgres/data"
+NODERAG_PGWAL="${SYNOPKG_PKGVAR}/postgres/wal"
+NODERAG_PGSOCKET="${SYNOPKG_PKGVAR}/postgres/socket"
+NODERAG_PG_PASSWORD_FILE="${SYNOPKG_PKGVAR}/secrets/postgres.password"
+NODERAG_MODEL_ROOT="${NODERAG_MODEL_ROOT:-${SYNOPKG_PKGVAR}/models}"
+NODERAG_MODEL_PATH="${NODERAG_MODEL_PATH:-${NODERAG_MODEL_ROOT}/model.onnx}"
+NODERAG_BUNDLED_POSTGRES=0
+[ -x "${NODERAG_PG_ROOT}/bin/postgres" ] && NODERAG_BUNDLED_POSTGRES=1
+
+noderag_rotate_one() {
+  noderag_rotate_file="$1"
+  [ -f "${noderag_rotate_file}" ] || return 0
+  noderag_rotate_bytes="$(wc -c <"${noderag_rotate_file}")"
+  [ "${noderag_rotate_bytes}" -lt "${NODERAG_LOG_ROTATE_BYTES:-5242880}" ] && return 0
+  rm -f "${noderag_rotate_file}.5"
+  noderag_rotate_index=4
+  while [ "${noderag_rotate_index}" -ge 1 ]; do
+    [ ! -f "${noderag_rotate_file}.${noderag_rotate_index}" ] ||
+      mv "${noderag_rotate_file}.${noderag_rotate_index}" "${noderag_rotate_file}.$((noderag_rotate_index + 1))"
+    noderag_rotate_index=$((noderag_rotate_index - 1))
+  done
+  mv "${noderag_rotate_file}" "${noderag_rotate_file}.1"
+}
+
+noderag_rotate_logs() {
+  for noderag_log in "${NODERAG_LOG_FILE}" "${NODERAG_WORKER_LOG_FILE}" \
+    "${NODERAG_EMBEDDER_LOG_FILE}" "${NODERAG_POSTGRES_LOG_FILE}"; do
+    noderag_rotate_one "${noderag_log}"
+  done
+}
 
 noderag_run_embedder() {
-  if command -v nice >/dev/null 2>&1; then
-    exec nice -n 5 "$@"
-  fi
+  if command -v nice >/dev/null 2>&1; then exec nice -n 5 "$@"; fi
   exec "$@"
 }
 
@@ -24,86 +55,190 @@ noderag_run_worker() {
   if command -v ionice >/dev/null 2>&1 && command -v nice >/dev/null 2>&1; then
     exec ionice -c 2 -n 7 nice -n 10 "$@"
   fi
-  if command -v nice >/dev/null 2>&1; then
-    exec nice -n 10 "$@"
-  fi
+  if command -v nice >/dev/null 2>&1; then exec nice -n 10 "$@"; fi
   exec "$@"
 }
 
 noderag_pid_running() {
   noderag_checked_file="$1"
+  noderag_expected="$2"
   [ -f "${noderag_checked_file}" ] || return 1
   noderag_checked_pid="$(cat "${noderag_checked_file}")"
-  [ -n "${noderag_checked_pid}" ] && kill -0 "${noderag_checked_pid}" 2>/dev/null
+  case "${noderag_checked_pid}" in ''|*[!0-9]*) return 1;; esac
+  kill -0 "${noderag_checked_pid}" 2>/dev/null || return 1
+  if [ -r "/proc/${noderag_checked_pid}/cmdline" ]; then
+    tr '\000' ' ' <"/proc/${noderag_checked_pid}/cmdline" | grep -F "${noderag_expected}" >/dev/null
+  fi
+}
+
+noderag_wait_http() {
+  noderag_wait_attempt=0
+  while [ "${noderag_wait_attempt}" -lt 60 ]; do
+    if "${NODERAG_NODE_BIN}" -e \
+      'fetch(process.argv[1]).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' \
+      "http://127.0.0.1:${NODERAG_PORT:-8787}/health"; then return 0; fi
+    sleep 1
+    noderag_wait_attempt=$((noderag_wait_attempt + 1))
+  done
+  return 1
+}
+
+noderag_stop_pid() {
+  noderag_stop_file="$1"
+  noderag_stop_expected="$2"
+  if noderag_pid_running "${noderag_stop_file}" "${noderag_stop_expected}"; then
+    noderag_stop_pid_value="$(cat "${noderag_stop_file}")"
+    kill "${noderag_stop_pid_value}" 2>/dev/null || true
+    noderag_wait=0
+    while kill -0 "${noderag_stop_pid_value}" 2>/dev/null && [ "${noderag_wait}" -lt 30 ]; do
+      sleep 1
+      noderag_wait=$((noderag_wait + 1))
+    done
+    if kill -0 "${noderag_stop_pid_value}" 2>/dev/null; then
+      kill -9 "${noderag_stop_pid_value}" 2>/dev/null || true
+    fi
+  fi
+  rm -f "${noderag_stop_file}"
+}
+
+noderag_start_bootstrap_api() {
+  NODERAG_HOST=127.0.0.1 \
+  NODERAG_PORT="${NODERAG_PORT:-8787}" \
+  NODERAG_UI_ROOT="${SYNOPKG_PKGDEST}/ui" \
+  NODERAG_DATA_ROOT="${SYNOPKG_PKGVAR}/data" \
+  NODERAG_LOG_ROOT="${SYNOPKG_PKGVAR}/log" \
+  NODERAG_SECRET_ROOT="${SYNOPKG_PKGVAR}/secrets/root.key" \
+    "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/server.cjs" >>"${NODERAG_LOG_FILE}" 2>&1 &
+  printf '%s\n' "$!" >"${NODERAG_BOOTSTRAP_PID_FILE}"
+  noderag_wait_http
+  printf '%s\n' '{"service":"noderag","event":"bootstrap_api_ready","database":"uninitialized"}' >>"${NODERAG_LOG_FILE}"
+}
+
+noderag_initialize_postgres() {
+  [ "${NODERAG_BUNDLED_POSTGRES}" = 1 ] || return 0
+  export LD_LIBRARY_PATH="${NODERAG_PG_ROOT}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+  if [ ! -f "${NODERAG_PGDATA}/PG_VERSION" ]; then
+    noderag_start_bootstrap_api
+    "${NODERAG_PG_ROOT}/bin/initdb" -D "${NODERAG_PGDATA}" --waldir="${NODERAG_PGWAL}" \
+      --username=noderag --pwfile="${NODERAG_PG_PASSWORD_FILE}" --auth-local=scram-sha-256 \
+      --auth-host=reject --encoding=UTF8 --locale=C
+    cat >>"${NODERAG_PGDATA}/postgresql.conf" <<EOF
+listen_addresses = ''
+unix_socket_directories = '${NODERAG_PGSOCKET}'
+unix_socket_permissions = 0700
+password_encryption = 'scram-sha-256'
+logging_collector = off
+EOF
+    cat >"${NODERAG_PGDATA}/pg_hba.conf" <<EOF
+local all all scram-sha-256
+host all all 0.0.0.0/0 reject
+host all all ::0/0 reject
+EOF
+    chmod 700 "${NODERAG_PGDATA}" "${NODERAG_PGWAL}" "${NODERAG_PGSOCKET}"
+    noderag_stop_pid "${NODERAG_BOOTSTRAP_PID_FILE}" server.cjs
+  fi
+}
+
+noderag_start_postgres() {
+  [ "${NODERAG_BUNDLED_POSTGRES}" = 1 ] || return 0
+  export LD_LIBRARY_PATH="${NODERAG_PG_ROOT}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+  rm -f "${NODERAG_PGSOCKET}/.s.PGSQL.5432" "${NODERAG_PGSOCKET}/.s.PGSQL.5432.lock"
+  "${NODERAG_PG_ROOT}/bin/pg_ctl" -D "${NODERAG_PGDATA}" -l "${NODERAG_POSTGRES_LOG_FILE}" \
+    -w -t 30 start
+  PGPASSWORD="$(cat "${NODERAG_PG_PASSWORD_FILE}")" \
+    "${NODERAG_PG_ROOT}/bin/psql" -h "${NODERAG_PGSOCKET}" -U noderag -d postgres \
+      -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname='noderag'" | grep -q 1 ||
+    PGPASSWORD="$(cat "${NODERAG_PG_PASSWORD_FILE}")" \
+      "${NODERAG_PG_ROOT}/bin/createdb" -h "${NODERAG_PGSOCKET}" -U noderag noderag
+}
+
+noderag_database_environment() {
+  if [ "${NODERAG_BUNDLED_POSTGRES}" = 1 ]; then
+    export NODERAG_POSTGRES_HOST="${NODERAG_PGSOCKET}"
+    export NODERAG_POSTGRES_PORT=5432
+    export NODERAG_POSTGRES_DATABASE=noderag
+    export NODERAG_POSTGRES_USER=noderag
+    export NODERAG_POSTGRES_PASSWORD_FILE="${NODERAG_PG_PASSWORD_FILE}"
+  fi
+  : "${NODERAG_POSTGRES_PASSWORD_FILE:?PostgreSQL password file is required}"
 }
 
 noderag_status() {
-  noderag_pid_running "${NODERAG_PID_FILE}" &&
-    noderag_pid_running "${NODERAG_WORKER_PID_FILE}" &&
-    noderag_pid_running "${NODERAG_EMBEDDER_PID_FILE}"
+  noderag_pid_running "${NODERAG_PID_FILE}" server.cjs &&
+    noderag_pid_running "${NODERAG_WORKER_PID_FILE}" worker.cjs &&
+    { [ ! -f "${SYNOPKG_PKGVAR}/run/embedder.required" ] ||
+      noderag_pid_running "${NODERAG_EMBEDDER_PID_FILE}" embedder.cjs; } &&
+    { [ "${NODERAG_BUNDLED_POSTGRES}" != 1 ] ||
+      LD_LIBRARY_PATH="${NODERAG_PG_ROOT}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" \
+        "${NODERAG_PG_ROOT}/bin/pg_ctl" -D "${NODERAG_PGDATA}" status >/dev/null 2>&1; }
 }
 
 noderag_start() {
-  if noderag_status; then
-    return 0
-  fi
+  noderag_status && return 0
   noderag_stop
   mkdir -p "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log"
   chmod 700 "${SYNOPKG_PKGVAR}" "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log"
   umask 077
-  NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
-    noderag_run_embedder "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/embedder.cjs" >>"${NODERAG_EMBEDDER_LOG_FILE}" 2>&1 &
-  noderag_embedder_pid="$!"
-  printf '%s\n' "${noderag_embedder_pid}" >"${NODERAG_EMBEDDER_PID_FILE}"
-  NODERAG_HOST="127.0.0.1" \
+  noderag_rotate_logs
+  if [ "${NODERAG_BUNDLED_POSTGRES}" = 1 ]; then
+    "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/preflight"
+    noderag_initialize_postgres
+    noderag_start_postgres
+  fi
+  noderag_database_environment
+
+  rm -f "${SYNOPKG_PKGVAR}/run/embedder.required"
+  if [ "${NODERAG_TEST_EMBEDDER:-0}" = 1 ] || [ -f "${NODERAG_MODEL_PATH}" ]; then
+    : >"${SYNOPKG_PKGVAR}/run/embedder.required"
+    NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
+    NODERAG_TEST_EMBEDDER="${NODERAG_TEST_EMBEDDER:-0}" \
+    NODERAG_MODEL_ROOT="${NODERAG_MODEL_ROOT}" \
+    NODERAG_MODEL_PATH="${NODERAG_MODEL_PATH}" \
+      noderag_run_embedder "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/embedder.cjs" \
+      >>"${NODERAG_EMBEDDER_LOG_FILE}" 2>&1 &
+    printf '%s\n' "$!" >"${NODERAG_EMBEDDER_PID_FILE}"
+  fi
+
+  NODERAG_HOST=127.0.0.1 \
   NODERAG_PORT="${NODERAG_PORT:-8787}" \
   NODERAG_UI_ROOT="${SYNOPKG_PKGDEST}/ui" \
   NODERAG_MIGRATION_MANIFEST="${SYNOPKG_PKGDEST}/platform/migration-checksums.v1.json" \
   NODERAG_MIGRATIONS_DIRECTORY="${SYNOPKG_PKGDEST}/migrations" \
   NODERAG_ROUTE_AUTHORIZATION="${SYNOPKG_PKGDEST}/platform/route-authorization.v1.json" \
-  NODERAG_OPENAPI="${SYNOPKG_PKGDEST}/platform/openapi.m07.json" \
+  NODERAG_OPENAPI="${SYNOPKG_PKGDEST}/platform/openapi.m10.json" \
   NODERAG_SECRET_ROOT="${SYNOPKG_PKGVAR}/secrets/root.key" \
   NODERAG_SETUP_TOKEN_FILE="${SYNOPKG_PKGVAR}/secrets/setup.token" \
   NODERAG_DATA_ROOT="${SYNOPKG_PKGVAR}/data" \
+  NODERAG_LOG_ROOT="${SYNOPKG_PKGVAR}/log" \
+  NODERAG_MODEL_ROOT="${NODERAG_MODEL_ROOT}" \
+  NODERAG_MODEL_IMPORT_ROOTS="${NODERAG_MODEL_IMPORT_ROOTS:-/volume1/NodeRag}" \
+  NODERAG_STORAGE_POLICY="${NODERAG_STORAGE_POLICY:-dsm}" \
   NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
     "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/server.cjs" >>"${NODERAG_LOG_FILE}" 2>&1 &
-  noderag_pid="$!"
-  printf '%s\n' "${noderag_pid}" >"${NODERAG_PID_FILE}"
-  sleep 1
-  if ! kill -0 "${noderag_pid}" 2>/dev/null; then
-    kill "${noderag_embedder_pid}" 2>/dev/null || true
-    rm -f "${NODERAG_PID_FILE}" "${NODERAG_EMBEDDER_PID_FILE}"
-    return 1
-  fi
+  printf '%s\n' "$!" >"${NODERAG_PID_FILE}"
+  if ! noderag_wait_http; then noderag_stop; return 1; fi
+
   NODERAG_DATA_ROOT="${SYNOPKG_PKGVAR}/data" \
+  NODERAG_SECRET_ROOT="${SYNOPKG_PKGVAR}/secrets/root.key" \
   NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
   NODERAG_MIGRATION_MANIFEST="${SYNOPKG_PKGDEST}/platform/migration-checksums.v1.json" \
   NODERAG_MIGRATIONS_DIRECTORY="${SYNOPKG_PKGDEST}/migrations" \
-    noderag_run_worker "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/worker.cjs" >>"${NODERAG_WORKER_LOG_FILE}" 2>&1 &
-  noderag_worker_pid="$!"
-  printf '%s\n' "${noderag_worker_pid}" >"${NODERAG_WORKER_PID_FILE}"
+    noderag_run_worker "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/worker.cjs" \
+    >>"${NODERAG_WORKER_LOG_FILE}" 2>&1 &
+  printf '%s\n' "$!" >"${NODERAG_WORKER_PID_FILE}"
   sleep 1
-  if ! noderag_status; then
-    noderag_stop
-    return 1
-  fi
+  if ! noderag_status; then noderag_stop; return 1; fi
 }
 
 noderag_stop() {
-  for noderag_stop_file in "${NODERAG_WORKER_PID_FILE}" "${NODERAG_PID_FILE}" "${NODERAG_EMBEDDER_PID_FILE}"; do
-    if noderag_pid_running "${noderag_stop_file}"; then
-      noderag_stop_pid="$(cat "${noderag_stop_file}")"
-      kill "${noderag_stop_pid}" 2>/dev/null || true
-      noderag_wait=0
-      while kill -0 "${noderag_stop_pid}" 2>/dev/null && [ "${noderag_wait}" -lt 30 ]; do
-        sleep 1
-        noderag_wait=$((noderag_wait + 1))
-      done
-      if kill -0 "${noderag_stop_pid}" 2>/dev/null; then
-        kill -9 "${noderag_stop_pid}" 2>/dev/null || true
-      fi
-    fi
-    rm -f "${noderag_stop_file}"
-  done
-  rm -f "${NODERAG_EMBEDDER_SOCKET}"
+  noderag_stop_pid "${NODERAG_WORKER_PID_FILE}" worker.cjs
+  noderag_stop_pid "${NODERAG_PID_FILE}" server.cjs
+  noderag_stop_pid "${NODERAG_BOOTSTRAP_PID_FILE}" server.cjs
+  noderag_stop_pid "${NODERAG_EMBEDDER_PID_FILE}" embedder.cjs
+  rm -f "${NODERAG_EMBEDDER_SOCKET}" "${SYNOPKG_PKGVAR}/run/embedder.required"
+  if [ "${NODERAG_BUNDLED_POSTGRES}" = 1 ] && [ -f "${NODERAG_PGDATA}/postmaster.pid" ]; then
+    export LD_LIBRARY_PATH="${NODERAG_PG_ROOT}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+    "${NODERAG_PG_ROOT}/bin/pg_ctl" -D "${NODERAG_PGDATA}" -m fast -w -t 30 stop || true
+  fi
+  rm -f "${NODERAG_PGSOCKET}/.s.PGSQL.5432" "${NODERAG_PGSOCKET}/.s.PGSQL.5432.lock"
 }

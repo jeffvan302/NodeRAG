@@ -8,6 +8,7 @@ export interface RuntimeConfig {
   readonly database: ClientConfig | null;
   readonly uiRoot: string;
   readonly dataRoot: string;
+  readonly logRoot?: string;
   readonly embedderSocket: string;
   readonly sourceRoots: readonly string[];
   readonly visionBearerToken?: string;
@@ -60,6 +61,9 @@ export const loadRuntimeConfig = async (): Promise<RuntimeConfig> => {
     database,
     uiRoot: resolve(process.env['NODERAG_UI_ROOT'] ?? 'packages/ui/dist'),
     dataRoot,
+    ...(process.env['NODERAG_LOG_ROOT'] === undefined
+      ? {}
+      : { logRoot: resolve(process.env['NODERAG_LOG_ROOT']) }),
     embedderSocket: resolve(
       process.env['NODERAG_EMBEDDER_SOCKET'] ?? 'runtime-data/run/embedder.sock',
     ),

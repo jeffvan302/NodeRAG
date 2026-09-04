@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expectedHead": "000007_operator_ui",
+  "expectedHead": "000008_package_lifecycle",
   "migrations": [
     {
       "id": "000001_foundation",
@@ -42,6 +42,12 @@
       "id": "000007_operator_ui",
       "path": "packages/server/migrations/000007_operator_ui.sql",
       "sha256": "2f221d17bd8ef7c2e0abcead5752e30e3ff57d24cc7fadcf9bee8bce39cc6bd8",
+      "direction": "up-only"
+    },
+    {
+      "id": "000008_package_lifecycle",
+      "path": "packages/server/migrations/000008_package_lifecycle.sql",
+      "sha256": "d10bc999506272fbf8ca8342964db5036a1b44964f29a755d9383c5206f3df81",
       "direction": "up-only"
     }
   ]

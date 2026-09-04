@@ -3,7 +3,7 @@
     "shares": [
       {
         "name": "NodeRag",
-        "permission": { "rw": ["NodeRag"] },
+        "permission": { "rw": ["sc-noderag"] },
         "once": true
       }
     ]

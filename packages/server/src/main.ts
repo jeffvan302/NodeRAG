@@ -71,6 +71,7 @@ const main = async (): Promise<void> => {
     ...(identity === undefined ? {} : { identity }),
     ...(content === undefined ? {} : { content }),
     ...(gatewayManager === undefined ? {} : { gatewayControl: gatewayManager }),
+    ...(config.logRoot === undefined ? {} : { logRoot: config.logRoot }),
   });
 
   const shutdown = async (signal: string): Promise<void> => {

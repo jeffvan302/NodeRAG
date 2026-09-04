@@ -1,7 +1,5 @@
 import { createServer } from 'node:net';
-import { randomUUID } from 'node:crypto';
-import { mkdir, open, rm, statfs } from 'node:fs/promises';
-import { isAbsolute, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { createApiKeyInTransaction, revokeApiKey } from '../identity/api-keys.js';
@@ -13,6 +11,8 @@ import type { ContentRoutesOptions } from './content-routes.js';
 import { RequestAuthenticationError, type AuthenticatedPrincipal } from './authentication.js';
 import { sendProblem } from './problem.js';
 import { coordinatedEmbedder } from '../store/resources.js';
+import { probeStorage } from '../storage/probe.js';
+import { downloadModelArtifact, importModelArtifact } from '../storage/model-artifacts.js';
 
 const idSchema = z.coerce.number().int().positive().safe();
 const smallIdSchema = z.coerce.number().int().min(1).max(32_767);
@@ -66,7 +66,7 @@ const gatewaySchema = z
     port: z.number().int().min(5300).max(5319).nullable().default(null),
     siloIds: z.array(smallIdSchema).max(64).default([]),
     requireAuth: z.literal(true).default(true),
-    enabled: z.boolean().default(true),
+    enabled: z.boolean().default(false),
   })
   .strict();
 const gatewayPatchSchema = gatewaySchema
@@ -126,6 +126,20 @@ const storageSchema = z
   })
   .strict();
 const storageProbeSchema = z.object({ managedPath: z.string().min(1).max(4096) }).strict();
+const modelDownloadSchema = z
+  .object({
+    name: z.string().min(1).max(200),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    urls: z.array(z.string().url()).min(1).max(4),
+  })
+  .strict();
+const modelImportSchema = z
+  .object({
+    name: z.string().min(1).max(200),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    sourcePath: z.string().min(1).max(4096),
+  })
+  .strict();
 const calibrationSchema = z
   .object({
     samples: z.array(z.string().min(20).max(8000)).length(20).optional(),
@@ -202,30 +216,6 @@ const probePort = async (port: number, host = '0.0.0.0'): Promise<boolean> =>
     server.once('error', () => resolve(false));
     server.listen({ host, port, exclusive: true }, () => server.close(() => resolve(true)));
   });
-
-const probeStorage = async (managedPath: string) => {
-  if (!isAbsolute(managedPath)) throw new Error('storage_path_must_be_absolute');
-  const target = resolve(managedPath);
-  await mkdir(target, { recursive: true });
-  const probe = resolve(target, `.noderag-write-probe-${randomUUID()}`);
-  const handle = await open(probe, 'wx', 0o600);
-  try {
-    await handle.writeFile('NodeRag storage probe\n', 'utf8');
-    await handle.sync();
-  } finally {
-    await handle.close();
-    await rm(probe, { force: true });
-  }
-  const capacity = await statfs(target, { bigint: true });
-  const availableBytes = capacity.bavail * capacity.bsize;
-  const totalBytes = capacity.blocks * capacity.bsize;
-  return {
-    writable: true,
-    availableBytes: availableBytes.toString(),
-    totalBytes: totalBytes.toString(),
-    lowCapacity: availableBytes < 10n * 1024n * 1024n * 1024n,
-  };
-};
 
 const calibrationSamples = Array.from({ length: 20 }, (_, index) =>
   `NodeRag calibration passage ${String(index + 1)}. This representative local knowledge text measures embedding throughput without retaining document content. `.repeat(
@@ -894,6 +884,102 @@ export const registerAdminRoutes = (
     }
   });
 
+  app.post('/v1/admin/models/download', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const body = modelDownloadSchema.safeParse(request.body);
+    if (!body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    try {
+      const result = await mutate(
+        request,
+        principal,
+        options,
+        'admin-model-download',
+        body.data,
+        async (database) => {
+          const allowedHosts = (process.env['NODERAG_MODEL_DOWNLOAD_HOSTS'] ?? '')
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean);
+          const artifact = await downloadModelArtifact({
+            name: body.data.name,
+            urls: body.data.urls,
+            expectedSha256: body.data.sha256,
+            allowedHosts,
+            destinationRoot: resolve(process.env['NODERAG_MODEL_ROOT'] ?? 'runtime-data/models'),
+          });
+          await database.query(
+            `INSERT INTO noderag.model_artifact(artifact_name,sha256,bytes,acquisition)
+             VALUES($1,decode($2,'hex'),$3,'download') ON CONFLICT (artifact_name,sha256) DO NOTHING`,
+            [artifact.name, artifact.sha256, artifact.bytes],
+          );
+          return { status: 201, body: artifact };
+        },
+      );
+      return reply.code(result.response.status).send(result.response.body);
+    } catch (error) {
+      request.log.warn(
+        { errorName: error instanceof Error ? error.name : 'unknown' },
+        'model download failed',
+      );
+      return sendProblem(
+        reply,
+        400,
+        error instanceof Error ? error.message : 'model_download_failed',
+        request.id,
+      );
+    }
+  });
+
+  app.post('/v1/admin/models/import', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const body = modelImportSchema.safeParse(request.body);
+    if (!body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    try {
+      const result = await mutate(
+        request,
+        principal,
+        options,
+        'admin-model-import',
+        body.data,
+        async (database) => {
+          const allowedRoots = (process.env['NODERAG_MODEL_IMPORT_ROOTS'] ?? '')
+            .split(process.platform === 'win32' ? ';' : ':')
+            .map((value) => value.trim())
+            .filter(Boolean);
+          const artifact = await importModelArtifact({
+            name: body.data.name,
+            sourcePath: body.data.sourcePath,
+            expectedSha256: body.data.sha256,
+            allowedRoots,
+            destinationRoot: resolve(process.env['NODERAG_MODEL_ROOT'] ?? 'runtime-data/models'),
+          });
+          await database.query(
+            `INSERT INTO noderag.model_artifact(artifact_name,sha256,bytes,acquisition)
+             VALUES($1,decode($2,'hex'),$3,'manual_import') ON CONFLICT (artifact_name,sha256) DO NOTHING`,
+            [artifact.name, artifact.sha256, artifact.bytes],
+          );
+          return { status: 201, body: artifact };
+        },
+      );
+      return reply.code(result.response.status).send(result.response.body);
+    } catch (error) {
+      request.log.warn(
+        { errorName: error instanceof Error ? error.name : 'unknown' },
+        'model import failed',
+      );
+      return sendProblem(
+        reply,
+        400,
+        error instanceof Error ? error.message : 'model_import_failed',
+        request.id,
+      );
+    }
+  });
+
   app.get('/v1/admin/builds', async (request, reply) => {
     const principal = await requireAdmin(request, options, false);
     if (principal === null || principal === 'csrf')
@@ -988,7 +1074,24 @@ export const registerAdminRoutes = (
     const body = storageProbeSchema.safeParse(request.body);
     if (!body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
     try {
-      return reply.send(await probeStorage(body.data.managedPath));
+      const splitRoots = (name: string): readonly string[] =>
+        (process.env[name] ?? '')
+          .split(process.platform === 'win32' ? ';' : ':')
+          .map((value) => value.trim())
+          .filter(Boolean);
+      return reply.send(
+        await probeStorage(body.data.managedPath, {
+          policy: process.env['NODERAG_STORAGE_POLICY'] === 'dsm' ? 'dsm' : 'testbed',
+          projectedBytes: BigInt(process.env['NODERAG_STORAGE_PROJECTED_BYTES'] ?? '0'),
+          rebuildReserveBytes: BigInt(
+            process.env['NODERAG_STORAGE_REBUILD_RESERVE_BYTES'] ?? String(10 * 1024 ** 3),
+          ),
+          encryptedRoots: splitRoots('NODERAG_ENCRYPTED_ROOTS'),
+          requireEncrypted: process.env['NODERAG_REQUIRE_ENCRYPTED_STORAGE'] === '1',
+          syncRoots: splitRoots('NODERAG_SYNC_ROOTS'),
+          indexingRoots: splitRoots('NODERAG_INDEXING_ROOTS'),
+        }),
+      );
     } catch (error) {
       const code = error instanceof Error ? error.message : 'storage_probe_failed';
       if (code === 'storage_path_must_be_absolute') {

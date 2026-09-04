@@ -3,9 +3,16 @@ set -eu
 : "${SYNOPKG_PKGVAR:?SYNOPKG_PKGVAR is required}"
 umask 077
 mkdir -p "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log" "${SYNOPKG_PKGVAR}/data" \
-  "${SYNOPKG_PKGVAR}/secrets"
+  "${SYNOPKG_PKGVAR}/secrets" "${SYNOPKG_PKGVAR}/runtime" \
+  "${SYNOPKG_PKGVAR}/postgres/data" "${SYNOPKG_PKGVAR}/postgres/wal" \
+  "${SYNOPKG_PKGVAR}/postgres/socket" "${SYNOPKG_PKGVAR}/postgres/config" \
+  "${SYNOPKG_PKGVAR}/models" "${SYNOPKG_PKGVAR}/cache"
 chmod 700 "${SYNOPKG_PKGVAR}" "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log" \
-  "${SYNOPKG_PKGVAR}/data" "${SYNOPKG_PKGVAR}/secrets"
+  "${SYNOPKG_PKGVAR}/data" "${SYNOPKG_PKGVAR}/secrets" \
+  "${SYNOPKG_PKGVAR}/runtime" "${SYNOPKG_PKGVAR}/postgres" \
+  "${SYNOPKG_PKGVAR}/postgres/data" "${SYNOPKG_PKGVAR}/postgres/wal" \
+  "${SYNOPKG_PKGVAR}/postgres/socket" "${SYNOPKG_PKGVAR}/postgres/config" \
+  "${SYNOPKG_PKGVAR}/models" "${SYNOPKG_PKGVAR}/cache"
 secret_root="${SYNOPKG_PKGVAR}/secrets/root.key"
 if [ ! -e "${secret_root}" ]; then
   temporary_root="${secret_root}.new"
@@ -18,3 +25,35 @@ if [ -L "${secret_root}" ] || [ ! -f "${secret_root}" ] || [ "$(wc -c <"${secret
   exit 1
 fi
 chmod 600 "${secret_root}"
+
+database_password="${SYNOPKG_PKGVAR}/secrets/postgres.password"
+if [ ! -e "${database_password}" ]; then
+  temporary_password="${database_password}.new"
+  od -An -N32 -tx1 /dev/urandom | tr -d ' \n' >"${temporary_password}"
+  printf '\n' >>"${temporary_password}"
+  chmod 600 "${temporary_password}"
+  mv "${temporary_password}" "${database_password}"
+fi
+if [ -L "${database_password}" ] || [ ! -f "${database_password}" ] || \
+   [ "$(wc -c <"${database_password}")" -lt 64 ]; then
+  echo "Package database password is invalid." >&2
+  exit 1
+fi
+chmod 600 "${database_password}"
+
+runtime_archive="${SYNOPKG_PKGDEST:-}/runtime/postgresql-runtime.tar.gz"
+runtime_root="${SYNOPKG_PKGVAR}/runtime/postgresql"
+if [ -f "${runtime_archive}" ] && [ ! -x "${runtime_root}/bin/postgres" ]; then
+  checksum_file="${runtime_archive}.sha256"
+  [ -f "${checksum_file}" ] || { echo "PostgreSQL runtime checksum is missing." >&2; exit 1; }
+  (cd "$(dirname "${runtime_archive}")" && sha256sum -c "$(basename "${checksum_file}")")
+  tar -tzf "${runtime_archive}" | while IFS= read -r entry; do
+    case "${entry}" in /*|../*|*/../*|*/..) echo "Unsafe PostgreSQL runtime archive path." >&2; exit 65;; esac
+  done
+  temporary_runtime="${runtime_root}.new"
+  rm -rf -- "${temporary_runtime}"
+  mkdir -p "${temporary_runtime}"
+  tar -xzf "${runtime_archive}" -C "${temporary_runtime}"
+  [ -x "${temporary_runtime}/bin/postgres" ] || { echo "PostgreSQL runtime is incomplete." >&2; exit 1; }
+  mv "${temporary_runtime}" "${runtime_root}"
+fi

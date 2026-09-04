@@ -24,20 +24,31 @@ export SYNOPKG_PKGVAR=/work/var
 export NODERAG_NODE_BIN
 NODERAG_NODE_BIN="$(command -v node)"
 export NODERAG_PORT=8787
-: "${NODERAG_PACKAGE_DB_HOST:?NODERAG_PACKAGE_DB_HOST is required}"
-: "${NODERAG_PACKAGE_DB_PASSWORD:?NODERAG_PACKAGE_DB_PASSWORD is required}"
-printf '%s\n' "${NODERAG_PACKAGE_DB_PASSWORD}" >/work/postgres_password
-chmod 600 /work/postgres_password
-export NODERAG_POSTGRES_HOST="${NODERAG_PACKAGE_DB_HOST}"
-export NODERAG_POSTGRES_PORT=5432
-export NODERAG_POSTGRES_DATABASE=noderag_package
-export NODERAG_POSTGRES_USER=noderag
-export NODERAG_POSTGRES_PASSWORD_FILE=/work/postgres_password
+if [[ -n "${NODERAG_PACKAGE_DB_HOST:-}" ]]; then
+  : "${NODERAG_PACKAGE_DB_PASSWORD:?NODERAG_PACKAGE_DB_PASSWORD is required}"
+  printf '%s\n' "${NODERAG_PACKAGE_DB_PASSWORD}" >/work/postgres_password
+  chmod 600 /work/postgres_password
+  export NODERAG_POSTGRES_HOST="${NODERAG_PACKAGE_DB_HOST}"
+  export NODERAG_POSTGRES_PORT=5432
+  export NODERAG_POSTGRES_DATABASE=noderag_package
+  export NODERAG_POSTGRES_USER=noderag
+  export NODERAG_POSTGRES_PASSWORD_FILE=/work/postgres_password
+fi
 
 /work/outer/scripts/postinst
 [[ "$(stat -c '%a' /work/var)" == "700" ]]
 [[ "$(stat -c '%a' /work/var/secrets/root.key)" == "600" ]]
 [[ "$(wc -c </work/var/secrets/root.key)" == "32" ]]
+if [[ -f /work/package/runtime/postgresql-runtime.tar.gz ]]; then
+  [[ -x /work/var/runtime/postgresql/bin/postgres ]]
+  [[ "$(stat -c '%a' /work/var/secrets/postgres.password)" == "600" ]]
+  node -e "const ort=require('/work/package/bin/node_modules/onnxruntime-node'); if(typeof ort.InferenceSession?.create !== 'function') process.exit(1)"
+  if NODERAG_PREFLIGHT_ARCH=aarch64 /work/outer/scripts/preflight >/dev/null 2>&1; then
+    echo "Architecture preflight fixture unexpectedly passed." >&2
+    exit 1
+  fi
+  /work/outer/scripts/preflight
+fi
 secret_root_sha="$(sha256sum /work/var/secrets/root.key | awk '{print $1}')"
 /work/outer/scripts/postinst
 [[ "$(sha256sum /work/var/secrets/root.key | awk '{print $1}')" == "${secret_root_sha}" ]]
@@ -54,6 +65,23 @@ NODE
 /work/outer/scripts/start-stop-status start
 health_check
 /work/outer/scripts/start-stop-status status
+if [[ -f /work/package/runtime/postgresql-runtime.tar.gz ]]; then
+  grep -q 'bootstrap_api_ready' /work/var/log/noderag.log
+  [[ "$(stat -c '%a' /work/var/postgres/socket)" == "700" ]]
+  export LD_LIBRARY_PATH=/work/var/runtime/postgresql/lib
+  PGPASSWORD="$(cat /work/var/secrets/postgres.password)" \
+    /work/var/runtime/postgresql/bin/psql -h /work/var/postgres/socket -U noderag -d noderag \
+      -v ON_ERROR_STOP=1 -tAc 'SELECT extversion FROM pg_extension WHERE extname = '\''vector'\''' | grep -q '0.8.6'
+  node - <<'NODE'
+const net = await import('node:net');
+await new Promise((resolve, reject) => {
+  const socket = net.createConnection({ host: '127.0.0.1', port: 5432 });
+  socket.once('connect', () => reject(new Error('Bundled PostgreSQL unexpectedly exposed TCP.')));
+  socket.once('error', () => resolve());
+  setTimeout(() => { socket.destroy(); resolve(); }, 500);
+});
+NODE
+fi
 
 node - <<'NODE'
 const fs = await import('node:fs');
@@ -79,6 +107,34 @@ response = await fetch(`${base}/v1/auth/login`, {
 if (!response.ok) throw new Error(`Login failed: ${response.status}`);
 const cookie = (response.headers.get('set-cookie') ?? '').split(';', 1)[0];
 const login = await response.json();
+if (fs.existsSync('/work/package/runtime/postgresql-runtime.tar.gz')) {
+  const crypto = await import('node:crypto');
+  const modelBytes = Buffer.from('M10 manually imported model artifact');
+  const modelPath = '/work/watch-base/model-fixture.onnx';
+  fs.writeFileSync(modelPath, modelBytes);
+  response = await fetch(`${base}/v1/admin/models/import`, {
+    method: 'POST',
+    headers: { cookie, origin: base, 'x-csrf-token': login.csrfToken, 'idempotency-key': 'm10-model-import-001', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: 'model-fixture.onnx',
+      sourcePath: modelPath,
+      sha256: crypto.createHash('sha256').update(modelBytes).digest('hex'),
+    }),
+  });
+  if (response.status !== 201) throw new Error(`Model import failed: ${response.status} ${await response.text()}`);
+  const artifact = await response.json();
+  if (artifact.name !== 'model-fixture.onnx' || 'path' in artifact) throw new Error('Model import leaked a private path.');
+  response = await fetch(`${base}/v1/admin/storage/probe`, {
+    method: 'POST',
+    headers: { cookie, origin: base, 'x-csrf-token': login.csrfToken, 'content-type': 'application/json' },
+    body: JSON.stringify({ managedPath: '/volume1/NodeRag' }),
+  });
+  if (!response.ok) throw new Error(`DSM storage probe failed: ${response.status} ${await response.text()}`);
+  const storage = await response.json();
+  if (!['ext4', 'btrfs'].includes(storage.filesystem) || !storage.fsyncVerified) {
+    throw new Error(`Storage probe returned an unsupported result: ${JSON.stringify(storage)}`);
+  }
+}
 const original = '\uFEFF# Package search\r\n\r\nThe amber gearbox ledger records quarterly maintenance costs.\r\n';
 const form = new FormData();
 form.append('file', new Blob([original], { type: 'text/markdown' }), 'package.md');
@@ -278,6 +334,15 @@ NODE
 /work/outer/scripts/start-stop-status stop
 ! /work/outer/scripts/start-stop-status status
 
+if [[ -f /work/package/runtime/postgresql-runtime.tar.gz ]]; then
+  /work/outer/scripts/preupgrade
+  [[ -f /work/var/upgrade/preupgrade.state ]]
+  /work/outer/scripts/postupgrade
+  health_check
+  [[ ! -e /work/var/upgrade/preupgrade.state ]]
+  /work/outer/scripts/start-stop-status stop
+fi
+
 # Reboot simulation: package data survives while the service is stopped and restarted.
 /work/outer/scripts/start-stop-status start
 health_check
@@ -286,7 +351,13 @@ health_check
 /work/outer/scripts/postuninst
 [[ "$(cat /work/var/data/operator-state)" == "retain-me" ]]
 
+# Reinstall after retained uninstall must reuse the package-owned cluster without repair.
+/work/outer/scripts/postinst
+/work/outer/scripts/start-stop-status start
+health_check
+/work/outer/scripts/start-stop-status stop
+
 # Destructive uninstall is separate, explicit, and constrained to the package data path.
-NODERAG_DELETE_DATA=yes /work/outer/scripts/postuninst
+wizard_delete_data=true /work/outer/scripts/postuninst
 [[ ! -e /work/var ]]
 echo "Non-root thin-SPK lifecycle simulation passed."

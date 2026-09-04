@@ -1,4 +1,6 @@
 import { setTimeout as delay } from 'node:timers/promises';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { readinessStateSchema } from '@noderag/shared';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
@@ -93,7 +95,38 @@ export interface DurabilityRoutesOptions {
   readonly authenticate: RequestAuthenticator;
   readonly files: DocumentFileStore;
   readonly sourceRoots: readonly string[];
+  readonly logRoot?: string;
 }
+
+export const recentStructuredErrors = async (logRoot: string | undefined) => {
+  if (logRoot === undefined) return [];
+  const errors: Array<Record<string, unknown>> = [];
+  for (const service of ['noderag', 'worker', 'embedder', 'postgresql']) {
+    const content = await readFile(resolve(logRoot, `${service}.log`), 'utf8').catch(() => '');
+    for (const line of content.split('\n').slice(-500)) {
+      if (!line.startsWith('{')) continue;
+      try {
+        const entry = JSON.parse(line) as Record<string, unknown>;
+        const level = typeof entry['level'] === 'number' ? entry['level'] : 0;
+        const event = typeof entry['event'] === 'string' ? entry['event'] : undefined;
+        const code = typeof entry['code'] === 'string' ? entry['code'] : undefined;
+        if (level < 40 && code === undefined && !(event ?? '').match(/fail|error/iu)) continue;
+        errors.push({
+          service,
+          ...(typeof entry['time'] === 'number' ? { time: entry['time'] } : {}),
+          ...(level === 0 ? {} : { level }),
+          ...(event === undefined ? {} : { event }),
+          ...(code === undefined ? {} : { code }),
+          ...(typeof entry['errorName'] === 'string' ? { errorName: entry['errorName'] } : {}),
+          ...(typeof entry['requestId'] === 'string' ? { requestId: entry['requestId'] } : {}),
+        });
+      } catch {
+        // Lifecycle tools may emit non-JSON status lines; they are intentionally not exposed.
+      }
+    }
+  }
+  return errors.slice(-100).reverse();
+};
 
 const readJobEvents = async (
   pool: Pool,
@@ -794,6 +827,7 @@ export const registerDurabilityRoutes = (
       status: findings.rows.length === 0 ? 'ok' : 'degraded',
       openFindingCount: findings.rows.length,
       findings: findings.rows,
+      recentErrors: await recentStructuredErrors(options.logRoot),
     });
   });
 

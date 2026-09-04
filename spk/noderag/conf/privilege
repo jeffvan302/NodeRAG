@@ -2,8 +2,8 @@
   "defaults": {
     "run-as": "package"
   },
-  "username": "NodeRag",
-  "groupname": "NodeRag",
+  "username": "sc-noderag",
+  "groupname": "sc-noderag",
   "ctrl-script": [
     { "action": "start", "run-as": "package" },
     { "action": "stop", "run-as": "package" },

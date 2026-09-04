@@ -1,0 +1,24 @@
+[
+  {
+    "step_title": "NodeRag data retention",
+    "items": [
+      {
+        "type": "singleselect",
+        "desc": "Choose whether package data is retained for a later reinstall. Deletion cannot be undone.",
+        "subitems": [
+          {
+            "key": "wizard_delete_data",
+            "desc": "Retain all NodeRag data (recommended)",
+            "value": false,
+            "defaultValue": true
+          },
+          {
+            "key": "wizard_delete_data",
+            "desc": "Permanently delete database, documents, models, cache, logs, and secrets",
+            "value": true
+          }
+        ]
+      }
+    ]
+  }
+]

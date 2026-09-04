@@ -35,6 +35,9 @@ describe('Fastify service skeleton', () => {
       uiRoot: 'missing-ui',
     });
     expect((await app.inject({ method: 'GET', url: '/ready' })).statusCode).toBe(503);
+    const setup = await app.inject({ method: 'GET', url: '/v1/setup/status' });
+    expect(setup.statusCode).toBe(503);
+    expect(setup.json()).toMatchObject({ state: 'unconfigured', tokenIssued: false });
     const ui = await app.inject({ method: 'GET', url: '/' });
     expect(ui.statusCode).toBe(200);
     expect(ui.body).toContain('The thin service is running.');

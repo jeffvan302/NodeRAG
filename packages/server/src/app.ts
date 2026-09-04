@@ -52,6 +52,8 @@ export interface BuildAppOptions {
   readonly gatewayId?: number;
   readonly gatewayControl?: GatewayControl;
   readonly gatewaySurface?: boolean;
+  readonly bootstrapPhase?: 'database-initializing' | 'database-unavailable';
+  readonly logRoot?: string;
 }
 
 const safeUiFile = async (root: string, requestPath: string): Promise<string | null> => {
@@ -131,6 +133,18 @@ export const buildApp = (options: BuildAppOptions): FastifyInstance => {
     return reply.code(response.status === 'ok' ? 200 : 503).send(response);
   });
 
+  if (options.identity === undefined) {
+    app.get('/v1/setup/status', async (_request, reply) =>
+      reply.code(503).send({
+        state: 'unconfigured',
+        tokenIssued: false,
+        tokenExpiresAt: null,
+        step: options.bootstrapPhase ?? 'database-unavailable',
+        progress: 0,
+      }),
+    );
+  }
+
   if (options.identity !== undefined) registerIdentityRoutes(app, options.identity);
   if (options.content !== undefined) {
     registerRetrievalRoutes(app, options.content, options.gatewayId);
@@ -143,6 +157,7 @@ export const buildApp = (options: BuildAppOptions): FastifyInstance => {
         authenticate: options.content.authenticate,
         files: options.content.files,
         sourceRoots: options.content.sourceRoots ?? [],
+        ...(options.logRoot === undefined ? {} : { logRoot: options.logRoot }),
       });
       registerVisionRoutes(app, {
         pool: options.content.pool,

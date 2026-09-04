@@ -2,3 +2,6 @@
 set -eu
 script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 "${script_dir}/start-stop-status" start
+if [ -n "${SYNOPKG_PKGVAR:-}" ]; then
+  rm -f "${SYNOPKG_PKGVAR}/upgrade/preupgrade.state"
+fi

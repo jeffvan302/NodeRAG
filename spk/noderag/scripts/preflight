@@ -1,0 +1,33 @@
+#!/bin/sh
+set -eu
+
+: "${SYNOPKG_PKGDEST:?SYNOPKG_PKGDEST is required}"
+: "${SYNOPKG_PKGVAR:?SYNOPKG_PKGVAR is required}"
+node_bin="${NODERAG_NODE_BIN:-/var/packages/Node.js_v22/target/usr/local/bin/node}"
+fail() { echo "NodeRag prerequisite failed: $1" >&2; exit 78; }
+
+architecture="${NODERAG_PREFLIGHT_ARCH:-$(uname -m)}"
+[ "${architecture}" = "x86_64" ] || [ "${architecture}" = "amd64" ] || fail "x86_64 architecture is required"
+[ -x "${node_bin}" ] || fail "Synology Node.js 22 runtime is unavailable"
+node_major="$(${node_bin} -p 'process.versions.node.split(".")[0]')"
+[ "${node_major}" = "22" ] || fail "Node.js major 22 is required"
+
+if [ "${NODERAG_SIMULATOR:-0}" != "1" ]; then
+  dsm_major="${SYNOPKG_DSM_VERSION_MAJOR:-}"
+  dsm_minor="${SYNOPKG_DSM_VERSION_MINOR:-0}"
+  [ -n "${dsm_major}" ] || fail "DSM version was not supplied by Package Center"
+  [ "${dsm_major}" -gt 7 ] || { [ "${dsm_major}" -eq 7 ] && [ "${dsm_minor}" -ge 2 ]; } || fail "DSM 7.2 or later is required"
+fi
+
+memory_kib="${NODERAG_PREFLIGHT_MEMORY_KIB:-$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)}"
+[ "${memory_kib}" -ge "${NODERAG_MIN_MEMORY_KIB:-7864320}" ] || fail "at least 8 GB physical RAM is required"
+available_kib="$(df -Pk "${SYNOPKG_PKGVAR}" | awk 'NR==2 {print $4}')"
+[ "${available_kib}" -ge "${NODERAG_MIN_DISK_KIB:-2097152}" ] || fail "at least 2 GiB free package storage is required"
+
+"${node_bin}" -e '
+  const port = Number(process.env.NODERAG_PORT || 8787);
+  const server = require("node:net").createServer();
+  server.once("error", () => process.exit(1));
+  server.listen({host:"127.0.0.1",port,exclusive:true}, () => server.close());
+' || fail "port ${NODERAG_PORT:-8787} is already in use"
+echo "NodeRag prerequisite checks passed."

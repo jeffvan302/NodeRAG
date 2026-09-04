@@ -654,6 +654,24 @@
       "searchOnlyAllowed": false
     },
     {
+      "method": "POST",
+      "path": "/v1/admin/models/download",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/models/import",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
       "method": "GET",
       "path": "/v1/admin/builds",
       "scope": "server_admin",

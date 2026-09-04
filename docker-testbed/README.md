@@ -1,5 +1,11 @@
 # NodeRag WSL/Docker Testbed
 
+## Milestone 10 production-package simulation
+
+From WSL/Linux with Docker available, `pnpm package:candidate` builds the pinned DSM x64 PostgreSQL/pgvector runtime and production SPK candidate. `pnpm package:candidate:verify` inspects it and launches the exact archive as UID/GID 1000 with a read-only root, dropped capabilities, `no-new-privileges`, a disposable `/volume1`, and no external database container. The run covers first initialization, private PostgreSQL socket/TCP refusal, pgvector, setup, five formats, watched ingest/search, restarts, same-major upgrade, retained uninstall/reinstall, and destructive uninstall.
+
+Generated PostgreSQL and SPK outputs stay under `spk/generated`, `spk/work`, and `spk/artifacts`; Git ignores them. Docker evidence is testbed-only and must not be recorded as live DSM evidence.
+
 This directory is the repository-owned development and test environment for
 NodeRag Milestones 0 through 14. It is not the production deployment model:
 the released product remains one Synology DSM package, and Docker is never

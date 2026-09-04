@@ -52,6 +52,33 @@ await cp(
   resolve(output, 'node_modules/@napi-rs/canvas'),
   { recursive: true },
 );
+await mkdir(resolve(output, 'node_modules'), { recursive: true });
+await cp(
+  resolve(root, 'node_modules/.pnpm/onnxruntime-node@1.24.3/node_modules/onnxruntime-node'),
+  resolve(output, 'node_modules/onnxruntime-node'),
+  { recursive: true },
+);
+await cp(
+  resolve(root, 'node_modules/.pnpm/onnxruntime-common@1.24.3/node_modules/onnxruntime-common'),
+  resolve(output, 'node_modules/onnxruntime-common'),
+  { recursive: true },
+);
+await Promise.all([
+  rm(resolve(output, 'node_modules/onnxruntime-node/bin/napi-v6/darwin'), {
+    recursive: true,
+    force: true,
+  }),
+  rm(resolve(output, 'node_modules/onnxruntime-node/bin/napi-v6/linux/arm64'), {
+    recursive: true,
+    force: true,
+  }),
+  rm(resolve(output, 'node_modules/onnxruntime-node/bin/napi-v6/win32'), {
+    recursive: true,
+    force: true,
+  }),
+  rm(resolve(output, 'node_modules/onnxruntime-node/lib'), { recursive: true, force: true }),
+  rm(resolve(output, 'node_modules/onnxruntime-node/script'), { recursive: true, force: true }),
+]);
 await cp(
   resolve(
     root,

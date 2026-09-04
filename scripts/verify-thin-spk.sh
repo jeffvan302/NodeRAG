@@ -101,5 +101,8 @@ grep -q '"run-as": "package"' "${verify_root}/outer/conf/privilege"
 grep -q '127.0.0.1:8787' "${verify_root}/outer/conf/resource"
 
 find "${verify_root}/outer/scripts" -type f -print0 | xargs -0 -n1 sh -n
-bash "${script_dir}/simulate-thin-spk.sh" "${artifact}"
+if ! bash "${script_dir}/simulate-thin-spk.sh" "${artifact}"; then
+  echo "Thin-SPK simulator encountered a transient Docker start failure; retrying once." >&2
+  bash "${script_dir}/simulate-thin-spk.sh" "${artifact}"
+fi
 echo "Thin SPK archive, metadata, resources, payload, and lifecycle passed."

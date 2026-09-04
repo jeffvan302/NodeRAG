@@ -47,6 +47,7 @@ cp -- "${repository_root}/platform/openapi.m05.json" "${payload_root}/platform/o
 cp -- "${repository_root}/platform/openapi.m06.json" "${payload_root}/platform/openapi.m06.json"
 cp -- "${repository_root}/platform/openapi.m07.json" "${payload_root}/platform/openapi.m07.json"
 cp -- "${repository_root}/platform/openapi.m09.json" "${payload_root}/platform/openapi.m09.json"
+cp -- "${repository_root}/platform/openapi.m10.json" "${payload_root}/platform/openapi.m10.json"
 
 tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
   -czf "${outer_root}/package.tgz" -C "${payload_root}" .

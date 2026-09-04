@@ -54,6 +54,22 @@ export class GatewayListenerManager implements GatewayControl {
       }
       const app = this.factory(row.id);
       try {
+        const loopback =
+          this.host === '127.0.0.1' || this.host === '::1' || this.host === 'localhost';
+        if (!loopback && process.env['NODERAG_GATEWAY_ALLOW_PLAINTEXT'] !== '1') {
+          throw new Error('gateway-plaintext-nonloopback-disabled');
+        }
+        if (!loopback) {
+          console.warn(
+            JSON.stringify({
+              service: 'noderag',
+              event: 'gateway_plaintext_warning',
+              gatewayId: row.id,
+              port: row.port,
+              recommendation: 'Use the DSM reverse proxy with TLS on a trusted LAN.',
+            }),
+          );
+        }
         await app.listen({ host: this.host, port: row.port });
         this.#bound.set(row.id, { port: row.port, app });
         await this.pool.query(

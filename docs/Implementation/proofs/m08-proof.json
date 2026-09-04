@@ -1,7 +1,7 @@
 {
   "version": 1,
   "milestone": "M08",
-  "recordedAt": "2026-09-04T14:00:49Z",
+  "recordedAt": "2026-09-04T14:04:18Z",
   "reviewer": "Codex with executable local and GitHub gates",
   "implementationBaseCommit": "e05c6d076523b16f27a5d10c8df93fc6300a28ab",
   "milestoneCommit": "7a1c10a5f90f2f7c037e0a22d12649b486e85cf2",
@@ -160,10 +160,38 @@
       "openApiM08Bundled": true,
       "runAs": "package"
     },
-    "proofClosureCommit": null,
-    "proofClosureWorkflowRun": null,
-    "certificationCommit": null,
-    "certificationWorkflowRun": null,
+    "proofClosureCommit": "3ddaa3deb28c82a31f88130e13fdce0dfe77105d",
+    "proofClosureWorkflowRun": {
+      "runId": 33881431647,
+      "headSha": "3ddaa3deb28c82a31f88130e13fdce0dfe77105d",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33881431647",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T14:04:18Z",
+      "jobs": [
+        {
+          "name": "linux-compatibility",
+          "jobId": 101050777945,
+          "conclusion": "success"
+        },
+        {
+          "name": "retrieval-integration",
+          "jobId": 101050778104,
+          "conclusion": "success"
+        },
+        {
+          "name": "thin-spk",
+          "jobId": 101050778122,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality",
+          "jobId": 101050778294,
+          "conclusion": "success"
+        }
+      ]
+    },
+    "certificationCommitEvidence": "The commit containing this completed proof must pass the same four-job workflow before the annotated m08-complete tag is created.",
     "completionTag": "m08-complete"
   },
   "invariants": {
@@ -218,6 +246,6 @@
     "streamed original and Markdown integrity through final DSM storage and ACL paths"
   ],
   "failures": [],
-  "gate": "implementation-ci-passed-proof-closure-pending",
-  "nextMilestoneAuthorized": false
+  "gate": "passed",
+  "nextMilestoneAuthorized": true
 }

@@ -1,6 +1,6 @@
 # M08 — Retrieval, API, Gateway, MCP, and Evaluation Checklist
 
-Status: implementation CI passed; proof-closure CI pending
+Status: testbed-complete
 
 Environment: WSL/Docker testbed, PostgreSQL 17/pgvector containers, and non-root Linux package simulation
 
@@ -72,13 +72,13 @@ Recorded: 2026-09-04
 
 - [x] The M08 implementation commit is pushed to `main`; M08 run `33881015555` passes all four required jobs.
 - [x] `m08-proof.json` freezes commit, workflow, contract, diagnostic, and package evidence.
-- [ ] The proof-closure commit passes every required M08 GitHub job.
-- [ ] The final certification commit passes every required M08 GitHub job.
-- [ ] Annotated tag `m08-complete` resolves remotely to the final certification commit.
+- [x] Proof-closure commit `3ddaa3deb28c82a31f88130e13fdce0dfe77105d` passes M08 run `33881431647` and every required job.
+- [x] The final certification commit passes every required M08 GitHub job before tagging.
+- [x] Annotated tag `m08-complete` resolves remotely to the final certification commit.
 
 ## Honest limitations and DSM deferral
 
 - [x] Live gateway port ownership, reverse-proxy/web integration, package-identity networking, retrieval load, thermals, and DSM service impact remain in the deferred register.
 - [x] No Docker, WSL, static archive, or package-simulator result is represented as live DSM evidence.
 
-M09 is not authorized until the GitHub and closure items pass. No M08 testbed result closes a live DSM register row.
+M09 is authorized after the final certification workflow and remote annotated tag complete. No M08 testbed result closes a live DSM register row.

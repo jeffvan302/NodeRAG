@@ -1,0 +1,11 @@
+[
+  {
+    "step_title": "NodeRag",
+    "items": [
+      {
+        "type": "singletext",
+        "desc": "NodeRag runs as its package identity and stores data only in its package data directory and acquired share. Live DSM validation is required before release."
+      }
+    ]
+  }
+]

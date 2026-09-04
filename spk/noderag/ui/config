@@ -1,0 +1,12 @@
+{
+  ".url": {
+    "SYNO.SDS.NodeRag": {
+      "type": "url",
+      "allUsers": true,
+      "title": "NodeRag",
+      "desc": "Local document search",
+      "icon": "images/icon_{0}.png",
+      "url": "/noderag/"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+: "${SYNOPKG_PKGVAR:?SYNOPKG_PKGVAR is required}"
+umask 077
+mkdir -p "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log" "${SYNOPKG_PKGVAR}/data"
+chmod 700 "${SYNOPKG_PKGVAR}" "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log" "${SYNOPKG_PKGVAR}/data"

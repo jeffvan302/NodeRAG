@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+. "${script_dir}/service-setup"
+
+case "${1:-}" in
+  start) noderag_start ;;
+  stop) noderag_stop ;;
+  status) noderag_status ;;
+  restart)
+    noderag_stop
+    noderag_start
+    ;;
+  *)
+    echo "usage: $0 {start|stop|status|restart}" >&2
+    exit 64
+    ;;
+esac

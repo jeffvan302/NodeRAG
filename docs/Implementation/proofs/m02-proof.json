@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "milestone": "M02",
+  "recordedAt": "2026-09-04T07:40:39Z",
+  "reviewer": "Codex with executable local gates",
+  "milestoneCommit": null,
+  "upstreamCommit": null,
+  "migrationHead": "000001_foundation",
+  "dependencyLockSha256": "9bc5840cc03149a0c33486511385263238089a9bc41321618fc67776e41ac30c",
+  "readinessState": "ready-after-migration",
+  "evidence": {
+    "foundationRecord": "docs/planning/M2-REPOSITORY-THIN-SPK.md",
+    "checklist": "docs/Implementation/checklists/m02-checklist.md",
+    "deferredDsmRegister": "docs/Implementation/dsm-deferred-register.md",
+    "workflow": ".github/workflows/m02-foundation.yml",
+    "implementationWorkflowRun": null,
+    "proofClosureCommit": null,
+    "proofClosureWorkflowRun": null,
+    "completionTag": "m02-complete",
+    "toolchain": {
+      "nodeCompatibility": ">=22.13 <23",
+      "ciNode": "22.22.0",
+      "pnpm": "11.25.0",
+      "typescript": "6.0.3"
+    },
+    "database": {
+      "postgresMajor": 17,
+      "pgvectorVersion": "0.8.6",
+      "migrationSha256": "e9a9aa52c0c2462daad199c44414d27d93fcc515d60abd32b1eced9f157caa39",
+      "migrationAppliedTwice": true
+    },
+    "thinSpk": {
+      "name": "noderag-0.2.0-1-x86_64.spk",
+      "bytes": 583680,
+      "sha256": "fe29a181c00f65969050be6973560a852d6be95c64e2f6cc726e9331419e6d3f",
+      "repeatSha256": "fe29a181c00f65969050be6973560a852d6be95c64e2f6cc726e9331419e6d3f",
+      "serverBundleSha256": "c2f5103d9f30976d486df006546ff52b5112028abdc4510d1983996bd2fd6ad7",
+      "workerBundleSha256": "47205c2b0de3b30faeff0c3fc19044c43058edb68070e6e236b380bb3377ec7f",
+      "runAs": "package",
+      "declaredPort": 8787,
+      "minimumDsm": "7.2",
+      "architecture": "x86_64"
+    },
+    "spksrc": {
+      "commit": "1f638f9f331d881b2fd5cb45bb24071e9f723400",
+      "shallowSubmodule": true,
+      "sourceTreeCleanAfterNormalization": true
+    },
+    "resolvedIssues": [
+      "Pinned TypeScript 6.0.3 because the selected typed ESLint release does not accept TypeScript 7.",
+      "Explicitly reviewed pnpm dependency build scripts and allowed only esbuild and sharp.",
+      "Kept the service and worker as CommonJS bundles for the DSM Node runtime while the workspace remains ESM.",
+      "Normalized CRLF only while checking the vendored spksrc tree so Windows/WSL line-ending conversion cannot masquerade as a source modification.",
+      "Excluded generated thin-package work trees from source linting while retaining archive and repository hygiene gates."
+    ]
+  },
+  "invariants": {
+    "strictTypeScriptPassed": true,
+    "dependencyBoundariesPassed": true,
+    "readinessFailsClosedBeforeDatabase": true,
+    "migrationManifestCompleteAndImmutable": true,
+    "migrationIdempotencePassed": true,
+    "productionBundleSmokePassed": true,
+    "structuredLoggingRedactsSecrets": true,
+    "thinSpkDeterministic": true,
+    "thinSpkUnsafePathsRejected": true,
+    "nonRootLifecycleSimulationPassed": true,
+    "generatedSecretsDependenciesAndArtifactsUntracked": true,
+    "testbedEvidenceNotRepresentedAsDsmEvidence": true
+  },
+  "tests": {
+    "frozenInstall": "passed",
+    "peerDependencies": "passed",
+    "migrationVerification": "passed",
+    "typecheck": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "dependencyBoundaries": "passed",
+    "unit": "passed-9-tests",
+    "productionBuild": "passed",
+    "builtServerSmoke": "passed",
+    "licensePolicy": "passed",
+    "secretScan": "passed",
+    "postgres17PgvectorIntegration": "passed",
+    "thinSpkRepeatBuild": "passed",
+    "thinSpkStaticVerification": "passed",
+    "nonRootLifecycleSimulation": "passed",
+    "repositoryHygiene": "passed",
+    "remoteCi": "pending"
+  },
+  "liveEvidence": {},
+  "environment": "docker-testbed",
+  "certification": "testbed-complete-pending-remote",
+  "deferredDsmChecks": [
+    "DSM-002 through DSM-013 and DSM-016 in docs/Implementation/dsm-deferred-register.md"
+  ],
+  "failures": [],
+  "gate": "local-passed-awaiting-remote",
+  "nextMilestoneAuthorized": false
+}

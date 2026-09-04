@@ -1,0 +1,4 @@
+[submodule "spk/vendor/spksrc"]
+	path = spk/vendor/spksrc
+	url = https://github.com/SynoCommunity/spksrc.git
+	shallow = true

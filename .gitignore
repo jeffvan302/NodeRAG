@@ -1,0 +1,25 @@
+node_modules/
+.pnpm-store/
+coverage/
+dist/
+*.tsbuildinfo
+.env
+.env.local
+artifacts/
+models/
+backups/
+generated-vectors/
+runtime-data/
+uploads/
+*.log
+
+# Package build output
+spk/artifacts/
+spk/generated/
+spk/work/
+
+# Local tooling
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

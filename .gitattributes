@@ -17,6 +17,11 @@
 *.yml text eol=lf
 Dockerfile text eol=lf
 INFO text eol=lf
+spk/noderag/WIZARD_UIFILES/* text eol=lf
+spk/noderag/conf/privilege text eol=lf
+spk/noderag/conf/resource text eol=lf
+spk/noderag/scripts/* text eol=lf
+spk/noderag/ui/config text eol=lf
 
 *.ps1 text eol=crlf
 

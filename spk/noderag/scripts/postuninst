@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+: "${SYNOPKG_PKGVAR:?SYNOPKG_PKGVAR is required}"
+if [ "${NODERAG_DELETE_DATA:-no}" = "yes" ]; then
+  case "${SYNOPKG_PKGVAR}" in
+    /var/packages/noderag/var|/work/var) rm -rf -- "${SYNOPKG_PKGVAR}" ;;
+    *)
+      echo "Refusing destructive uninstall outside the approved package data path." >&2
+      exit 65
+      ;;
+  esac
+fi

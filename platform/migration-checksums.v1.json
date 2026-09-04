@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "expectedHead": "000001_foundation",
+  "migrations": [
+    {
+      "id": "000001_foundation",
+      "path": "packages/server/migrations/000001_foundation.sql",
+      "sha256": "e9a9aa52c0c2462daad199c44414d27d93fcc515d60abd32b1eced9f157caa39",
+      "direction": "up-only"
+    }
+  ]
+}

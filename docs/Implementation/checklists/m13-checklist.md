@@ -53,7 +53,7 @@ Status: local qualification complete; remote certification pending
 - [x] Migration `000011_recovery_hardening` is forward-only, checksummed, and the expected head.
 - [x] OpenAPI M13 and the thin package contain the recovery contracts, SBOM, notices, and new migration.
 - [x] Complete local quality, integration, Docker, package, license, secret, and repository gates pass on the final implementation tree.
-- [ ] The GitHub implementation workflow passes all four jobs.
+- [x] The GitHub implementation workflow passes all four jobs.
 - [ ] The proof-only and evidence-closure commits pass the same workflow.
 - [ ] Annotated tag `m13-complete` resolves remotely to the certified evidence commit.
 - [x] Docker/WSL results are never represented as installed Synology evidence.

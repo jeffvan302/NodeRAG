@@ -1,10 +1,10 @@
 {
   "version": 1,
   "milestone": "M13",
-  "recordedAt": "2026-09-04T22:49:54Z",
+  "recordedAt": "2026-09-04T22:53:20Z",
   "reviewer": "Codex with executable local, Docker, package, and GitHub gates",
   "implementationBaseCommit": "c30df0a78555e27e0e3566fbaed251e3807c8143",
-  "milestoneCommit": null,
+  "milestoneCommit": "405e667befb25fb26f5d7633ec53d41bcc41aacb",
   "proofClosureCommit": null,
   "evidenceClosureCommit": null,
   "migrationHead": "000011_recovery_hardening",
@@ -33,7 +33,36 @@
     "operations": "docs/Implementation/m13-recovery-operations.md",
     "deferredDsmRegister": "docs/Implementation/dsm-deferred-register.md#dsm-024",
     "workflow": ".github/workflows/m13-recovery-hardening.yml",
-    "implementationWorkflowRun": null,
+    "supersededImplementationAttempt": {
+      "runId": 33926539452,
+      "headSha": "e950b1deae2b93aedf141641e6124adb00d9a97e",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33926539452",
+      "conclusion": "failure",
+      "cause": "The initial SBOM inventory included host-only Windows and musl optional packages and drifted on Linux.",
+      "disposition": "The generator now selects the packaged Linux x64/glibc target; the replacement implementation run passed."
+    },
+    "implementationWorkflowRun": {
+      "runId": 33927171214,
+      "headSha": "405e667befb25fb26f5d7633ec53d41bcc41aacb",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33927171214",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T22:53:20Z",
+      "jobs": [
+        { "name": "quality", "jobId": 101198106004, "conclusion": "success" },
+        {
+          "name": "postgres-major-upgrade",
+          "jobId": 101198106179,
+          "conclusion": "success"
+        },
+        { "name": "thin-package", "jobId": 101198106219, "conclusion": "success" },
+        {
+          "name": "recovery-integration",
+          "jobId": 101198106382,
+          "conclusion": "success"
+        }
+      ]
+    },
     "proofClosureWorkflowRun": null,
     "evidenceClosureWorkflowRun": null,
     "localDocker": {
@@ -98,7 +127,7 @@
     "repositoryHygiene": "passed",
     "thinSpkLifecycle": "passed",
     "thinSpkRepeatBuild": "passed-identical-sha256",
-    "remoteCi": "pending"
+    "remoteCi": "implementation-passed-proof-closure-pending"
   },
   "liveEvidence": {},
   "environment": "linux-amd64-docker-testbed",

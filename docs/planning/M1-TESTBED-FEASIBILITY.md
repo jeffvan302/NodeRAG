@@ -1,6 +1,6 @@
 # Milestone 1 — Docker Testbed Feasibility Record
 
-Status: implementation CI passed; GitHub proof closure pending
+Status: `testbed-complete`
 Recorded: 2026-09-04
 Evidence environment: WSL 2 and Docker Desktop, not DSM
 Certification ceiling: `testbed-complete`
@@ -292,10 +292,10 @@ Problems resolved during the spike:
 
 ## 11. Gate interpretation and remaining inputs
 
-M1 can be labeled `testbed-complete` only after the benchmark and cross-build
-summaries above are filled, the clean-checkout GitHub Actions job passes on the
-exact implementation commit, the proof closure passes again, and the annotated
-`m01-complete` tag points to that closure commit.
+M1 is labeled `testbed-complete`: the benchmark and cross-build summaries are
+filled, the clean-checkout GitHub Actions job passed on the exact implementation
+commit, the proof closure passed again, and the final certification commit is
+the target of the annotated `m01-complete` tag.
 
 The following do not block the synthetic feasibility gate, but they must be
 collected before the milestone that consumes them:

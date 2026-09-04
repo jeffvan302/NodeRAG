@@ -1,14 +1,14 @@
 {
   "version": 1,
   "milestone": "M01",
-  "recordedAt": "2026-09-04T07:00:04Z",
+  "recordedAt": "2026-09-04T07:02:37Z",
   "reviewer": "Codex with executable local gates",
   "milestoneCommit": "33b319a99000c7e9eea51a0a971f24003c6ef1df",
-  "upstreamCommit": null,
+  "upstreamCommit": "904457b55e9a893295769dfe1eeb6847afeb8972",
   "migrationHead": null,
   "dependencyLockSha256": "3e5523ec8179d1e078c11d37d099d44913b2e0ac4434d493db432f262e98026e",
   "modelManifestRevision": "bd58e9fd4b0467770da53678d8da25481c0f959b",
-  "readinessState": "implementation-ci-passed-awaiting-proof-closure",
+  "readinessState": "operational",
   "featureFlags": {
     "ollamaVision": false
   },
@@ -39,8 +39,17 @@
       "conclusion": "success",
       "completedAt": "2026-09-04T06:59:47Z"
     },
-    "proofClosureCommit": null,
-    "proofClosureWorkflowRun": null,
+    "proofClosureCommit": "904457b55e9a893295769dfe1eeb6847afeb8972",
+    "proofClosureWorkflowRun": {
+      "runId": 33846798470,
+      "jobId": 100940364857,
+      "headSha": "904457b55e9a893295769dfe1eeb6847afeb8972",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33846798470",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T07:02:27Z"
+    },
+    "completionTag": "m01-complete",
     "host": {
       "os": "Microsoft Windows 11 Pro 10.0.26200 build 26200",
       "cpu": "AMD Ryzen 9 5900X",
@@ -145,7 +154,7 @@
     "fullModelBenchmark": "passed",
     "spksrcCrossBuild": "passed",
     "gitDiffCheck": "passed",
-    "remoteCi": "passed-implementation"
+    "remoteCi": "passed"
   },
   "liveEvidence": {},
   "environment": "docker-testbed",
@@ -154,6 +163,6 @@
     "DSM-001 through DSM-017 in docs/Implementation/dsm-deferred-register.md"
   ],
   "failures": [],
-  "gate": "proof-closure-pending",
-  "nextMilestoneAuthorized": false
+  "gate": "passed",
+  "nextMilestoneAuthorized": true
 }

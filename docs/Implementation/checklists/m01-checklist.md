@@ -1,8 +1,8 @@
 # M01 — Contract Freeze, Testbed Inventory, and Feasibility Checklist
 
-Status: local gates passed; GitHub proof closure pending
+Status: testbed-complete
 Environment: Docker testbed
-Recorded: 2026-09-04
+Recorded: 2026-09-04T07:02:37Z
 
 ## Inventory and operator boundaries
 
@@ -38,8 +38,8 @@ Recorded: 2026-09-04
 - [x] All Milestone 1 scripts pass syntax and local core/full validation.
 - [x] The implementation commit is pushed to `main` and its M01 GitHub Actions run succeeds.
 - [x] `m01-proof.json` records the implementation commit and successful workflow run.
-- [ ] The proof-closure commit is pushed and its own workflow run succeeds.
-- [ ] Annotated tag `m01-complete` resolves to the proof-closure commit.
+- [x] The proof-closure commit is pushed and its own workflow run succeeds.
+- [x] Annotated tag `m01-complete` resolves to the final certification commit.
 
 M02 is authorized only after every item above is complete. Docker evidence must
 remain labeled `testbed-complete`; it cannot close any row in the live DSM

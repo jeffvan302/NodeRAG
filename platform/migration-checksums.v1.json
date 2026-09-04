@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expectedHead": "000004_durable_ingestion",
+  "expectedHead": "000005_vision_recovery",
   "migrations": [
     {
       "id": "000001_foundation",
@@ -24,6 +24,12 @@
       "id": "000004_durable_ingestion",
       "path": "packages/server/migrations/000004_durable_ingestion.sql",
       "sha256": "17bb57292f7291f009e18ed32e6fd49906d82b684f5d3ef12efa3e963c2eb30c",
+      "direction": "up-only"
+    },
+    {
+      "id": "000005_vision_recovery",
+      "path": "packages/server/migrations/000005_vision_recovery.sql",
+      "sha256": "eee5929738120f38c319c35205c3ac12547b3300dbe331fab07f0d8020e0ba70",
       "direction": "up-only"
     }
   ]

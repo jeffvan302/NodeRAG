@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { chunkCanonicalMarkdown, type Embedder } from '@noderag/shared';
 import type { Pool } from 'pg';
-import { extractDocument, type DocumentFormat } from '../extract/index.js';
+import { extractDocument, type DocumentFormat, type InjectedVision } from '../extract/index.js';
 import { enforceTokenGuard, type GuardedChunk } from './token-guard.js';
 import { runIntegrityJob } from './integrity.js';
 import { crawlSource } from './sources.js';
@@ -12,6 +12,7 @@ import { coordinatedEmbedder } from '../store/resources.js';
 import {
   claimNextJob,
   completeJob,
+  ClassifiedJobError,
   failJob,
   heartbeatJob,
   type ClaimedJob,
@@ -33,6 +34,7 @@ const extractCanonicalDocument = async (
   pool: Pool,
   files: DocumentFileStore,
   job: ClaimedJob,
+  vision?: InjectedVision,
 ): Promise<void> => {
   if (job.documentId === null || job.siloId === null) throw new Error('extract-job-missing-scope');
   await heartbeatJob(pool, job, 60_000, { stage: 'read-original' }, { stage: 'extract' });
@@ -55,19 +57,33 @@ const extractCanonicalDocument = async (
   const actualOriginalHash = createHash('sha256').update(original).digest();
   if (!actualOriginalHash.equals(document.original_sha256))
     throw new Error('original-hash-mismatch');
-  const extracted = await extractDocument(original, format);
+  const extracted = await extractDocument(original, format, {}, vision);
   const awaitingVision =
-    extracted.markdown.length === 0 &&
-    extracted.pages.some(
-      (page) =>
-        page.extraction === 'vision' ||
-        page.images.some((image) => image.disposition === 'pending_vision'),
-    );
+    extracted.pages.some((page) =>
+      page.images.some((image) => image.disposition === 'pending_vision'),
+    ) ||
+    (extracted.markdown.length === 0 &&
+      extracted.pages.some((page) => page.extraction === 'vision'));
   if (extracted.markdown.length === 0 && !awaitingVision)
     throw new Error('empty-canonical-markdown');
   const canonical = await files.writeCanonicalMarkdown(job.documentId, extracted.markdown);
+  const imagePaths = new Map<string, string>();
+  await files.resetExtractedImages(job.documentId);
+  for (const page of extracted.pages) {
+    for (const image of page.images) {
+      const storagePath = await files.writeExtractedImage(
+        job.documentId,
+        image.id,
+        page.ordinal * 10_000 + image.sequence,
+        image.mediaType,
+        image.bytes,
+      );
+      imagePaths.set(`${String(page.ordinal)}:${String(image.sequence)}`, storagePath);
+    }
+  }
   await heartbeatJob(pool, job, 60_000, { stage: 'commit-canonical' });
 
+  let retryVision = false;
   await withTransaction(pool, async (database) => {
     await setWorkerScope(database, job.siloId ?? 0);
     await database.query(
@@ -100,6 +116,18 @@ const extractCanonicalDocument = async (
     await database.query('DELETE FROM noderag.document_page WHERE document_id = $1', [
       job.documentId,
     ]);
+    await database.query(
+      `WITH vision_refs AS (
+         SELECT cache_key, count(*)::integer AS uses
+         FROM noderag.document_image
+         WHERE document_id = $1 AND cache_key IS NOT NULL
+         GROUP BY cache_key
+       )
+       UPDATE noderag.vision_cache cache
+       SET refcount = GREATEST(0, cache.refcount - vision_refs.uses)
+       FROM vision_refs WHERE cache.cache_key = vision_refs.cache_key`,
+      [job.documentId],
+    );
     await database.query('DELETE FROM noderag.document_image WHERE document_id = $1', [
       job.documentId,
     ]);
@@ -127,8 +155,14 @@ const extractCanonicalDocument = async (
         await database.query(
           `INSERT INTO noderag.document_image
              (document_id, silo_id, page_ordinal, sequence, image_sha256, width, height,
-              byte_count, state, skip_reason)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+              byte_count, state, skip_reason, vision_model, external_id, media_type,
+              storage_path, cache_key, preprocessed_sha256, vision_provider, vision_kind,
+              vision_markdown, vision_alt, vision_confidence, provider_revision,
+              model_revision, prompt_revision, schema_revision, preprocessing_revision,
+              analysed_at, last_error_code, attempt_count)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+                   $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25,
+                   $26, $27, $28, $29)`,
           [
             job.documentId,
             job.siloId,
@@ -140,39 +174,128 @@ const extractCanonicalDocument = async (
             image.bytes.byteLength,
             image.disposition,
             image.skipReason ?? null,
+            image.visionModel ?? null,
+            image.id,
+            image.mediaType,
+            imagePaths.get(`${String(page.ordinal)}:${String(image.sequence)}`) ?? null,
+            image.disposition === 'analysed' && image.visionCacheKey !== undefined
+              ? Buffer.from(image.visionCacheKey, 'hex')
+              : null,
+            image.preprocessedSha256 === undefined
+              ? null
+              : Buffer.from(image.preprocessedSha256, 'hex'),
+            image.visionProvider ?? null,
+            image.visionKind ?? null,
+            image.visionMarkdown ?? null,
+            image.visionAlt ?? null,
+            image.visionConfidence ?? null,
+            image.visionRevisions?.provider ?? null,
+            image.visionRevisions?.model ?? null,
+            image.visionRevisions?.prompt ?? null,
+            image.visionRevisions?.schema ?? null,
+            image.visionRevisions?.preprocessing ?? null,
+            image.disposition === 'analysed' ? new Date() : null,
+            image.lastErrorCode ?? null,
+            image.disposition === 'skipped' ? 0 : 1,
           ],
+        );
+        if (image.disposition === 'analysed' && image.visionCacheKey !== undefined) {
+          await database.query(
+            `UPDATE noderag.vision_cache
+             SET refcount = refcount + 1, last_used_at = now()
+             WHERE cache_key = $1`,
+            [Buffer.from(image.visionCacheKey, 'hex')],
+          );
+        }
+      }
+    }
+    const build = await database.query<{ id: unknown }>(
+      `SELECT id FROM noderag.build WHERE state = 'active'`,
+    );
+    const buildId = databaseInteger(build.rows[0]?.id, 'active build id');
+    if (job.kind === 'vision' && !awaitingVision) {
+      const removed = await database.query<{ count: string }>(
+        `WITH deleted AS (
+           DELETE FROM noderag.chunk
+           WHERE silo_id = $1 AND document_id = $2 AND build_id = $3
+           RETURNING chunk_sha256
+         ), decremented AS (
+           UPDATE noderag.embedding_cache cache
+           SET refcount = GREATEST(0, cache.refcount - grouped.uses)
+           FROM (
+             SELECT chunk_sha256, count(*)::integer AS uses
+             FROM deleted GROUP BY chunk_sha256
+           ) grouped
+           WHERE cache.chunk_sha256 = grouped.chunk_sha256
+             AND cache.model_manifest_id = (
+               SELECT model_manifest_id FROM noderag.build WHERE id = $3
+             )
+         )
+         SELECT count(*)::text AS count FROM deleted`,
+        [job.siloId, job.documentId, buildId],
+      );
+      const removedChunks = Number(removed.rows[0]?.count ?? 0);
+      if (removedChunks > 0) {
+        await database.query(
+          `UPDATE noderag.build
+           SET chunk_count = GREATEST(0, COALESCE(chunk_count, 0) - $2)
+           WHERE id = $1`,
+          [buildId, removedChunks],
         );
       }
     }
+    if (extracted.markdown.length > 0 && (!awaitingVision || job.kind === 'extract')) {
+      await database.query(
+        `INSERT INTO noderag.job (kind, document_id, silo_id, build_id, priority, payload)
+         VALUES ('embed', $1, $2, $3, 4, jsonb_build_object('format', $4::text))
+         ON CONFLICT (document_id, kind)
+           WHERE document_id IS NOT NULL
+             AND state IN ('pending', 'leased', 'retry_wait', 'paused')
+         DO NOTHING`,
+        [job.documentId, job.siloId, buildId, format],
+      );
+    }
+    if (awaitingVision && job.kind === 'extract' && vision !== undefined) {
+      await database.query(
+        `INSERT INTO noderag.job
+           (kind, document_id, silo_id, build_id, priority, max_attempts, payload)
+         VALUES ('vision', $1, $2, $3, 3, 5,
+                 jsonb_build_object('format', $4::text, 'reason', 'pending-vision'))
+         ON CONFLICT (document_id, kind)
+           WHERE document_id IS NOT NULL
+             AND state IN ('pending', 'leased', 'retry_wait', 'paused')
+         DO NOTHING`,
+        [job.documentId, job.siloId, buildId, format],
+      );
+    }
+    if (job.kind === 'vision' && awaitingVision) {
+      retryVision = true;
+      return;
+    }
     if (awaitingVision) {
       await completeJob(database, job, {
-        characters: 0,
+        characters: extracted.markdown.length,
         canonicalBytes: canonical.bytes,
         pages: extracted.pages.length,
         awaitingVision: true,
       });
       return;
     }
-    const build = await database.query<{ id: unknown }>(
-      `SELECT id FROM noderag.build WHERE state = 'active'`,
-    );
-    const buildId = databaseInteger(build.rows[0]?.id, 'active build id');
-    await database.query(
-      `INSERT INTO noderag.job (kind, document_id, silo_id, build_id, priority, payload)
-       VALUES ('embed', $1, $2, $3, 4, jsonb_build_object('format', $4::text))
-       ON CONFLICT (document_id, kind)
-         WHERE document_id IS NOT NULL
-           AND state IN ('pending', 'leased', 'retry_wait', 'paused')
-       DO NOTHING`,
-      [job.documentId, job.siloId, buildId, format],
-    );
     await completeJob(database, job, {
       characters: extracted.markdown.length,
       canonicalBytes: canonical.bytes,
       pages: extracted.pages.length,
       warnings: extracted.warnings,
+      visionRecovered: job.kind === 'vision',
     });
   });
+  if (retryVision) {
+    throw new ClassifiedJobError(
+      'vision-analysis-pending',
+      'transient',
+      'Vision analysis remains pending after this attempt.',
+    );
+  }
 };
 
 interface BuildProfileRow {
@@ -366,7 +489,13 @@ const embedMarkdown = async (
       );
     }
     await database.query(
-      `UPDATE noderag.document SET state = 'ready', indexed_at = now() WHERE id = $1 AND silo_id = $2`,
+      `UPDATE noderag.document
+       SET state = CASE WHEN EXISTS (
+             SELECT 1 FROM noderag.document_image image
+             WHERE image.document_id = $1 AND image.state = 'pending_vision'
+           ) THEN 'awaiting_vision' ELSE 'ready' END,
+           indexed_at = now()
+       WHERE id = $1 AND silo_id = $2`,
       [job.documentId, job.siloId],
     );
     await database.query(
@@ -391,14 +520,18 @@ export interface DocumentWorkerOptions {
   readonly embedder: Embedder;
   readonly leaseOwner: string;
   readonly sourceRoots?: readonly string[];
+  readonly vision?: InjectedVision;
+  readonly visionFactory?: () => Promise<InjectedVision | undefined>;
 }
 
 export const processOneDocumentJob = async (options: DocumentWorkerOptions): Promise<boolean> => {
   const job = await claimNextJob(options.pool, options.leaseOwner);
   if (job === null) return false;
   try {
-    if (job.kind === 'extract') await extractCanonicalDocument(options.pool, options.files, job);
-    else if (job.kind === 'embed')
+    if (job.kind === 'extract' || job.kind === 'vision') {
+      const vision = options.vision ?? (await options.visionFactory?.());
+      await extractCanonicalDocument(options.pool, options.files, job, vision);
+    } else if (job.kind === 'embed')
       await embedMarkdown(options.pool, options.files, options.embedder, job);
     else if (job.kind === 'crawl')
       await crawlSource({

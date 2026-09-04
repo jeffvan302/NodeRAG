@@ -2,6 +2,16 @@ packages:
   - packages/*
   - adapters/*
 
+supportedArchitectures:
+  os:
+    - current
+    - linux
+  cpu:
+    - x64
+  libc:
+    - current
+    - glibc
+
 allowBuilds:
   cpu-features: false
   esbuild: true

@@ -89,6 +89,9 @@ importers:
       '@fastify/multipart':
         specifier: 10.1.1
         version: 10.1.1
+      '@napi-rs/canvas':
+        specifier: 1.0.8
+        version: 1.0.8
       '@noderag/adapter-dsm':
         specifier: workspace:*
         version: link:../../adapters/dsm
@@ -3318,7 +3321,6 @@ snapshots:
       '@napi-rs/canvas-linux-x64-musl': 1.0.8
       '@napi-rs/canvas-win32-arm64-msvc': 1.0.8
       '@napi-rs/canvas-win32-x64-msvc': 1.0.8
-    optional: true
 
   '@nodable/entities@3.0.0': {}
 

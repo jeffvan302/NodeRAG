@@ -51,15 +51,15 @@ const decrementCaches = async (
   );
   await database.query(
     `WITH refs AS (
-       SELECT image_sha256, vision_model, count(*)::integer AS used
+       SELECT cache_key, count(*)::integer AS used
        FROM noderag.document_image
-       WHERE silo_id = $1 AND document_id = $2 AND vision_model IS NOT NULL
-       GROUP BY image_sha256, vision_model
+       WHERE silo_id = $1 AND document_id = $2 AND cache_key IS NOT NULL
+       GROUP BY cache_key
      )
      UPDATE noderag.vision_cache cache
      SET refcount = GREATEST(0, cache.refcount - refs.used), last_used_at = now()
      FROM refs
-     WHERE cache.image_sha256 = refs.image_sha256 AND cache.model = refs.vision_model`,
+     WHERE cache.cache_key = refs.cache_key`,
     [siloId, documentId],
   );
   await database.query('DELETE FROM noderag.embedding_cache WHERE refcount = 0');

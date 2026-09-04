@@ -27,6 +27,7 @@
     "security:scan": "bash scripts/check-secrets.sh",
     "test": "corepack pnpm@11.25.0 test:unit && corepack pnpm@11.25.0 test:integration",
     "test:integration": "vitest run --project integration",
+    "test:vision-real": "tsx scripts/verify-m07-real-provider.ts",
     "test:unit": "vitest run --project unit",
     "typecheck": "corepack pnpm@11.25.0 -r typecheck"
   },

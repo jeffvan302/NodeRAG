@@ -157,6 +157,17 @@
     },
     {
       "method": "GET",
+      "path": "/v1/documents/:id/vision-estimate",
+      "scope": "silo",
+      "action": "read_markdown",
+      "emptyBehavior": "not_found",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
       "path": "/v1/documents/:id/pages/:ordinal",
       "scope": "silo",
       "action": "read_markdown",
@@ -568,6 +579,33 @@
       "routeClass": "administration",
       "csrfBrowser": false,
       "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/vision/status",
+      "scope": "server_admin",
+      "routeClass": "administration",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/vision/test",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/vision/retry",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
       "searchOnlyAllowed": false
     },
     {

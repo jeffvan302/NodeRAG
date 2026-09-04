@@ -9,6 +9,8 @@ client `pg` (MIT), node-pg-migrate (MIT), Preact (MIT), Zod (MIT), hash-wasm
 PDF.js (`pdfjs-dist`, Apache-2.0), `fast-xml-parser` (MIT), `unzipper`
 (MIT), `chardet` (MIT), `iconv-lite` (MIT), `saxes` (ISC), ONNX Runtime
 (MIT), and the Qwen3-Embedding-0.6B model (Apache-2.0).
+The thin package also bundles `@napi-rs/canvas` and its Linux x64 GNU native
+binary (MIT) for deterministic image preprocessing and PDF page rendering.
 PostgreSQL and pgvector use the PostgreSQL License. Transitive identities and
 versions are locked in `pnpm-lock.yaml`.
 

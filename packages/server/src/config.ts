@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { delimiter, resolve } from 'node:path';
+import { delimiter, join, resolve } from 'node:path';
 import type { ClientConfig } from 'pg';
 
 export interface RuntimeConfig {
@@ -10,6 +10,9 @@ export interface RuntimeConfig {
   readonly dataRoot: string;
   readonly embedderSocket: string;
   readonly sourceRoots: readonly string[];
+  readonly visionBearerToken?: string;
+  readonly ollamaParallelCapacity?: number;
+  readonly secretRoot: string;
 }
 
 const parsePort = (name: string, raw: string | undefined, fallback: number): number => {
@@ -21,6 +24,7 @@ const parsePort = (name: string, raw: string | undefined, fallback: number): num
 };
 
 export const loadRuntimeConfig = async (): Promise<RuntimeConfig> => {
+  const dataRoot = resolve(process.env['NODERAG_DATA_ROOT'] ?? 'runtime-data');
   const passwordFile = process.env['NODERAG_POSTGRES_PASSWORD_FILE'];
   let database: ClientConfig | null = null;
   if (passwordFile !== undefined && passwordFile.length > 0) {
@@ -35,12 +39,27 @@ export const loadRuntimeConfig = async (): Promise<RuntimeConfig> => {
     };
   }
 
+  const visionTokenFile = process.env['NODERAG_OLLAMA_BEARER_TOKEN_FILE'];
+  const visionBearerToken =
+    visionTokenFile === undefined || visionTokenFile.length === 0
+      ? process.env['NODERAG_OLLAMA_BEARER_TOKEN']
+      : (await readFile(resolve(visionTokenFile), 'utf8')).trim();
+  const parallelCapacity = process.env['NODERAG_OLLAMA_NUM_PARALLEL'];
+  const ollamaParallelCapacity =
+    parallelCapacity === undefined ? undefined : Number(parallelCapacity);
+  if (
+    ollamaParallelCapacity !== undefined &&
+    (!Number.isInteger(ollamaParallelCapacity) || ollamaParallelCapacity < 1)
+  ) {
+    throw new Error('NODERAG_OLLAMA_NUM_PARALLEL must be a positive integer.');
+  }
+
   return {
     host: process.env['NODERAG_HOST'] ?? '127.0.0.1',
     port: parsePort('NODERAG_PORT', process.env['NODERAG_PORT'], 8787),
     database,
     uiRoot: resolve(process.env['NODERAG_UI_ROOT'] ?? 'packages/ui/dist'),
-    dataRoot: resolve(process.env['NODERAG_DATA_ROOT'] ?? 'runtime-data'),
+    dataRoot,
     embedderSocket: resolve(
       process.env['NODERAG_EMBEDDER_SOCKET'] ?? 'runtime-data/run/embedder.sock',
     ),
@@ -49,5 +68,10 @@ export const loadRuntimeConfig = async (): Promise<RuntimeConfig> => {
       .map((value) => value.trim())
       .filter((value) => value.length > 0)
       .map((value) => resolve(value)),
+    ...(visionBearerToken === undefined || visionBearerToken.length === 0
+      ? {}
+      : { visionBearerToken }),
+    ...(ollamaParallelCapacity === undefined ? {} : { ollamaParallelCapacity }),
+    secretRoot: resolve(process.env['NODERAG_SECRET_ROOT'] ?? join(dataRoot, 'secrets/root.key')),
   };
 };

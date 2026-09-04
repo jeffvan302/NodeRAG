@@ -12,6 +12,15 @@ export interface ExtractedImage {
   readonly disposition: 'analysed' | 'pending_vision' | 'skipped';
   readonly skipReason?: string;
   readonly visionModel?: string;
+  readonly visionProvider?: string;
+  readonly visionKind?: VisionKind;
+  readonly visionMarkdown?: string;
+  readonly visionAlt?: string;
+  readonly visionConfidence?: number;
+  readonly visionRevisions?: VisionRevisions;
+  readonly preprocessedSha256?: string;
+  readonly visionCacheKey?: string;
+  readonly lastErrorCode?: string;
 }
 
 export interface ExtractedPage {
@@ -57,13 +66,69 @@ export interface VisionRequest {
   readonly imageId: string;
 }
 
-export interface VisionResult {
-  readonly kind: string;
+export const visionKinds = [
+  'table',
+  'chart',
+  'diagram',
+  'screenshot',
+  'photo',
+  'formula',
+  'logo',
+  'decorative',
+] as const;
+
+export type VisionKind = (typeof visionKinds)[number];
+
+export interface VisionRevisions {
+  readonly provider: string;
+  readonly model: string;
+  readonly prompt: string;
+  readonly schema: string;
+  readonly preprocessing: string;
+}
+
+export interface AnalysedVisionResult {
+  readonly disposition: 'analysed';
+  readonly kind: VisionKind;
   readonly markdown: string;
   readonly alt: string;
   readonly confidence: number;
+  readonly provider: string;
   readonly model: string;
+  readonly revisions: VisionRevisions;
+  readonly originalSha256: string;
+  readonly preprocessedSha256: string;
+  readonly width: number;
+  readonly height: number;
+  readonly elapsedMs: number;
+  readonly cached: boolean;
+  readonly cacheKey: string;
 }
+
+export interface PendingVisionResult {
+  readonly disposition: 'pending_vision';
+  readonly alt: string;
+  readonly errorCode: string;
+  readonly provider: string;
+  readonly model: string;
+  readonly revisions: VisionRevisions;
+  readonly originalSha256: string;
+  readonly preprocessedSha256?: string;
+  readonly width?: number;
+  readonly height?: number;
+  readonly cacheKey: string;
+}
+
+export interface SkippedVisionResult {
+  readonly disposition: 'skipped';
+  readonly alt: string;
+  readonly skipReason: 'too-small' | 'extreme-aspect-ratio' | 'low-entropy';
+  readonly originalSha256: string;
+  readonly width: number;
+  readonly height: number;
+}
+
+export type VisionResult = AnalysedVisionResult | PendingVisionResult | SkippedVisionResult;
 
 export interface InjectedVision {
   analyse(request: VisionRequest): Promise<VisionResult>;

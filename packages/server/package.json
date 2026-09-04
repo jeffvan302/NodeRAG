@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fastify/multipart": "10.1.1",
+    "@napi-rs/canvas": "1.0.8",
     "@noderag/adapter-dsm": "workspace:*",
     "@noderag/adapter-local": "workspace:*",
     "@noderag/shared": "workspace:*",

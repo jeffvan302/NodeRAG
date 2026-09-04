@@ -10,6 +10,7 @@ import { loggerOptions } from './logging.js';
 import { registerContentRoutes, type ContentRoutesOptions } from './api/content-routes.js';
 import { registerIdentityRoutes, type IdentityRoutesOptions } from './api/identity-routes.js';
 import { registerDurabilityRoutes } from './api/durability-routes.js';
+import { registerVisionRoutes } from './api/vision-routes.js';
 import type { ReadinessProbe } from './store/readiness.js';
 
 const contentTypes: Readonly<Record<string, string>> = {
@@ -83,6 +84,16 @@ export const buildApp = (options: BuildAppOptions): FastifyInstance => {
       authenticate: options.content.authenticate,
       files: options.content.files,
       sourceRoots: options.content.sourceRoots ?? [],
+    });
+    registerVisionRoutes(app, {
+      pool: options.content.pool,
+      authenticate: options.content.authenticate,
+      ...(options.content.visionBearerToken === undefined
+        ? {}
+        : { runtimeBearerToken: options.content.visionBearerToken }),
+      ...(options.content.secretVault === undefined
+        ? {}
+        : { secretVault: options.content.secretVault }),
     });
   }
 

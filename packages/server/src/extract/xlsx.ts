@@ -11,6 +11,7 @@ import type {
   InjectedVision,
 } from './contract.js';
 import { openOfficeArchive } from './office-archive.js';
+import { extractedImageFromVision, markdownFromVision } from '../vision/result.js';
 
 interface CellData {
   text: string;
@@ -443,22 +444,22 @@ const worksheetImages = async (
       warnings.push('worksheet-image-vision-pending');
       continue;
     }
-    const result = await injectedVision.analyse({
+    const request = {
       kind: 'worksheet-image',
       bytes,
       mediaType: type,
       pageNumber: null,
       imageId: id,
-    });
-    images.push({
-      id,
-      sequence: images.length,
-      mediaType: type,
-      bytes,
-      disposition: 'analysed',
-      visionModel: result.model,
-    });
-    blocks.push(`<!-- noderag:image id="${id}" -->\n${result.markdown}\n<!-- /noderag:image -->`);
+    } as const;
+    const result = await injectedVision.analyse(request);
+    images.push(extractedImageFromVision(request, images.length, result));
+    if (result.disposition === 'analysed' && result.confidence < 0.5)
+      warnings.push('worksheet-image-low-vision-confidence');
+    const block = markdownFromVision(request, result);
+    if (block.length > 0) blocks.push(block);
+    if (result.disposition === 'pending_vision') warnings.push('worksheet-image-vision-pending');
+    if (result.disposition === 'skipped')
+      warnings.push(`worksheet-image-skipped:${result.skipReason}`);
   }
   return { images, blocks, warnings };
 };

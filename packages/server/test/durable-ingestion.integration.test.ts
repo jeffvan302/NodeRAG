@@ -206,7 +206,7 @@ describe.sequential('M05 durable ingestion, sources, verification, and purge', (
     );
     const first = await claimNextJob(pool, 'm05-worker-stale', 1000);
     expect(first).toMatchObject({ id: jobId, leaseEpoch: 1, logicalAttempt: 1, attempts: 1 });
-    expect(first?.frozenConfig).toMatchObject({ schemaRevision: '000004_durable_ingestion' });
+    expect(first?.frozenConfig).toMatchObject({ schemaRevision: '000005_vision_recovery' });
     await pool.query(
       `UPDATE noderag.job SET leased_until = now() - interval '1 second' WHERE id = $1`,
       [jobId],

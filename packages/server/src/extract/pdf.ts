@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { createCanvas } from '@napi-rs/canvas';
 import type * as PdfJs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import type {
   ExtractedDocument,
@@ -8,6 +9,7 @@ import type {
   ExtractionOptions,
   InjectedVision,
 } from './contract.js';
+import { extractedImageFromVision, markdownFromVision } from '../vision/result.js';
 
 interface PositionedText {
   readonly text: string;
@@ -170,6 +172,21 @@ const qualityScore = (text: string, items: readonly PositionedText[]): number =>
   );
 };
 
+const renderPageImage = async (
+  page: PdfJs.PDFPageProxy,
+): Promise<{ readonly bytes: Uint8Array; readonly width: number; readonly height: number }> => {
+  const viewport = page.getViewport({ scale: 2 });
+  const width = Math.max(1, Math.ceil(viewport.width));
+  const height = Math.max(1, Math.ceil(viewport.height));
+  const canvas = createCanvas(width, height);
+  await page.render({
+    canvas: canvas as unknown as HTMLCanvasElement,
+    viewport,
+    background: 'rgb(255,255,255)',
+  }).promise;
+  return { bytes: canvas.toBuffer('image/png'), width, height };
+};
+
 export const extractPdf = async (
   bytes: Uint8Array,
   options: ExtractionOptions = {},
@@ -278,27 +295,47 @@ export const extractPdf = async (
         });
         continue;
       }
-      const imageId = createHash('sha256')
-        .update(bytes)
-        .update(`:${String(candidate.page.pageNumber)}`)
-        .digest('hex');
-      const vision = await injectedVision.analyse({
+      const sourcePage = await pdf.getPage(candidate.page.pageNumber ?? candidate.page.ordinal + 1);
+      const rendered = await renderPageImage(sourcePage);
+      sourcePage.cleanup();
+      const imageId = createHash('sha256').update(rendered.bytes).digest('hex');
+      const request = {
         kind: 'pdf-page',
-        bytes,
-        mediaType: 'application/pdf',
+        bytes: rendered.bytes,
+        mediaType: 'image/png',
         pageNumber: candidate.page.pageNumber,
         imageId,
-      });
+      } as const;
+      const vision = await injectedVision.analyse(request);
+      const visionMarkdown = markdownFromVision(request, vision);
+      const image = extractedImageFromVision(request, 0, vision);
       pages.push({
         ...candidate.page,
-        body: vision.markdown,
-        extraction: candidate.page.body.length > 0 ? 'mixed' : 'vision',
-        confidence: vision.confidence,
-        warnings: [warning],
+        body:
+          visionMarkdown.length > 0
+            ? [candidate.page.body, visionMarkdown].filter(Boolean).join('\n\n')
+            : candidate.page.body,
+        extraction:
+          vision.disposition === 'analysed' && candidate.page.body.length > 0 ? 'mixed' : 'vision',
+        confidence: vision.disposition === 'analysed' ? vision.confidence : candidate.quality,
+        warnings: [
+          warning,
+          ...(vision.disposition === 'pending_vision' ? ['pdf-page-vision-pending'] : []),
+          ...(vision.disposition === 'skipped'
+            ? [`pdf-page-image-skipped:${vision.skipReason}`]
+            : []),
+          ...(vision.disposition === 'analysed' && vision.confidence < 0.5
+            ? ['pdf-page-low-vision-confidence']
+            : []),
+        ],
+        images: [image],
         metadata: {
           ...candidate.page.metadata,
-          visionKind: vision.kind,
-          visionModel: vision.model,
+          renderWidth: rendered.width,
+          renderHeight: rendered.height,
+          ...(vision.disposition === 'analysed'
+            ? { visionKind: vision.kind, visionModel: vision.model }
+            : {}),
         },
       });
     }

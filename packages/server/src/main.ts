@@ -7,6 +7,7 @@ import { ensureSetupTokenFile } from './setup/bootstrap.js';
 import { DocumentFileStore } from './storage/document-files.js';
 import { runMigrations } from './store/migrations.js';
 import { createDatabaseReadinessProbe, unavailableReadiness } from './store/readiness.js';
+import { loadOrCreateSecretRoot, SecretVault } from './identity/secrets.js';
 
 const main = async (): Promise<void> => {
   const config = await loadRuntimeConfig();
@@ -14,6 +15,7 @@ const main = async (): Promise<void> => {
   const pool = config.database === null ? null : new Pool(config.database);
   const embedder = new FramedEmbedderClient(config.embedderSocket);
   const files = new DocumentFileStore(config.dataRoot);
+  const secretVault = new SecretVault(await loadOrCreateSecretRoot(config.secretRoot));
   await files.initialize();
   if (pool !== null && process.env['NODERAG_SETUP_TOKEN_FILE'] !== undefined) {
     await ensureSetupTokenFile(pool, process.env['NODERAG_SETUP_TOKEN_FILE']);
@@ -38,6 +40,10 @@ const main = async (): Promise<void> => {
               files,
               embedder,
               sourceRoots: config.sourceRoots,
+              ...(config.visionBearerToken === undefined
+                ? {}
+                : { visionBearerToken: config.visionBearerToken }),
+              secretVault,
             },
           };
         })();

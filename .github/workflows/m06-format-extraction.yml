@@ -1,61 +1,6 @@
 name: M06 five-format extraction
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/m06-format-extraction.yml'
-      - '.dependency-cruiser.cjs'
-      - '.gitignore'
-      - '.gitmodules'
-      - '.prettierignore'
-      - '.prettierrc.json'
-      - 'adapters/**'
-      - 'packages/**'
-      - 'platform/**'
-      - 'scripts/**'
-      - 'spk/**'
-      - 'docker-testbed/**'
-      - 'fixtures/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'tsconfig.base.json'
-      - 'vitest.config.ts'
-      - 'eslint.config.mjs'
-      - 'LICENSE-POLICY.md'
-      - 'THIRD-PARTY.md'
-      - 'README.md'
-      - 'docs/Implementation/checklists/m06-checklist.md'
-      - 'docs/Implementation/proofs/m06-proof.json'
-      - 'docs/Implementation/staged implementation.md'
-  pull_request:
-    paths:
-      - '.github/workflows/m06-format-extraction.yml'
-      - '.dependency-cruiser.cjs'
-      - '.gitignore'
-      - '.gitmodules'
-      - '.prettierignore'
-      - '.prettierrc.json'
-      - 'adapters/**'
-      - 'packages/**'
-      - 'platform/**'
-      - 'scripts/**'
-      - 'spk/**'
-      - 'docker-testbed/**'
-      - 'fixtures/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'tsconfig.base.json'
-      - 'vitest.config.ts'
-      - 'eslint.config.mjs'
-      - 'LICENSE-POLICY.md'
-      - 'THIRD-PARTY.md'
-      - 'README.md'
-      - 'docs/Implementation/checklists/m06-checklist.md'
-      - 'docs/Implementation/proofs/m06-proof.json'
-      - 'docs/Implementation/staged implementation.md'
   workflow_dispatch:
 
 permissions:

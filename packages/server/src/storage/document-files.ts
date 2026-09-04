@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, open, readdir, rename, rm, statfs } from 'node:fs/promises';
+import { mkdir, open, readdir, rename, rm, statfs, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import * as unzipper from 'unzipper';
@@ -165,6 +165,52 @@ export class DocumentFileStore {
     await rename(temporaryPath, paths.markdownAbsolute);
     await fsyncDirectory(dirname(paths.markdownAbsolute));
     return { bytes: encoded.byteLength, sha256: createHash('sha256').update(encoded).digest() };
+  }
+
+  async writeExtractedImage(
+    documentId: number,
+    imageId: string,
+    sequence: number,
+    mediaType: string,
+    bytes: Uint8Array,
+  ): Promise<string> {
+    if (!/^[a-f0-9]{64}$/u.test(imageId)) throw new Error('Invalid managed image id.');
+    if (!Number.isSafeInteger(sequence) || sequence < 0) {
+      throw new Error('Invalid managed image sequence.');
+    }
+    const extensions: Readonly<Record<string, string>> = {
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/gif': 'gif',
+      'image/svg+xml': 'svg',
+    };
+    const extension = extensions[mediaType];
+    if (extension === undefined) throw new Error('Unsupported managed image media type.');
+    const documentDirectory = this.paths(documentId).directoryAbsolute;
+    const imageDirectory = join(documentDirectory, 'images');
+    const absolute = join(
+      imageDirectory,
+      `${String(sequence).padStart(5, '0')}-${imageId}.${extension}`,
+    );
+    await mkdir(imageDirectory, { recursive: true, mode: 0o700 });
+    const temporary = `${absolute}.${randomUUID()}.tmp`;
+    await writeFile(temporary, bytes, { flag: 'wx', mode: 0o600 });
+    await rename(temporary, absolute);
+    await fsyncDirectory(imageDirectory);
+    const managed = relative(this.root, absolute);
+    if (managed.startsWith('..') || managed.includes(`${sep}..${sep}`)) {
+      throw new Error('Managed image path escaped its root.');
+    }
+    return managed.split(sep).join('/');
+  }
+
+  async resetExtractedImages(documentId: number): Promise<void> {
+    const documentDirectory = this.paths(documentId).directoryAbsolute;
+    const imageDirectory = join(documentDirectory, 'images');
+    if (!imageDirectory.startsWith(`${documentDirectory}${sep}`)) {
+      throw new Error('Refusing to reset images outside the managed document directory.');
+    }
+    await rm(imageDirectory, { recursive: true, force: true });
   }
 
   openOriginal(documentId: number, extension: string) {

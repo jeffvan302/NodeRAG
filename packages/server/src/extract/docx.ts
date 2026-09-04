@@ -9,6 +9,7 @@ import type {
   InjectedVision,
 } from './contract.js';
 import { openOfficeArchive, type OfficeArchive } from './office-archive.js';
+import { extractedImageFromVision, markdownFromVision } from '../vision/result.js';
 
 type XmlNode = Record<string, unknown>;
 
@@ -125,22 +126,21 @@ const imageBlock = async (relationshipId: string, context: RenderContext): Promi
     context.warnings.push('docx-image-vision-pending');
     return `<!-- noderag:image id="${id}" -->\n[Image pending analysis]\n<!-- /noderag:image -->`;
   }
-  const result = await context.injectedVision.analyse({
+  const request = {
     kind: 'document-image',
     bytes,
     mediaType: mediaType(path),
     pageNumber: null,
     imageId: id,
-  });
-  context.images.push({
-    id,
-    sequence,
-    mediaType: mediaType(path),
-    bytes,
-    disposition: 'analysed',
-    visionModel: result.model,
-  });
-  return `<!-- noderag:image id="${id}" -->\n${result.markdown}\n<!-- /noderag:image -->`;
+  } as const;
+  const result = await context.injectedVision.analyse(request);
+  context.images.push(extractedImageFromVision(request, sequence, result));
+  if (result.disposition === 'analysed' && result.confidence < 0.5)
+    context.warnings.push('docx-image-low-vision-confidence');
+  if (result.disposition === 'pending_vision') context.warnings.push('docx-image-vision-pending');
+  if (result.disposition === 'skipped')
+    context.warnings.push(`docx-image-skipped:${result.skipReason}`);
+  return markdownFromVision(request, result);
 };
 
 const pageSentinel = '\u0000NODERAG_PAGE_BREAK\u0000';

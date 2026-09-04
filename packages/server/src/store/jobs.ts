@@ -166,7 +166,7 @@ export const claimNextJob = async (
            lease_epoch = j.lease_epoch + 1, retry_at = NULL,
            frozen_config = CASE WHEN j.frozen_config = '{}'::jsonb THEN
              jsonb_build_object(
-               'schemaRevision', '000004_durable_ingestion',
+               'schemaRevision', '000005_vision_recovery',
                'parserRevision', 2,
                'settings', COALESCE((
                  SELECT to_jsonb(settings) - 'updated_by'
@@ -350,7 +350,7 @@ export const failJob = async (pool: Pool, job: ClaimedJob, error: unknown): Prom
       errorClass: failure.errorClass,
       code: failure.code,
     });
-    if (terminal && job.documentId !== null) {
+    if (terminal && job.documentId !== null && job.kind !== 'vision') {
       await database.query(`SELECT set_config('app.silo_ids', $1, true)`, [
         job.siloId === null ? '{}' : `{${String(job.siloId)}}`,
       ]);

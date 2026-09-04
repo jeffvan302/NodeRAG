@@ -19,6 +19,7 @@ import {
 import { acceptDocumentUpload, uploadRequestDigestInput } from '../ingest/upload.js';
 import type { RequestAuthenticator } from './authentication.js';
 import { coordinatedEmbedder } from '../store/resources.js';
+import type { SecretVault } from '../identity/secrets.js';
 
 const uploadQuerySchema = z.object({ siloId: z.coerce.number().int().min(1).max(32_767) });
 const searchSchema = z.object({
@@ -50,6 +51,8 @@ export interface ContentRoutesOptions {
   readonly maximumUploadBytes?: number;
   readonly minimumFreeBytes?: number;
   readonly sourceRoots?: readonly string[];
+  readonly visionBearerToken?: string;
+  readonly secretVault?: SecretVault;
 }
 
 export const registerContentRoutes = (

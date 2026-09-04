@@ -310,23 +310,23 @@ export const sweepStorageIntegrity = async (
     });
   }
   const invalidVisionRefs = await pool.query<{
-    hash: string;
+    cache_key: string;
     model: string;
     refcount: number;
     expected: string;
   }>(
-    `SELECT encode(cache.image_sha256, 'hex') AS hash, cache.model, cache.refcount,
+    `SELECT encode(cache.cache_key, 'hex') AS cache_key, cache.model, cache.refcount,
             count(image.id)::text AS expected
      FROM noderag.vision_cache cache
      LEFT JOIN noderag.document_image image
-       ON image.image_sha256 = cache.image_sha256 AND image.vision_model = cache.model
-     GROUP BY cache.image_sha256, cache.model, cache.refcount
+       ON image.cache_key = cache.cache_key
+     GROUP BY cache.cache_key, cache.model, cache.refcount
      HAVING cache.refcount <> count(image.id)`,
   );
   for (const row of invalidVisionRefs.rows) {
     findings.push({
       category: 'invalid_vision_cache_ref',
-      identityKey: `${row.hash}:${row.model}`,
+      identityKey: `${row.cache_key}:${row.model}`,
       detail: { actual: row.refcount, expected: Number(row.expected) },
     });
   }

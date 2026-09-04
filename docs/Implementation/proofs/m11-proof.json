@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "milestone": "M11",
+  "recordedAt": "2026-09-04T18:50:01Z",
+  "reviewer": "Codex with executable local and GitHub gates",
+  "implementationBaseCommit": "fd59404606d94a3a5136ad527ba90ded5e406910",
+  "milestoneCommit": "1a1f4d690b256a29061a7d2f2e8d263fc9644c40",
+  "upstreamCommit": "1a1f4d690b256a29061a7d2f2e8d263fc9644c40",
+  "proofClosureCommit": null,
+  "evidenceClosureCommit": null,
+  "migrationHead": "000009_zero_downtime_rebuilds",
+  "defaultModelManifestSha256": "a3e6f76a9d02f5e3fcd88491aab3ad3622739e785e8847d0e098362bf7640aaf",
+  "contracts": {
+    "authorizationInventory": "platform/route-authorization.v1.json",
+    "authorizationRouteCount": 90,
+    "openApi": "platform/openapi.m11.json",
+    "openApiVersion": "3.1.1",
+    "openApiSha256": "de83a695c667407b3ddb8a59810392dd8cfcf924822a0534dadcd1640a58f31b",
+    "migrationSha256": "03bd94112fd134580d3115a2464983c775ea0e38d6af227d65ead13ba59de767"
+  },
+  "evidence": {
+    "milestonePlan": "docs/Implementation/staged implementation.md#17-milestone-11--zero-downtime-rebuilds-and-model-lifecycle",
+    "checklist": "docs/Implementation/checklists/m11-checklist.md",
+    "deferredDsmRegister": "docs/Implementation/dsm-deferred-register.md#dsm-022",
+    "workflow": ".github/workflows/m11-zero-downtime-rebuilds.yml",
+    "implementationWorkflowRun": {
+      "runId": 33907715806,
+      "headSha": "1a1f4d690b256a29061a7d2f2e8d263fc9644c40",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33907715806",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "quality",
+          "jobId": 101136516298,
+          "conclusion": "success"
+        },
+        {
+          "name": "postgres-rebuild-integration",
+          "jobId": 101136516250,
+          "conclusion": "success"
+        },
+        {
+          "name": "linux-compatibility",
+          "jobId": 101136516547,
+          "conclusion": "success"
+        },
+        {
+          "name": "thin-package",
+          "jobId": 101136515897,
+          "conclusion": "success"
+        }
+      ]
+    },
+    "proofClosureWorkflowRun": null,
+    "evidenceClosureWorkflowRun": null,
+    "regressionWorkflowRuns": [
+      {
+        "name": "M00 Docker testbed",
+        "runId": 33907715779,
+        "conclusion": "success"
+      },
+      {
+        "name": "M08 retrieval interfaces and evaluation",
+        "runId": 33907715796,
+        "conclusion": "success"
+      },
+      {
+        "name": "M09 operator UI and first-run setup",
+        "runId": 33907715811,
+        "conclusion": "in_progress"
+      },
+      {
+        "name": "M10 production SPK",
+        "runId": 33907715798,
+        "conclusion": "in_progress"
+      }
+    ],
+    "thinSpk": {
+      "sha256": "831174adeed8cbcf53b07d47d61132e902ebb380dbf7a7957e3a8b3a5223534b",
+      "repeatSha256": "831174adeed8cbcf53b07d47d61132e902ebb380dbf7a7957e3a8b3a5223534b",
+      "deterministic": true,
+      "migration000009Bundled": true,
+      "openApiM11Bundled": true
+    },
+    "certificationCommitEvidence": "The commits containing the completed proof and final evidence must each pass the same four-job M11 workflow before the annotated m11-complete tag is created.",
+    "completionTag": "m11-complete"
+  },
+  "invariants": {
+    "modelManifestInputsAreImmutable": true,
+    "proposalConfirmationPrecedesBuildCreation": true,
+    "stagingTablesRemainDetachedUntilVerified": true,
+    "searchAndCutoverUseCompatibleAdvisoryLocks": true,
+    "revisionAndDimensionCutoversAreAtomic": true,
+    "rollbackPrecedesCleanupAuthorization": true,
+    "cleanupCannotRemoveRestoredActiveData": true,
+    "testbedEvidenceNotRepresentedAsDsmEvidence": true
+  },
+  "tests": {
+    "frozenInstall": "passed",
+    "migrationVerification": "passed-9-forward-only-migrations",
+    "openApiDrift": "passed-90-routes",
+    "typecheck": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "dependencyBoundaries": "passed",
+    "unit": "passed-24-files-70-tests",
+    "postgres17PgvectorIntegration": "passed-8-files-46-tests",
+    "productionBuild": "passed",
+    "licensePolicy": "passed",
+    "secretScan": "passed",
+    "repositoryHygiene": "passed",
+    "thinSpkRepeatBuild": "passed",
+    "rebuildLifecycle": "passed",
+    "continuousSearchDuringCutover": "passed",
+    "remoteCi": "implementation-commit-passed-proof-and-evidence-closure-pending"
+  },
+  "liveEvidence": {},
+  "environment": "docker-testbed",
+  "certification": "implementation-passed-proof-closure-pending",
+  "deferredDsmChecks": [
+    "installed DSM package lifecycle under the package-created identity",
+    "real NAS I/O contention and service responsiveness during rebuilds",
+    "Package Center restart and reboot timing during staged and active builds",
+    "DSM storage capacity, encrypted-share, ACL, and relocation behavior during rebuilds",
+    "installed-device memory, thermal, and administration impact during cutover and rollback"
+  ],
+  "failures": [],
+  "gate": "implementation-passed",
+  "nextMilestoneAuthorized": false
+}

@@ -82,7 +82,9 @@ export const createSiloInTransaction = async (
   );
   await database.query(
     `INSERT INTO noderag.silo_build_state (silo_id, build_id, state)
-     SELECT $1, id, 'active' FROM noderag.build WHERE state = 'active'
+     SELECT $1,id,'active' FROM noderag.build
+     WHERE state='active' AND model_manifest_id=(SELECT model_manifest_id FROM noderag.settings WHERE id=1)
+     ORDER BY activated_at DESC NULLS LAST,id DESC LIMIT 1
      ON CONFLICT (silo_id, build_id) DO NOTHING`,
     [row.id],
   );

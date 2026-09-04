@@ -23,7 +23,8 @@ for member in INFO LICENSE THIRD-PARTY.md PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG 
   [[ -e "${verify_root}/outer/${member}" ]] || { echo "Missing outer member: ${member}" >&2; exit 1; }
 done
 for member in bin/server.cjs bin/worker.cjs bin/embedder.cjs ui/index.html \
-  migrations/000008_package_lifecycle.sql platform/openapi.m10.json \
+  migrations/000008_package_lifecycle.sql migrations/000009_zero_downtime_rebuilds.sql \
+  platform/openapi.m10.json platform/openapi.m11.json \
   platform/migration-checksums.v1.json platform/route-authorization.v1.json \
   runtime/postgresql-runtime.tar.gz runtime/postgresql-runtime.tar.gz.sha256 \
   bin/node_modules/onnxruntime-node/bin/napi-v6/linux/x64/onnxruntime_binding.node \

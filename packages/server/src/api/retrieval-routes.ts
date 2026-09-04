@@ -284,6 +284,8 @@ export const registerRetrievalRoutes = (
       if (code === 'TOKEN_LIMIT') return sendProblem(reply, 400, 'query_too_long', request.id);
       if (code === 'active_build_missing')
         return sendProblem(reply, 503, 'active_build_missing', request.id);
+      if (code === 'incompatible_active_models')
+        return sendProblem(reply, 503, 'incompatible_active_models', request.id);
       throw error;
     }
   });
@@ -300,10 +302,14 @@ export const registerRetrievalRoutes = (
       document_prefix: string;
       name: string;
       source_revision: string;
+      manifest_digest: string;
+      dimensions: number;
     }>(
-      `SELECT m.maximum_tokens, b.query_prefix, m.document_prefix, m.name, m.source_revision
-       FROM noderag.build b JOIN noderag.model_manifest m ON m.id = b.model_manifest_id
-       WHERE b.state = 'active'`,
+      `SELECT m.maximum_tokens,m.query_prefix,m.document_prefix,m.name,m.source_revision,
+              m.manifest_digest,m.dimensions
+       FROM noderag.settings settings
+       JOIN noderag.model_manifest m ON m.id=settings.model_manifest_id
+       WHERE settings.id=1`,
     );
     const model = active.rows[0];
     if (model === undefined) return sendProblem(reply, 503, 'active_build_missing', request.id);
@@ -317,6 +323,7 @@ export const registerRetrievalRoutes = (
         parsed.data.texts.map((text) => `${prefix}${text.normalize('NFC')}`),
         model.maximum_tokens,
         0,
+        { manifestDigest: model.manifest_digest, dimensions: model.dimensions },
       );
       return reply.send({
         vectors: batch.vectors,
@@ -577,8 +584,10 @@ export const registerRetrievalRoutes = (
         }>(
           `SELECT id, silo_id, document_id, ordinal, text, character_start, character_end,
                 byte_start, byte_end, page_start, page_end, heading_path
-         FROM noderag.chunk WHERE id = $1 AND silo_id = ANY ($2::smallint[])
-           AND build_id = (SELECT id FROM noderag.build WHERE state = 'active')`,
+         FROM noderag.chunk chunk WHERE id = $1 AND silo_id = ANY ($2::smallint[])
+           AND EXISTS (SELECT 1 FROM noderag.silo_build_state active
+                       WHERE active.silo_id=chunk.silo_id
+                         AND active.build_id=chunk.build_id AND active.state='active')`,
           [parsedId.data, scope.siloIds],
         );
         const row = target.rows[0];
@@ -586,8 +595,10 @@ export const registerRetrievalRoutes = (
         const neighbours = await database.query<typeof row>(
           `SELECT id, silo_id, document_id, ordinal, text, character_start, character_end,
                 byte_start, byte_end, page_start, page_end, heading_path
-         FROM noderag.chunk WHERE silo_id = $1 AND document_id = $2
-           AND build_id = (SELECT id FROM noderag.build WHERE state = 'active')
+         FROM noderag.chunk chunk WHERE silo_id = $1 AND document_id = $2
+           AND EXISTS (SELECT 1 FROM noderag.silo_build_state active
+                       WHERE active.silo_id=chunk.silo_id
+                         AND active.build_id=chunk.build_id AND active.state='active')
            AND ordinal BETWEEN $3 AND $4 ORDER BY ordinal`,
           [
             row.silo_id,

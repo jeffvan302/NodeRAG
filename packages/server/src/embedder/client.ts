@@ -5,6 +5,7 @@ import {
   encodeJsonFrame,
   JsonFrameDecoder,
   type Embedder,
+  type EmbedderModel,
   type EmbedderRequest,
   type EmbedderResponse,
 } from '@noderag/shared';
@@ -76,13 +77,14 @@ export class FramedEmbedderClient implements Embedder {
     return response;
   }
 
-  async embed(texts: readonly string[], maxTokens: number, priority = 5) {
+  async embed(texts: readonly string[], maxTokens: number, priority = 5, model?: EmbedderModel) {
     const response = await this.request({
       id: randomUUID(),
       operation: 'embed',
       priority,
       texts: [...texts],
       maxTokens,
+      model,
     });
     if (!response.ok) throw new Error(response.code);
     return {
@@ -92,12 +94,17 @@ export class FramedEmbedderClient implements Embedder {
     };
   }
 
-  async countTokens(texts: readonly string[], priority = 5): Promise<readonly number[]> {
+  async countTokens(
+    texts: readonly string[],
+    priority = 5,
+    model?: EmbedderModel,
+  ): Promise<readonly number[]> {
     const response = await this.request({
       id: randomUUID(),
       operation: 'count',
       priority,
       texts: [...texts],
+      model,
     });
     if (!response.ok) throw new Error(response.code);
     return response.tokenCounts;

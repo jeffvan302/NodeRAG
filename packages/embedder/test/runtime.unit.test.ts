@@ -11,4 +11,19 @@ describe('deterministic test embedder', () => {
     expect(Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0))).toBeCloseTo(1, 10);
     await expect(runtime.embed(['one two three'], 2)).rejects.toThrow('TOKEN_LIMIT');
   });
+
+  it('separates model manifests and honors each selected dimension', async () => {
+    const runtime = createDeterministicRuntime();
+    const first = await runtime.embed(['model boundary'], 16, 0, {
+      manifestDigest: 'ab'.repeat(32),
+      dimensions: 17,
+    });
+    const second = await runtime.embed(['model boundary'], 16, 0, {
+      manifestDigest: 'cd'.repeat(32),
+      dimensions: 17,
+    });
+    expect(first.vectors[0]).toHaveLength(17);
+    expect(second.vectors[0]).toHaveLength(17);
+    expect(first.vectors[0]).not.toEqual(second.vectors[0]);
+  });
 });

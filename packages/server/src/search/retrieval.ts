@@ -4,6 +4,7 @@ import type { Pool } from 'pg';
 import { hashNormalizedQuery, writeAuditEvent } from '../application/audit.js';
 import { databaseInteger } from '../store/database.js';
 import { coordinatedEmbedder } from '../store/resources.js';
+import type { SqlClient } from '../store/database.js';
 import { withSiloScope, type SiloScope } from '../identity/scope.js';
 import type { DocumentFileStore } from '../storage/document-files.js';
 
@@ -81,6 +82,8 @@ export interface SearchResponse {
 interface ActiveModel {
   readonly maximum_tokens: number;
   readonly query_prefix: string;
+  readonly dimensions: number;
+  readonly manifest_digest: string;
 }
 
 export interface CandidateRow {
@@ -347,19 +350,26 @@ export const collapseOverlappingHits = (
   return collapsed.sort((left, right) => right.score - left.score || left.chunkId - right.chunkId);
 };
 
-const activeModel = async (pool: Pool): Promise<ActiveModel> => {
-  const model = await pool.query<ActiveModel>(
-    `SELECT m.maximum_tokens, b.query_prefix
-     FROM noderag.build b JOIN noderag.model_manifest m ON m.id = b.model_manifest_id
-     WHERE b.state = 'active'`,
+const activeModel = async (
+  database: SqlClient,
+  siloIds: readonly number[],
+): Promise<ActiveModel> => {
+  const model = await database.query<ActiveModel>(
+    `SELECT DISTINCT m.maximum_tokens,b.query_prefix,m.dimensions,m.manifest_digest
+     FROM noderag.silo_build_state state
+     JOIN noderag.build b ON b.id=state.build_id
+     JOIN noderag.model_manifest m ON m.id=b.model_manifest_id
+     WHERE state.silo_id=ANY($1::smallint[]) AND state.state='active'`,
+    [siloIds],
   );
+  if (model.rows.length > 1) throw new Error('incompatible_active_models');
   const active = model.rows[0];
   if (active === undefined) throw new Error('active_build_missing');
   return active;
 };
 
-const vectorLiteral = (vector: readonly number[]): string => {
-  if (vector.length !== 1024 || vector.some((value) => !Number.isFinite(value))) {
+const vectorLiteral = (vector: readonly number[], dimensions: number): string => {
+  if (vector.length !== dimensions || vector.some((value) => !Number.isFinite(value))) {
     throw new Error('invalid-query-vector');
   }
   return `[${vector.map((value) => String(value)).join(',')}]`;
@@ -384,20 +394,24 @@ export const executeSearch = async (options: ExecuteSearchOptions): Promise<Sear
   if (options.scope.siloIds.length === 0) {
     return { items: [], normalizedQuery, mode: options.request.mode, elapsedMs: 0 };
   }
-  const active = await activeModel(options.pool);
-  let vector: string | undefined;
-  if (options.request.mode !== 'keyword') {
-    const batch = await coordinatedEmbedder(
-      options.pool,
-      `query:${options.requestId}`,
-      options.embedder,
-    ).embed([`${active.query_prefix}${normalizedQuery}`], active.maximum_tokens, 0);
-    const first = batch.vectors[0];
-    if (first === undefined) throw new Error('query-vector-missing');
-    vector = vectorLiteral(first);
-  }
   const candidateLimit = Math.min(200, Math.max(20, options.request.limit * 4));
   const ranked = await withSiloScope(options.pool, options.scope, async (database) => {
+    await database.query('SELECT pg_advisory_xact_lock_shared($1::bigint)', [7_116_011_011]);
+    const active = await activeModel(database, options.scope.siloIds);
+    let vector: string | undefined;
+    if (options.request.mode !== 'keyword') {
+      const batch = await coordinatedEmbedder(
+        options.pool,
+        `query:${options.requestId}`,
+        options.embedder,
+      ).embed([`${active.query_prefix}${normalizedQuery}`], active.maximum_tokens, 0, {
+        manifestDigest: active.manifest_digest,
+        dimensions: active.dimensions,
+      });
+      const first = batch.vectors[0];
+      if (first === undefined) throw new Error('query-vector-missing');
+      vector = vectorLiteral(first, active.dimensions);
+    }
     const settings = await database.query<{ ef_search: number }>(
       'SELECT ef_search FROM noderag.settings WHERE id = 1',
     );
@@ -415,7 +429,9 @@ export const executeSearch = async (options: ExecuteSearchOptions): Promise<Sear
            FROM noderag.chunk c
            JOIN noderag.document d ON d.silo_id = c.silo_id AND d.id = c.document_id
            JOIN noderag.silo s ON s.id = c.silo_id
-           JOIN noderag.build b ON b.id = c.build_id AND b.state = 'active'
+           JOIN noderag.silo_build_state active
+             ON active.silo_id=c.silo_id AND active.build_id=c.build_id
+            AND active.state='active'
            WHERE c.silo_id = $2 AND d.state IN ('ready', 'source_missing', 'awaiting_vision')
              ${filterSql}
            ORDER BY c.embedding <=> $1::halfvec, c.id LIMIT $3`,
@@ -430,7 +446,9 @@ export const executeSearch = async (options: ExecuteSearchOptions): Promise<Sear
            FROM noderag.chunk c
            JOIN noderag.document d ON d.silo_id = c.silo_id AND d.id = c.document_id
            JOIN noderag.silo s ON s.id = c.silo_id
-           JOIN noderag.build b ON b.id = c.build_id AND b.state = 'active'
+           JOIN noderag.silo_build_state active
+             ON active.silo_id=c.silo_id AND active.build_id=c.build_id
+            AND active.state='active'
            WHERE c.silo_id = $2 AND d.state IN ('ready', 'source_missing', 'awaiting_vision')
              AND c.search_vector @@ websearch_to_tsquery('simple', $1)
              ${filterSql}

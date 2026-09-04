@@ -26,6 +26,11 @@ describe('framed embedder client and server', () => {
     expect(await client.countTokens(['one two three'])).toEqual([3]);
     const embedded = await client.embed(['one two three'], 8, 0);
     expect(embedded.vectors[0]).toHaveLength(1024);
+    const selected = await client.embed(['one two three'], 8, 0, {
+      manifestDigest: 'ab'.repeat(32),
+      dimensions: 3,
+    });
+    expect(selected.vectors[0]).toHaveLength(3);
     expect(embedded.tokenCounts).toEqual([3]);
   });
 });

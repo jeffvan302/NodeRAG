@@ -1,4 +1,8 @@
-import { createDeterministicRuntime, createOnnxRuntime } from './runtime.js';
+import {
+  createDeterministicRuntime,
+  createOnnxRuntime,
+  defaultModelManifestDigest,
+} from './runtime.js';
 import { startEmbedderServer } from './server.js';
 
 const main = async (): Promise<void> => {
@@ -12,6 +16,8 @@ const main = async (): Promise<void> => {
           modelPath: process.env['NODERAG_MODEL_PATH'] ?? '',
           dimensions: 1024,
           threads: Number(process.env['NODERAG_EMBED_THREADS'] ?? '4'),
+          manifestDigest:
+            process.env['NODERAG_MODEL_MANIFEST_DIGEST'] ?? defaultModelManifestDigest,
         });
   const server = await startEmbedderServer(socketPath, runtime);
   const stop = (): void => {

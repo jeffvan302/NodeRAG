@@ -42,7 +42,11 @@ export const startEmbedderServer = async (
         try {
           if (item.request.operation === 'count') {
             const started = performance.now();
-            const tokenCounts = await runtime.countTokens(item.request.texts);
+            const tokenCounts = await runtime.countTokens(
+              item.request.texts,
+              item.request.priority,
+              item.request.model,
+            );
             writeResponse(item.socket, {
               id: item.request.id,
               ok: true,
@@ -51,7 +55,12 @@ export const startEmbedderServer = async (
               elapsedMilliseconds: performance.now() - started,
             });
           } else {
-            const result = await runtime.embed(item.request.texts, item.request.maxTokens);
+            const result = await runtime.embed(
+              item.request.texts,
+              item.request.maxTokens,
+              item.request.priority,
+              item.request.model,
+            );
             writeResponse(item.socket, {
               id: item.request.id,
               ok: true,

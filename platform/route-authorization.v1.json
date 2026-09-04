@@ -699,6 +699,69 @@
       "searchOnlyAllowed": false
     },
     {
+      "method": "POST",
+      "path": "/v1/admin/build-proposals/:id/confirm",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/builds/:id/verify",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/builds/:id/activate",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/build-activations/:id/rollback",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/build-activations/:id/cleanup-authorizations",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/build-cleanups/:id/run",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/admin/builds/:id/checkpoints",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
       "method": "GET",
       "path": "/v1/admin/storage",
       "scope": "server_admin",

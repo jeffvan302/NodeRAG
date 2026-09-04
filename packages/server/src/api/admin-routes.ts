@@ -1,4 +1,6 @@
 import { createServer } from 'node:net';
+import { createHash } from 'node:crypto';
+import { statfs } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -13,6 +15,17 @@ import { sendProblem } from './problem.js';
 import { coordinatedEmbedder } from '../store/resources.js';
 import { probeStorage } from '../storage/probe.js';
 import { downloadModelArtifact, importModelArtifact } from '../storage/model-artifacts.js';
+import {
+  activateVerifiedBuild,
+  authorizeBuildCleanup,
+  changeBuildState,
+  confirmRebuildProposal,
+  createRebuildProposal,
+  discardBuildCheckpoints,
+  rollbackBuildActivation,
+  runAuthorizedBuildCleanup,
+  verifyStagedSilo,
+} from '../store/rebuilds.js';
 
 const idSchema = z.coerce.number().int().positive().safe();
 const smallIdSchema = z.coerce.number().int().min(1).max(32_767);
@@ -96,7 +109,7 @@ const modelSchema = z
     artifactSha256: z.string().regex(/^[a-f0-9]{64}$/),
     tokenizerRevision: z.string().min(1).max(200),
     quantization: z.string().min(1).max(40),
-    dimensions: z.literal(1024),
+    dimensions: z.number().int().min(1).max(16_000),
     maximumTokens: z.number().int().min(128).max(32768),
     pooling: z.literal('last_token'),
     normalization: z.literal('l2'),
@@ -114,9 +127,17 @@ const buildSchema = z
     maxTokens: z.number().int().min(128).max(2048).optional(),
     snapWindow: z.number().min(0).max(0.5).optional(),
     headingPrefix: z.boolean().optional(),
+    siloIds: z.array(smallIdSchema).min(1).max(64).optional(),
+    embeddingCharactersPerSecond: z.number().positive().max(10_000_000).default(1500),
   })
   .strict();
 const buildPatchSchema = z.object({ action: z.enum(['pause', 'resume', 'cancel']) }).strict();
+const buildConfirmSchema = z.object({ confirm: z.literal(true) }).strict();
+const buildVerifySchema = z.object({ siloId: smallIdSchema }).strict();
+const buildActivateSchema = z.object({ siloIds: z.array(smallIdSchema).min(1).max(64) }).strict();
+const destructiveConfirmationSchema = z
+  .object({ confirmation: z.string().min(1).max(200) })
+  .strict();
 const storageSchema = z
   .object({
     name: z.string().min(1).max(120),
@@ -858,8 +879,31 @@ export const registerAdminRoutes = (
         'admin-model-create',
         body.data,
         async (database) => {
+          const manifestDigest = createHash('sha256')
+            .update(
+              [
+                body.data.name,
+                body.data.sourceRevision,
+                body.data.artifactSha256,
+                body.data.tokenizerRevision,
+                body.data.quantization,
+                body.data.dimensions,
+                body.data.maximumTokens,
+                body.data.pooling,
+                body.data.normalization,
+                body.data.queryPrefix,
+                body.data.documentPrefix,
+                body.data.license,
+              ].join('\n'),
+              'utf8',
+            )
+            .digest('hex');
           const row = await database.query(
-            `INSERT INTO noderag.model_manifest(name,source_revision,artifact_sha256,tokenizer_revision,quantization,dimensions,maximum_tokens,pooling,normalization,query_prefix,document_prefix,license) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+            `INSERT INTO noderag.model_manifest
+               (name,source_revision,artifact_sha256,tokenizer_revision,quantization,
+                dimensions,maximum_tokens,pooling,normalization,query_prefix,
+                document_prefix,license,manifest_digest)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
             [
               body.data.name,
               body.data.sourceRevision,
@@ -873,6 +917,7 @@ export const registerAdminRoutes = (
               body.data.queryPrefix,
               body.data.documentPrefix,
               body.data.license,
+              manifestDigest,
             ],
           );
           return { status: 201, body: row.rows[0] };
@@ -984,10 +1029,74 @@ export const registerAdminRoutes = (
     const principal = await requireAdmin(request, options, false);
     if (principal === null || principal === 'csrf')
       return sendProblem(reply, 401, 'server_admin_required', request.id);
-    const rows = await options.pool.query(
-      `SELECT b.*,m.name AS model_name,m.source_revision AS model_revision FROM noderag.build b JOIN noderag.model_manifest m ON m.id=b.model_manifest_id ORDER BY b.id DESC`,
-    );
-    return reply.send({ items: rows.rows });
+    const [builds, siloStates, proposals, activations, cleanups] = await Promise.all([
+      options.pool.query(
+        `SELECT b.*,m.name AS model_name,m.source_revision AS model_revision
+         FROM noderag.build b
+         JOIN noderag.model_manifest m ON m.id=b.model_manifest_id
+         ORDER BY b.id DESC`,
+      ),
+      options.pool.query<{
+        build_id: unknown;
+        silo_id: number;
+        state: string;
+        processed_documents: unknown;
+        total_documents: unknown;
+        checkpoint_documents: unknown;
+        verification_id: unknown;
+        last_error: string | null;
+      }>(
+        `SELECT build_id,silo_id,state,processed_documents,total_documents,
+                checkpoint_documents,verification_id,last_error
+         FROM noderag.silo_build_state ORDER BY build_id DESC,silo_id`,
+      ),
+      options.pool.query(
+        `SELECT id,state,model_manifest_id AS "modelManifestId",silo_ids AS "siloIds",
+                source_characters AS "sourceCharacters",expected_chunks AS "expectedChunks",
+                estimated_embedding_seconds AS "estimatedEmbeddingSeconds",
+                estimated_vision_reuse AS "estimatedVisionReuse",
+                temporary_bytes AS "temporaryBytes",required_free_bytes AS "requiredFreeBytes",
+                available_bytes AS "availableBytes",reason,expires_at AS "expiresAt",
+                created_at AS "createdAt",confirmed_at AS "confirmedAt"
+         FROM noderag.rebuild_proposal ORDER BY id DESC LIMIT 100`,
+      ),
+      options.pool.query(
+        `SELECT id,build_id AS "buildId",activation_kind AS "activationKind",
+                activated_silos AS "activatedSilos",state,activated_at AS "activatedAt",
+                rolled_back_at AS "rolledBackAt",cleanup_authorized_at AS "cleanupAuthorizedAt",
+                cleaned_at AS "cleanedAt"
+         FROM noderag.build_activation_history ORDER BY id DESC LIMIT 100`,
+      ),
+      options.pool.query(
+        `SELECT id,activation_id AS "activationId",state,checkpoint,
+                requested_at AS "requestedAt",completed_at AS "completedAt"
+         FROM noderag.build_cleanup ORDER BY id DESC LIMIT 100`,
+      ),
+    ]);
+    const statesByBuild = new Map<number, unknown[]>();
+    for (const state of siloStates.rows) {
+      const buildId = databaseInteger(state.build_id, 'build id');
+      const existing = statesByBuild.get(buildId) ?? [];
+      existing.push({
+        siloId: state.silo_id,
+        state: state.state,
+        completedDocuments: state.processed_documents,
+        totalDocuments: state.total_documents,
+        checkpointDocuments: state.checkpoint_documents,
+        verificationId: state.verification_id,
+        lastError: state.last_error,
+      });
+      statesByBuild.set(buildId, existing);
+    }
+    return reply.send({
+      items: builds.rows.map((build) => ({
+        ...build,
+        silos: statesByBuild.get(databaseInteger(build['id'], 'build id')) ?? [],
+      })),
+      proposals: proposals.rows,
+      activations: activations.rows,
+      cleanups: cleanups.rows,
+    });
   });
   app.post('/v1/admin/builds', async (request, reply) => {
     const principal = await requireAdmin(request, options, true);
@@ -996,6 +1105,8 @@ export const registerAdminRoutes = (
     const body = buildSchema.safeParse(request.body);
     if (!body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
     try {
+      const filesystem = await statfs(options.files.root, { bigint: true });
+      const availableBytes = filesystem.bavail * filesystem.bsize;
       const result = await mutate(
         request,
         principal,
@@ -1003,22 +1114,244 @@ export const registerAdminRoutes = (
         'admin-build-create',
         body.data,
         async (database) => {
-          const row = await database.query(
-            `INSERT INTO noderag.build(state,target_chars,overlap_chars,max_tokens,snap_window,heading_prefix,rules_version,model_manifest_id,query_prefix,reason) SELECT 'building',COALESCE($1,s.target_chars),COALESCE($2,s.overlap_chars),COALESCE($3,s.max_tokens),COALESCE($4,s.snap_window),COALESCE($5,s.heading_prefix),s.rules_version,COALESCE($6,s.model_manifest_id),m.query_prefix,$7 FROM noderag.settings s JOIN noderag.model_manifest m ON m.id=COALESCE($6,s.model_manifest_id) WHERE s.id=1 RETURNING *`,
-            [
-              body.data.targetChars ?? null,
-              body.data.overlapChars ?? null,
-              body.data.maxTokens ?? null,
-              body.data.snapWindow ?? null,
-              body.data.headingPrefix ?? null,
-              body.data.modelManifestId ?? null,
-              body.data.reason,
-            ],
-          );
-          return { status: 202, body: row.rows[0] };
+          const defaults = await database.query<{
+            target_chars: number;
+            overlap_chars: number;
+            max_tokens: number;
+            snap_window: string | number;
+            heading_prefix: boolean;
+            rules_version: number;
+            model_manifest_id: number;
+          }>('SELECT * FROM noderag.settings WHERE id=1');
+          const settings = defaults.rows[0];
+          if (settings === undefined) throw new Error('settings-not-found');
+          const silos =
+            body.data.siloIds ??
+            (
+              await database.query<{ id: number }>(
+                "SELECT id FROM noderag.silo WHERE lifecycle_state='active' ORDER BY id",
+              )
+            ).rows.map((row) => row.id);
+          const proposal = await createRebuildProposal(database, {
+            modelManifestId: body.data.modelManifestId ?? settings.model_manifest_id,
+            targetChars: body.data.targetChars ?? settings.target_chars,
+            overlapChars: body.data.overlapChars ?? settings.overlap_chars,
+            maxTokens: body.data.maxTokens ?? settings.max_tokens,
+            snapWindow: body.data.snapWindow ?? Number(settings.snap_window),
+            headingPrefix: body.data.headingPrefix ?? settings.heading_prefix,
+            rulesVersion: settings.rules_version,
+            siloIds: silos,
+            reason: body.data.reason,
+            createdBy: principal.principalId,
+            embeddingCharactersPerSecond: body.data.embeddingCharactersPerSecond,
+            availableBytes,
+            freeSpaceReserveBytes: 10n * 1024n * 1024n * 1024n,
+          });
+          return { status: 202, body: { kind: 'rebuild_proposal', ...proposal } };
         },
       );
       return reply.code(result.response.status).send(result.response.body);
+    } catch (error) {
+      return mutationFailure(reply, request, error);
+    }
+  });
+
+  app.post('/v1/admin/build-proposals/:id/confirm', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const id = idSchema.safeParse((request.params as { id?: unknown }).id);
+    const body = buildConfirmSchema.safeParse(request.body);
+    if (!id.success || !body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    try {
+      const result = await mutate(
+        request,
+        principal,
+        options,
+        `admin-build-proposal-confirm:${String(id.data)}`,
+        body.data,
+        async (database) => {
+          const build = await confirmRebuildProposal(database, id.data, principal.principalId);
+          return { status: 202, body: build };
+        },
+      );
+      return reply.code(result.response.status).send(result.response.body);
+    } catch (error) {
+      return mutationFailure(reply, request, error);
+    }
+  });
+
+  app.post('/v1/admin/builds/:id/verify', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const id = smallIdSchema.safeParse((request.params as { id?: unknown }).id);
+    const body = buildVerifySchema.safeParse(request.body);
+    if (!id.success || !body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    try {
+      const result = await mutate(
+        request,
+        principal,
+        options,
+        `admin-build-verify:${String(id.data)}:${String(body.data.siloId)}`,
+        body.data,
+        async () => ({
+          status: 200,
+          body: await verifyStagedSilo(
+            options.pool,
+            id.data,
+            body.data.siloId,
+            principal.principalId,
+          ),
+        }),
+      );
+      return reply.send(result.response.body);
+    } catch (error) {
+      return mutationFailure(reply, request, error);
+    }
+  });
+
+  app.post('/v1/admin/builds/:id/activate', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const id = smallIdSchema.safeParse((request.params as { id?: unknown }).id);
+    const body = buildActivateSchema.safeParse(request.body);
+    if (!id.success || !body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    try {
+      const result = await mutate(
+        request,
+        principal,
+        options,
+        `admin-build-activate:${String(id.data)}`,
+        body.data,
+        async () => ({
+          status: 200,
+          body: {
+            activationId: await activateVerifiedBuild(
+              options.pool,
+              id.data,
+              body.data.siloIds,
+              principal.principalId,
+            ),
+          },
+        }),
+      );
+      return reply.send(result.response.body);
+    } catch (error) {
+      return mutationFailure(reply, request, error);
+    }
+  });
+
+  app.post('/v1/admin/build-activations/:id/rollback', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const id = idSchema.safeParse((request.params as { id?: unknown }).id);
+    const body = buildConfirmSchema.safeParse(request.body);
+    if (!id.success || !body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    try {
+      const result = await mutate(
+        request,
+        principal,
+        options,
+        `admin-build-rollback:${String(id.data)}`,
+        body.data,
+        async () => {
+          await rollbackBuildActivation(options.pool, id.data, principal.principalId);
+          return { status: 200, body: { activationId: id.data, state: 'rolled_back' } };
+        },
+      );
+      return reply.send(result.response.body);
+    } catch (error) {
+      return mutationFailure(reply, request, error);
+    }
+  });
+
+  app.post('/v1/admin/build-activations/:id/cleanup-authorizations', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const id = idSchema.safeParse((request.params as { id?: unknown }).id);
+    const body = destructiveConfirmationSchema.safeParse(request.body);
+    if (!id.success || !body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    try {
+      const result = await mutate(
+        request,
+        principal,
+        options,
+        `admin-build-cleanup-authorize:${String(id.data)}`,
+        body.data,
+        async (database) => ({
+          status: 201,
+          body: {
+            cleanupId: await authorizeBuildCleanup(
+              database,
+              id.data,
+              body.data.confirmation,
+              principal.principalId,
+            ),
+          },
+        }),
+      );
+      return reply.code(result.response.status).send(result.response.body);
+    } catch (error) {
+      return mutationFailure(reply, request, error);
+    }
+  });
+
+  app.post('/v1/admin/build-cleanups/:id/run', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const id = idSchema.safeParse((request.params as { id?: unknown }).id);
+    const body = buildConfirmSchema.safeParse(request.body);
+    if (!id.success || !body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    try {
+      const result = await mutate(
+        request,
+        principal,
+        options,
+        `admin-build-cleanup-run:${String(id.data)}`,
+        body.data,
+        async () => {
+          await runAuthorizedBuildCleanup(options.pool, id.data, principal.principalId);
+          return { status: 200, body: { cleanupId: id.data, state: 'completed' } };
+        },
+      );
+      return reply.send(result.response.body);
+    } catch (error) {
+      return mutationFailure(reply, request, error);
+    }
+  });
+
+  app.delete('/v1/admin/builds/:id/checkpoints', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const id = smallIdSchema.safeParse((request.params as { id?: unknown }).id);
+    const body = destructiveConfirmationSchema.safeParse(request.body);
+    if (!id.success || !body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    try {
+      const result = await mutate(
+        request,
+        principal,
+        options,
+        `admin-build-checkpoints-discard:${String(id.data)}`,
+        body.data,
+        async (database) => ({
+          status: 200,
+          body: {
+            removed: await discardBuildCheckpoints(
+              database,
+              id.data,
+              body.data.confirmation,
+              principal.principalId,
+            ),
+          },
+        }),
+      );
+      return reply.send(result.response.body);
     } catch (error) {
       return mutationFailure(reply, request, error);
     }
@@ -1030,12 +1363,6 @@ export const registerAdminRoutes = (
     const id = smallIdSchema.safeParse((request.params as { id?: unknown }).id);
     const body = buildPatchSchema.safeParse(request.body);
     if (!id.success || !body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
-    const next =
-      body.data.action === 'pause'
-        ? 'paused'
-        : body.data.action === 'resume'
-          ? 'building'
-          : 'cancelled';
     try {
       const result = await mutate(
         request,
@@ -1044,12 +1371,8 @@ export const registerAdminRoutes = (
         `admin-build-action:${String(id.data)}`,
         body.data,
         async (database) => {
-          const row = await database.query(
-            `UPDATE noderag.build SET state=$2 WHERE id=$1 AND state IN ('building','paused') RETURNING *`,
-            [id.data, next],
-          );
-          if (row.rows[0] === undefined) throw new Error('build_not_mutable');
-          return { status: 200, body: row.rows[0] };
+          await changeBuildState(database, id.data, body.data.action, principal.principalId);
+          return { status: 200, body: { id: id.data, state: body.data.action } };
         },
       );
       return reply.send(result.response.body);
@@ -1147,8 +1470,11 @@ export const registerAdminRoutes = (
       document_prefix: string;
       name: string;
       source_revision: string;
+      manifest_digest: string;
+      dimensions: number;
     }>(
-      `SELECT m.maximum_tokens, m.document_prefix, m.name, m.source_revision
+      `SELECT m.maximum_tokens, m.document_prefix, m.name, m.source_revision,
+              m.manifest_digest, m.dimensions
        FROM noderag.model_manifest m WHERE m.active`,
     );
     const active = model.rows[0];
@@ -1160,6 +1486,7 @@ export const registerAdminRoutes = (
       samples.map((value) => `${active.document_prefix}${value.normalize('NFC')}`),
       active.maximum_tokens,
       0,
+      { manifestDigest: active.manifest_digest, dimensions: active.dimensions },
     );
     const elapsedMs = Math.max(1, performance.now() - started);
     const charactersPerSecond = Math.round((characters * 1000) / elapsedMs);

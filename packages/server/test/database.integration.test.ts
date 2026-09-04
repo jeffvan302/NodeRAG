@@ -30,8 +30,8 @@ describe('foundation migration', () => {
         service: 'noderag',
         status: 'unavailable',
         state: 'unconfigured',
-        migrationHead: '000008_package_lifecycle',
-        expectedMigrationHead: '000008_package_lifecycle',
+        migrationHead: '000009_zero_downtime_rebuilds',
+        expectedMigrationHead: '000009_zero_downtime_rebuilds',
         reasons: ['readiness-state:unconfigured'],
       });
 

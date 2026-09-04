@@ -265,7 +265,7 @@ export const registerIdentityRoutes = (
     const principal = await authenticate(request);
     if (principal === null)
       return reply.code(401).send(problem(401, 'authentication_required', request.id));
-    const path = resolve(process.env['NODERAG_OPENAPI'] ?? 'platform/openapi.m09.json');
+    const path = resolve(process.env['NODERAG_OPENAPI'] ?? 'platform/openapi.m11.json');
     return reply
       .type('application/json')
       .code(200)

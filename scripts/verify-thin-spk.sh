@@ -75,6 +75,10 @@ done
   echo "Missing payload member: platform/openapi.m09.json" >&2
   exit 1
 }
+[[ -e "${verify_root}/payload/platform/openapi.m11.json" ]] || {
+  echo "Missing payload member: platform/openapi.m11.json" >&2
+  exit 1
+}
 
 grep -q '^package="noderag"$' "${verify_root}/outer/INFO"
 grep -q '^arch="x86_64"$' "${verify_root}/outer/INFO"
@@ -97,6 +101,8 @@ node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' \
   "${verify_root}/payload/platform/openapi.m07.json"
 grep -F '"openapi": "3.1.1"' \
   "${verify_root}/payload/platform/openapi.m09.json"
+grep -F '"openapi": "3.1.1"' \
+  "${verify_root}/payload/platform/openapi.m11.json"
 grep -q '"run-as": "package"' "${verify_root}/outer/conf/privilege"
 grep -q '127.0.0.1:8787' "${verify_root}/outer/conf/resource"
 

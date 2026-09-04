@@ -1,5 +1,5 @@
 import { setTimeout as delay } from 'node:timers/promises';
-import type { Embedder, EmbeddingBatch } from '@noderag/shared';
+import type { Embedder, EmbedderModel, EmbeddingBatch } from '@noderag/shared';
 import type { Pool, PoolClient } from 'pg';
 import { databaseInteger, withTransaction } from './database.js';
 
@@ -99,14 +99,21 @@ export const withHnswBuildResource = async <T>(
 ): Promise<T> => withCpuResource(pool, owner, () => withAdvisoryGate(pool, 'hnsw', operation));
 
 export const coordinatedEmbedder = (pool: Pool, owner: string, embedder: Embedder): Embedder => ({
-  countTokens: (texts: readonly string[], priority?: number): Promise<readonly number[]> =>
-    withCpuResource(pool, `${owner}:tokenize`, () => embedder.countTokens(texts, priority)),
+  countTokens: (
+    texts: readonly string[],
+    priority?: number,
+    model?: EmbedderModel,
+  ): Promise<readonly number[]> =>
+    withCpuResource(pool, `${owner}:tokenize`, () => embedder.countTokens(texts, priority, model)),
   embed: (
     texts: readonly string[],
     maximumTokens: number,
     priority?: number,
+    model?: EmbedderModel,
   ): Promise<EmbeddingBatch> =>
     withCpuResource(pool, `${owner}:embed`, () =>
-      withAdvisoryGate(pool, 'embedding', () => embedder.embed(texts, maximumTokens, priority)),
+      withAdvisoryGate(pool, 'embedding', () =>
+        embedder.embed(texts, maximumTokens, priority, model),
+      ),
     ),
 });

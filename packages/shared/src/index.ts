@@ -21,9 +21,11 @@ export {
 } from './identity.js';
 export { chunkCanonicalMarkdown, type ChunkCandidate, type ChunkProfile } from './chunking.js';
 export {
+  embedderModelSchema,
   embedderRequestSchema,
   embedderResponseSchema,
   type Embedder,
+  type EmbedderModel,
   type EmbedderRequest,
   type EmbedderResponse,
   type EmbeddingBatch,

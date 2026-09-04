@@ -252,9 +252,9 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
              SELECT 'vision', document.id, document.silo_id, build.id, 3, 5,
                     jsonb_build_object('reason', 'manual-retry')
              FROM noderag.document document
-             CROSS JOIN LATERAL (
-               SELECT id FROM noderag.build WHERE state = 'active' LIMIT 1
-             ) build
+             JOIN noderag.silo_build_state active
+               ON active.silo_id=document.silo_id AND active.state='active'
+             JOIN noderag.build build ON build.id=active.build_id
              WHERE document.state = 'awaiting_vision'
                AND ($1::bigint IS NULL OR document.id = $1)
                AND ($2::smallint IS NULL OR document.silo_id = $2)
@@ -321,9 +321,10 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
           const queued = await database.query<{ id: unknown }>(
             `INSERT INTO noderag.job
                (kind,document_id,silo_id,build_id,priority,payload)
-             SELECT 'vision',$1,$2,id,3,
+             SELECT 'vision',$1,$2,active.build_id,3,
                     jsonb_build_object('reason','image-revision','imageId',$3::bigint)
-             FROM noderag.build WHERE state='active'
+             FROM noderag.silo_build_state active
+             WHERE active.silo_id=$2 AND active.state='active'
              ON CONFLICT (document_id, kind)
                WHERE document_id IS NOT NULL
                  AND state IN ('pending','leased','retry_wait','paused')

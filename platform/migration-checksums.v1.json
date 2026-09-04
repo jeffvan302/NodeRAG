@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expectedHead": "000008_package_lifecycle",
+  "expectedHead": "000009_zero_downtime_rebuilds",
   "migrations": [
     {
       "id": "000001_foundation",
@@ -48,6 +48,12 @@
       "id": "000008_package_lifecycle",
       "path": "packages/server/migrations/000008_package_lifecycle.sql",
       "sha256": "d10bc999506272fbf8ca8342964db5036a1b44964f29a755d9383c5206f3df81",
+      "direction": "up-only"
+    },
+    {
+      "id": "000009_zero_downtime_rebuilds",
+      "path": "packages/server/migrations/000009_zero_downtime_rebuilds.sql",
+      "sha256": "03bd94112fd134580d3115a2464983c775ea0e38d6af227d65ead13ba59de767",
       "direction": "up-only"
     }
   ]

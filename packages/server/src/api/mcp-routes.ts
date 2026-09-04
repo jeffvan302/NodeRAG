@@ -268,7 +268,12 @@ export const registerMcpRoutes = (
             document_id: unknown;
             ordinal: number;
           }>(
-            `SELECT id,silo_id,document_id,ordinal FROM noderag.chunk WHERE id=$1 AND silo_id=ANY($2::smallint[]) AND build_id=(SELECT id FROM noderag.build WHERE state='active')`,
+            `SELECT chunk.id,chunk.silo_id,chunk.document_id,chunk.ordinal
+             FROM noderag.chunk chunk
+             JOIN noderag.silo_build_state active
+               ON active.silo_id=chunk.silo_id AND active.build_id=chunk.build_id
+              AND active.state='active'
+             WHERE chunk.id=$1 AND chunk.silo_id=ANY($2::smallint[])`,
             [args.data.chunkId, scope.siloIds],
           );
           const row = target.rows[0];
@@ -284,7 +289,14 @@ export const registerMcpRoutes = (
             byte_start: number;
             byte_end: number;
           }>(
-            `SELECT id,ordinal,text,page_start,page_end,character_start,character_end,byte_start,byte_end FROM noderag.chunk WHERE silo_id=$1 AND document_id=$2 AND build_id=(SELECT id FROM noderag.build WHERE state='active') AND ordinal BETWEEN $3 AND $4 ORDER BY ordinal`,
+            `SELECT chunk.id,chunk.ordinal,chunk.text,chunk.page_start,chunk.page_end,
+                    chunk.character_start,chunk.character_end,chunk.byte_start,chunk.byte_end
+             FROM noderag.chunk chunk
+             JOIN noderag.silo_build_state active
+               ON active.silo_id=chunk.silo_id AND active.build_id=chunk.build_id
+              AND active.state='active'
+             WHERE chunk.silo_id=$1 AND chunk.document_id=$2
+               AND chunk.ordinal BETWEEN $3 AND $4 ORDER BY chunk.ordinal`,
             [
               row.silo_id,
               row.document_id,

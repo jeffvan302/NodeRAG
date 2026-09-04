@@ -151,8 +151,9 @@ export const continueDocumentPurge = async (
       await database.query(
         `UPDATE noderag.build
          SET chunk_count = GREATEST(0, COALESCE(chunk_count, 0) - $1)
-         WHERE state = 'active'`,
-        [destroyed.chunks],
+         WHERE id=(SELECT build_id FROM noderag.silo_build_state
+                   WHERE silo_id=$2 AND state='active')`,
+        [destroyed.chunks, row.silo_id],
       );
       await database.query('DELETE FROM noderag.document WHERE id = $1 AND silo_id = $2', [
         documentId,

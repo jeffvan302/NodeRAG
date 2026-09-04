@@ -2,15 +2,16 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
-import type { EmbeddingBatch } from '@noderag/shared';
+import type { Embedder, EmbedderModel } from '@noderag/shared';
 import type { Tensor as OrtTensor } from 'onnxruntime-node';
 
-export interface EmbeddingRuntime {
+export interface EmbeddingRuntime extends Embedder {
   readonly dimensions: number;
-  embed(texts: readonly string[], maxTokens: number): Promise<EmbeddingBatch>;
-  countTokens(texts: readonly string[]): Promise<readonly number[]>;
   close(): Promise<void>;
 }
+
+export const defaultModelManifestDigest =
+  'a3e6f76a9d02f5e3fcd88491aab3ad3622739e785e8847d0e098362bf7640aaf';
 
 const normalized = (vector: readonly number[]): readonly number[] => {
   const length = Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0));
@@ -24,20 +25,30 @@ const deterministicTokens = (text: string): readonly string[] =>
     .toLowerCase()
     .match(/[\p{L}\p{N}_-]+/gu) ?? [''];
 
-export const createDeterministicRuntime = (dimensions = 1024): EmbeddingRuntime => ({
+export const createDeterministicRuntime = (
+  dimensions = 1024,
+  baseManifestDigest = defaultModelManifestDigest,
+): EmbeddingRuntime => ({
   dimensions,
   async countTokens(texts) {
     return texts.map((text) => deterministicTokens(text).length);
   },
-  async embed(texts, maxTokens) {
+  async embed(texts, maxTokens, _priority, model) {
     const started = performance.now();
     const tokenCounts = texts.map((text) => deterministicTokens(text).length);
     if (tokenCounts.some((count) => count > maxTokens)) throw new Error('TOKEN_LIMIT');
+    const selectedDimensions = model?.dimensions ?? dimensions;
+    const salt =
+      model === undefined || model.manifestDigest === baseManifestDigest
+        ? undefined
+        : model.manifestDigest;
     const vectors = texts.map((text) => {
-      const vector = new Array<number>(dimensions).fill(0);
+      const vector = new Array<number>(selectedDimensions).fill(0);
       for (const token of deterministicTokens(text)) {
-        const digest = createHash('sha256').update(token).digest();
-        const index = digest.readUInt32BE(0) % dimensions;
+        const hash = createHash('sha256');
+        if (salt !== undefined) hash.update(salt).update('\0');
+        const digest = hash.update(token).digest();
+        const index = digest.readUInt32BE(0) % selectedDimensions;
         vector[index] = (vector[index] ?? 0) + 1;
       }
       return normalized(vector);
@@ -83,6 +94,7 @@ export const createOnnxRuntime = async (options: {
   readonly modelPath: string;
   readonly dimensions: number;
   readonly threads: number;
+  readonly manifestDigest?: string;
 }): Promise<EmbeddingRuntime> => {
   const [{ Tokenizer }, ort, tokenizerJson, tokenizerConfig] = await Promise.all([
     import('@huggingface/tokenizers'),
@@ -114,6 +126,19 @@ export const createOnnxRuntime = async (options: {
   const countOne = async (text: string): Promise<number> => {
     const tokenized = tokenize(text);
     return Array.from(tokenized.attention_mask.data, asNumber).filter((value) => value > 0).length;
+  };
+
+  const assertModel = (model?: EmbedderModel): void => {
+    if (model !== undefined && model.dimensions !== options.dimensions) {
+      throw new Error('EMBEDDER_MODEL_DIMENSION_MISMATCH');
+    }
+    if (
+      model !== undefined &&
+      options.manifestDigest !== undefined &&
+      model.manifestDigest !== options.manifestDigest
+    ) {
+      throw new Error('EMBEDDER_MODEL_UNAVAILABLE');
+    }
   };
 
   const embedOne = async (text: string, maxTokens: number) => {
@@ -183,10 +208,12 @@ export const createOnnxRuntime = async (options: {
 
   return {
     dimensions: options.dimensions,
-    async countTokens(texts) {
+    async countTokens(texts, _priority, model) {
+      assertModel(model);
       return Promise.all(texts.map(countOne));
     },
-    async embed(texts, maxTokens) {
+    async embed(texts, maxTokens, _priority, model) {
+      assertModel(model);
       const started = performance.now();
       const results = [];
       for (const text of texts) results.push(await embedOne(text, maxTokens));

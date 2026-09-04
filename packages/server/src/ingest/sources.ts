@@ -283,15 +283,22 @@ const decrementDocumentEmbeddingReferences = async (
   documentId: number,
 ): Promise<number> => {
   const count = await database.query<{ count: string }>(
-    `SELECT count(*)::text AS count FROM noderag.chunk
-     WHERE silo_id = $1 AND document_id = $2`,
+    `SELECT count(*)::text AS count FROM noderag.chunk chunk
+     JOIN noderag.silo_build_state active
+       ON active.silo_id=chunk.silo_id AND active.build_id=chunk.build_id
+      AND active.state='active'
+     WHERE chunk.silo_id=$1 AND chunk.document_id=$2`,
     [siloId, documentId],
   );
   await database.query(
     `WITH refs AS (
        SELECT chunk_sha256, b.model_manifest_id, count(*)::integer AS used
-       FROM noderag.chunk c JOIN noderag.build b ON b.id = c.build_id
-       WHERE c.silo_id = $1 AND c.document_id = $2
+       FROM noderag.chunk c
+       JOIN noderag.build b ON b.id=c.build_id
+       JOIN noderag.silo_build_state active
+         ON active.silo_id=c.silo_id AND active.build_id=c.build_id
+        AND active.state='active'
+       WHERE c.silo_id=$1 AND c.document_id=$2
        GROUP BY chunk_sha256, b.model_manifest_id
      )
      UPDATE noderag.embedding_cache cache
@@ -401,13 +408,17 @@ const updateWatchedDocument = async (
     await database.query(
       `UPDATE noderag.build
        SET chunk_count = GREATEST(0, COALESCE(chunk_count, 0) - $1)
-       WHERE state = 'active'`,
-      [removedChunks],
+       WHERE id=(SELECT build_id FROM noderag.silo_build_state
+                 WHERE silo_id=$2 AND state='active')`,
+      [removedChunks, source.silo_id],
     );
-    await database.query(`DELETE FROM noderag.chunk WHERE silo_id = $1 AND document_id = $2`, [
-      source.silo_id,
-      documentId,
-    ]);
+    await database.query(
+      `DELETE FROM noderag.chunk chunk WHERE silo_id=$1 AND document_id=$2
+       AND EXISTS(SELECT 1 FROM noderag.silo_build_state active
+                  WHERE active.silo_id=chunk.silo_id AND active.build_id=chunk.build_id
+                    AND active.state='active')`,
+      [source.silo_id, documentId],
+    );
     await database.query('DELETE FROM noderag.document_page WHERE document_id = $1', [documentId]);
     await database.query(
       `UPDATE noderag.job

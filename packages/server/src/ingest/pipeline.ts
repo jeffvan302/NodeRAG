@@ -210,7 +210,11 @@ const extractCanonicalDocument = async (
       }
     }
     const build = await database.query<{ id: unknown }>(
-      `SELECT id FROM noderag.build WHERE state = 'active'`,
+      `SELECT build.id
+       FROM noderag.silo_build_state state
+       JOIN noderag.build build ON build.id=state.build_id
+       WHERE state.silo_id=$1 AND state.state='active'`,
+      [job.siloId],
     );
     const buildId = databaseInteger(build.rows[0]?.id, 'active build id');
     if ((job.kind === 'vision' && !awaitingVision) || job.kind === 'extract') {
@@ -301,6 +305,8 @@ const extractCanonicalDocument = async (
 interface BuildProfileRow {
   readonly build_id: unknown;
   readonly model_manifest_id: unknown;
+  readonly model_digest: string;
+  readonly dimensions: number;
   readonly target_chars: number;
   readonly overlap_chars: number;
   readonly max_tokens: number;
@@ -315,17 +321,17 @@ interface DocumentPageRangeRow {
   readonly character_end: number;
 }
 
-const vectorLiteral = (vector: readonly number[]): string => {
-  if (vector.length !== 1024 || vector.some((value) => !Number.isFinite(value))) {
+const vectorLiteral = (vector: readonly number[], dimensions: number): string => {
+  if (vector.length !== dimensions || vector.some((value) => !Number.isFinite(value))) {
     throw new Error('invalid-embedding-vector');
   }
   return `[${vector.map((value) => String(value)).join(',')}]`;
 };
 
-const parseVector = (literal: string): readonly number[] => {
+const parseVector = (literal: string, dimensions: number): readonly number[] => {
   if (!literal.startsWith('[') || !literal.endsWith(']')) throw new Error('invalid-cached-vector');
   const values = literal.slice(1, -1).split(',').map(Number);
-  if (values.length !== 1024 || values.some((value) => !Number.isFinite(value))) {
+  if (values.length !== dimensions || values.some((value) => !Number.isFinite(value))) {
     throw new Error('invalid-cached-vector');
   }
   return values;
@@ -345,16 +351,23 @@ const embedMarkdown = async (
   if (job.documentId === null || job.siloId === null || job.buildId === null) {
     throw new Error('embed-job-missing-scope');
   }
+  const configuredTarget = job.frozenConfig['stagingTable'];
+  const targetTable =
+    typeof configuredTarget === 'string' && /^chunk_stage_b\d+_s\d+$/u.test(configuredTarget)
+      ? configuredTarget
+      : null;
+  const chunkRelation = targetTable === null ? 'noderag.chunk' : `noderag.${targetTable}`;
   await heartbeatJob(pool, job, 60_000, { stage: 'prepare-embedding' }, { stage: 'embed' });
   const profile = await withTransaction(pool, async (database) => {
     await setWorkerScope(database, job.siloId ?? 0);
     const found = await database.query<BuildProfileRow>(
-      `SELECT b.id AS build_id, b.model_manifest_id, b.target_chars, b.overlap_chars,
+      `SELECT b.id AS build_id, b.model_manifest_id, b.model_digest, b.dimensions,
+              b.target_chars, b.overlap_chars,
               b.max_tokens, b.snap_window, b.heading_prefix, d.markdown_sha256
        FROM noderag.build b
        JOIN noderag.document d ON d.id = $1 AND d.silo_id = $2
        JOIN noderag.document_page p ON p.document_id = $1 AND p.silo_id = $2 AND p.ordinal = 0
-       WHERE b.id = $3 AND b.state = 'active'`,
+       WHERE b.id = $3 AND b.state IN ('active','building')`,
       [job.documentId, job.siloId, job.buildId],
     );
     const row = found.rows[0];
@@ -382,13 +395,22 @@ const embedMarkdown = async (
     `job:${String(job.id)}:${String(job.leaseEpoch)}`,
     embedder,
   );
+  const selectedModel = {
+    manifestDigest: profile.model_digest,
+    dimensions: profile.dimensions,
+  };
+  const buildEmbedder: Embedder = {
+    countTokens: (texts, priority) => activeEmbedder.countTokens(texts, priority, selectedModel),
+    embed: (texts, maximumTokens, priority) =>
+      activeEmbedder.embed(texts, maximumTokens, priority, selectedModel),
+  };
   const candidates = chunkCanonicalMarkdown(markdown, {
     targetCharacters: profile.target_chars,
     overlapCharacters: profile.overlap_chars,
     snapWindow: Number(profile.snap_window),
     headingPrefix: profile.heading_prefix,
   });
-  const guarded = await enforceTokenGuard(markdown, candidates, profile.max_tokens, activeEmbedder);
+  const guarded = await enforceTokenGuard(markdown, candidates, profile.max_tokens, buildEmbedder);
   if (guarded.length === 0) throw new Error('no-chunks-produced');
 
   const prepared: PreparedChunk[] = [];
@@ -397,16 +419,21 @@ const embedMarkdown = async (
     const sha256 = createHash('sha256').update(chunk.embeddingText, 'utf8').digest();
     const cached = await pool.query<{ embedding: string }>(
       `SELECT embedding::text AS embedding FROM noderag.embedding_cache
-       WHERE chunk_sha256 = $1 AND model_manifest_id = $2 AND dimensions = 1024`,
-      [sha256, modelManifestId],
+       WHERE chunk_sha256 = $1 AND model_manifest_id = $2 AND dimensions = $3`,
+      [sha256, modelManifestId, profile.dimensions],
     );
     const row = cached.rows[0];
     if (row === undefined) misses.push({ chunk, sha256 });
-    else prepared.push({ ...chunk, sha256, vector: parseVector(row.embedding) });
+    else
+      prepared.push({
+        ...chunk,
+        sha256,
+        vector: parseVector(row.embedding, profile.dimensions),
+      });
   }
   for (let offset = 0; offset < misses.length; offset += 16) {
     const batch = misses.slice(offset, offset + 16);
-    const result = await activeEmbedder.embed(
+    const result = await buildEmbedder.embed(
       batch.map((item) => item.chunk.embeddingText),
       profile.max_tokens,
       4,
@@ -432,13 +459,14 @@ const embedMarkdown = async (
   await withTransaction(pool, async (database) => {
     await setWorkerScope(database, job.siloId ?? 0);
     const existing = await database.query(
-      `SELECT 1 FROM noderag.chunk
+      `SELECT 1 FROM ${chunkRelation}
        WHERE silo_id = $1 AND document_id = $2 AND build_id = $3 LIMIT 1`,
       [job.siloId, job.documentId, buildId],
     );
     if ((existing.rowCount ?? 0) > 0) throw new Error('document-build-already-indexed');
+    const activeReferenceIncrement = targetTable === null ? 1 : 0;
     for (const chunk of prepared) {
-      const embedding = vectorLiteral(chunk.vector);
+      const embedding = vectorLiteral(chunk.vector, profile.dimensions);
       const pages = pageRanges
         .filter(
           (page) =>
@@ -452,14 +480,14 @@ const embedMarkdown = async (
       await database.query(
         `INSERT INTO noderag.embedding_cache
            (chunk_sha256, model_manifest_id, dimensions, embedding, refcount)
-         VALUES ($1, $2, 1024, $3::halfvec, 1)
+         VALUES ($1, $2, $3, $4::halfvec, $5)
          ON CONFLICT (chunk_sha256, model_manifest_id)
-         DO UPDATE SET refcount = noderag.embedding_cache.refcount + 1,
+         DO UPDATE SET refcount = noderag.embedding_cache.refcount + $5,
                        last_used_at = now()`,
-        [chunk.sha256, modelManifestId, embedding],
+        [chunk.sha256, modelManifestId, profile.dimensions, embedding, activeReferenceIncrement],
       );
       await database.query(
-        `INSERT INTO noderag.chunk
+        `INSERT INTO ${chunkRelation}
            (silo_id, document_id, build_id, ordinal, text, page_start, page_end,
             character_start, character_end, byte_start, byte_end, embedding,
             token_count, heading_path, chunk_sha256, part_of, structure_kind,
@@ -488,16 +516,52 @@ const embedMarkdown = async (
         ],
       );
     }
-    await database.query(
-      `UPDATE noderag.document
-       SET state = CASE WHEN EXISTS (
-             SELECT 1 FROM noderag.document_image image
-             WHERE image.document_id = $1 AND image.state = 'pending_vision'
-           ) THEN 'awaiting_vision' ELSE 'ready' END,
-           indexed_at = now()
-       WHERE id = $1 AND silo_id = $2`,
-      [job.documentId, job.siloId],
-    );
+    if (targetTable === null) {
+      await database.query(
+        `UPDATE noderag.document
+         SET state = CASE WHEN EXISTS (
+               SELECT 1 FROM noderag.document_image image
+               WHERE image.document_id = $1 AND image.state = 'pending_vision'
+             ) THEN 'awaiting_vision' ELSE 'ready' END,
+             indexed_at = now()
+         WHERE id = $1 AND silo_id = $2`,
+        [job.documentId, job.siloId],
+      );
+    } else {
+      const embeddedTextDigest = createHash('sha256')
+        .update(prepared.map((chunk) => chunk.embeddingText).join('\u0000'), 'utf8')
+        .digest();
+      await database.query(
+        `INSERT INTO noderag.build_document_checkpoint
+           (build_id,silo_id,document_id,markdown_sha256,embedded_text_digest,
+            model_manifest_digest,chunk_count,state)
+         VALUES($1,$2,$3,$4,$5,$6,$7,'complete')
+         ON CONFLICT(build_id,silo_id,document_id) DO UPDATE
+         SET markdown_sha256=EXCLUDED.markdown_sha256,
+             embedded_text_digest=EXCLUDED.embedded_text_digest,
+             model_manifest_digest=EXCLUDED.model_manifest_digest,
+             chunk_count=EXCLUDED.chunk_count,state='complete',completed_at=now()`,
+        [
+          buildId,
+          job.siloId,
+          job.documentId,
+          markdownSha256,
+          embeddedTextDigest,
+          profile.model_digest,
+          prepared.length,
+        ],
+      );
+      await database.query(
+        `UPDATE noderag.silo_build_state state
+         SET processed_documents=checkpoint.count,
+             checkpoint_documents=checkpoint.count,updated_at=now()
+         FROM (SELECT count(*)::bigint AS count
+               FROM noderag.build_document_checkpoint
+               WHERE build_id=$1 AND silo_id=$2 AND state='complete') checkpoint
+         WHERE state.build_id=$1 AND state.silo_id=$2`,
+        [buildId, job.siloId],
+      );
+    }
     await database.query(
       `UPDATE noderag.build
        SET chunk_count = COALESCE(chunk_count, 0) + $2
@@ -507,9 +571,15 @@ const embedMarkdown = async (
     await completeJob(database, job, { chunks: prepared.length, buildId });
     await database.query(
       `INSERT INTO noderag.audit_log (silo_id, action, result, row_count, detail)
-       VALUES ($1, 'document.index', 'ok', $2,
+       VALUES ($1, $5, 'ok', $2,
                jsonb_build_object('documentId', $3::bigint, 'buildId', $4::int))`,
-      [job.siloId, prepared.length, job.documentId, buildId],
+      [
+        job.siloId,
+        prepared.length,
+        job.documentId,
+        buildId,
+        targetTable === null ? 'document.index' : 'build.document_checkpoint',
+      ],
     );
   });
 };

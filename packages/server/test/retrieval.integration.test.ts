@@ -1,8 +1,9 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import type { Embedder } from '@noderag/shared';
+import type { Embedder, EmbedderModel } from '@noderag/shared';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDeterministicRuntime } from '../../embedder/src/runtime.js';
@@ -15,6 +16,18 @@ import { DocumentFileStore } from '../src/storage/document-files.js';
 import { runMigrations } from '../src/store/migrations.js';
 import { createDatabaseReadinessProbe } from '../src/store/readiness.js';
 import { drainDocumentJobs } from '../src/ingest/pipeline.js';
+import { withTransaction } from '../src/store/database.js';
+import {
+  activateVerifiedBuild,
+  authorizeBuildCleanup,
+  changeBuildState,
+  confirmRebuildProposal,
+  createRebuildProposal,
+  discardBuildCheckpoints,
+  rollbackBuildActivation,
+  runAuthorizedBuildCleanup,
+  verifyStagedSilo,
+} from '../src/store/rebuilds.js';
 
 const postgresImage =
   'pgvector/pgvector@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f';
@@ -50,7 +63,15 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
   let cookie: string;
   let csrf: string;
   let searchOnlyToken: string;
-  const embedder: Embedder = createDeterministicRuntime();
+  const embeddingRuntime = createDeterministicRuntime();
+  let embeddingGate: ((model?: EmbedderModel) => Promise<void>) | undefined;
+  const embedder: Embedder = {
+    countTokens: (texts, priority, model) => embeddingRuntime.countTokens(texts, priority, model),
+    embed: async (texts, maximumTokens, priority, model) => {
+      await embeddingGate?.(model);
+      return embeddingRuntime.embed(texts, maximumTokens, priority, model);
+    },
+  };
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer(postgresImage)
@@ -126,10 +147,14 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
       expect(accepted.statusCode, accepted.body).toBe(202);
       return accepted.json<{ documentId: number }>().documentId;
     };
+    const realPlanningCorpus = await readFile(
+      join(process.cwd(), 'docs', 'planning', 'M5-DURABLE-INGESTION-PURGE.md'),
+      'utf8',
+    );
     firstDocumentId = await upload(
       firstSiloId,
       'legal-register.md',
-      `# Legal register\n\nZX-991 termination notice is thirty days.\n\n| code | days |\n|---|---:|\n| ZX-991 | 30 |\n\n${'The legal cobalt register preserves contract notice evidence. '.repeat(60)}`,
+      `${realPlanningCorpus}\n\n# Continuous-search control\n\nZX-991 termination notice is thirty days.\n\n| code | days |\n|---|---:|\n| ZX-991 | 30 |\n\n${'The legal cobalt register preserves contract notice evidence. '.repeat(60)}`,
       'm08-upload-legal-001',
     );
     secondDocumentId = await upload(
@@ -400,6 +425,609 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
     });
   });
 
+  it('rebuilds under search load, resumes checkpoints, swaps models atomically, and rolls back', async () => {
+    const activeModel = await pool.query<{
+      id: number;
+      name: string;
+      artifact_sha256: string;
+      tokenizer_revision: string;
+      quantization: string;
+      dimensions: number;
+      manifest_digest: string;
+      maximum_tokens: number;
+      pooling: string;
+      normalization: string;
+      query_prefix: string;
+      document_prefix: string;
+      license: string;
+    }>('SELECT * FROM noderag.model_manifest WHERE active');
+    const originalModel = activeModel.rows[0];
+    if (originalModel === undefined) throw new Error('active model missing');
+    const propose = async (modelManifestId: number, siloIds: readonly number[], reason: string) =>
+      withTransaction(pool, (database) =>
+        createRebuildProposal(database, {
+          modelManifestId,
+          targetChars: 1200,
+          overlapChars: 200,
+          maxTokens: 1024,
+          snapWindow: 0.15,
+          headingPrefix: true,
+          rulesVersion: 2,
+          siloIds,
+          reason,
+          createdBy: administratorId,
+          embeddingCharactersPerSecond: 10_000,
+          availableBytes: 100n * 1024n ** 3n,
+          freeSpaceReserveBytes: 10n * 1024n ** 3n,
+        }),
+      );
+    const confirm = async (proposalId: number) =>
+      withTransaction(pool, (database) =>
+        confirmRebuildProposal(database, proposalId, administratorId),
+      );
+    const keywordSearch = (siloIds: readonly number[] = [firstSiloId]) =>
+      app.inject({
+        method: 'POST',
+        url: '/v1/search',
+        headers: { cookie },
+        payload: { query: 'register', mode: 'keyword', silos: siloIds, limit: 10 },
+      });
+    const vectorSearch = (siloIds: readonly number[] = [firstSiloId]) =>
+      app.inject({
+        method: 'POST',
+        url: '/v1/search',
+        headers: { cookie },
+        payload: { query: 'register', mode: 'vector', silos: siloIds, limit: 10 },
+      });
+    const expectValidEmbeddingReferences = async () => {
+      const invalid = await pool.query<{ count: string }>(
+        `SELECT count(*)::text AS count FROM (
+           SELECT cache.chunk_sha256,cache.model_manifest_id
+           FROM noderag.embedding_cache cache
+           LEFT JOIN noderag.build build ON build.model_manifest_id=cache.model_manifest_id
+           LEFT JOIN noderag.chunk chunk
+             ON chunk.build_id=build.id AND chunk.chunk_sha256=cache.chunk_sha256
+           GROUP BY cache.chunk_sha256,cache.model_manifest_id,cache.refcount
+           HAVING cache.refcount<>count(chunk.id)
+         ) invalid`,
+      );
+      expect(Number(invalid.rows[0]?.count)).toBe(0);
+    };
+
+    const originalActive = await pool.query<{ build_id: number }>(
+      `SELECT build_id FROM noderag.silo_build_state
+       WHERE silo_id=$1 AND state='active'`,
+      [firstSiloId],
+    );
+    const originalBuildId = originalActive.rows[0]?.build_id;
+    if (originalBuildId === undefined) throw new Error('active build missing');
+
+    const sameProposal = await propose(
+      originalModel.id,
+      [firstSiloId, secondSiloId],
+      'same-model profile change',
+    );
+    const sameBuild = await confirm(Number(sameProposal['id']));
+    expect(sameBuild.activationKind).toBe('same_model');
+    expect((await keywordSearch()).statusCode).toBe(200);
+    expect(await drainDocumentJobs({ pool, files, embedder, leaseOwner: 'm11-same-model' })).toBe(
+      2,
+    );
+    await expectValidEmbeddingReferences();
+    const sameVerification = await verifyStagedSilo(
+      pool,
+      sameBuild.buildId,
+      firstSiloId,
+      administratorId,
+    );
+    expect(sameVerification).toMatchObject({ state: 'passed', documentCount: 1 });
+    const sameActivation = await activateVerifiedBuild(
+      pool,
+      sameBuild.buildId,
+      [firstSiloId],
+      administratorId,
+    );
+    await expectValidEmbeddingReferences();
+    expect((await keywordSearch()).json<{ items: unknown[] }>().items.length).toBeGreaterThan(0);
+    const partiallyActivated = await pool.query<{ state: string }>(
+      'SELECT state FROM noderag.build WHERE id=$1',
+      [sameBuild.buildId],
+    );
+    expect(partiallyActivated.rows[0]?.state).toBe('building');
+    await expect(
+      activateVerifiedBuild(pool, sameBuild.buildId, [firstSiloId], administratorId),
+    ).rejects.toThrow('prior-activation-requires-resolution');
+    await rollbackBuildActivation(pool, sameActivation, administratorId);
+    await expectValidEmbeddingReferences();
+    expect(
+      (
+        await pool.query<{ build_id: number }>(
+          `SELECT build_id FROM noderag.silo_build_state
+           WHERE silo_id=$1 AND state='active'`,
+          [firstSiloId],
+        )
+      ).rows[0]?.build_id,
+    ).toBe(originalBuildId);
+    const partiallyRolledBack = await pool.query<{ state: string }>(
+      'SELECT state FROM noderag.build WHERE id=$1',
+      [sameBuild.buildId],
+    );
+    expect(partiallyRolledBack.rows[0]?.state).toBe('building');
+    await verifyStagedSilo(pool, sameBuild.buildId, secondSiloId, administratorId);
+    const secondSiloActivation = await activateVerifiedBuild(
+      pool,
+      sameBuild.buildId,
+      [secondSiloId],
+      administratorId,
+    );
+    expect((await keywordSearch([secondSiloId])).statusCode).toBe(200);
+    const fullyActivated = await pool.query<{ state: string }>(
+      'SELECT state FROM noderag.build WHERE id=$1',
+      [sameBuild.buildId],
+    );
+    expect(fullyActivated.rows[0]?.state).toBe('active');
+    await rollbackBuildActivation(pool, secondSiloActivation, administratorId);
+    const fullyRolledBack = await pool.query<{ state: string }>(
+      'SELECT state FROM noderag.build WHERE id=$1',
+      [sameBuild.buildId],
+    );
+    expect(fullyRolledBack.rows[0]?.state).toBe('superseded');
+
+    const cleanupProposal = await propose(
+      originalModel.id,
+      [firstSiloId],
+      'authorized rollback retirement rehearsal',
+    );
+    const cleanupBuild = await confirm(Number(cleanupProposal['id']));
+    expect(await drainDocumentJobs({ pool, files, embedder, leaseOwner: 'm11-cleanup' })).toBe(1);
+    await verifyStagedSilo(pool, cleanupBuild.buildId, firstSiloId, administratorId);
+    const cleanupActivation = await activateVerifiedBuild(
+      pool,
+      cleanupBuild.buildId,
+      [firstSiloId],
+      administratorId,
+    );
+    await expect(
+      withTransaction(pool, (database) =>
+        authorizeBuildCleanup(database, cleanupActivation, 'CLEANUP', administratorId),
+      ),
+    ).rejects.toThrow('cleanup-confirmation-mismatch');
+    const cleanupId = await withTransaction(pool, (database) =>
+      authorizeBuildCleanup(
+        database,
+        cleanupActivation,
+        `CLEANUP BUILD ${String(cleanupBuild.buildId)}`,
+        administratorId,
+      ),
+    );
+    await runAuthorizedBuildCleanup(pool, cleanupId, administratorId);
+    await expectValidEmbeddingReferences();
+    const cleanupState = await pool.query<{ state: string }>(
+      'SELECT state FROM noderag.build_cleanup WHERE id=$1',
+      [cleanupId],
+    );
+    expect(cleanupState.rows[0]?.state).toBe('completed');
+    const cleanupAudit = await pool.query<{ count: string }>(
+      `SELECT count(*)::text AS count FROM noderag.audit_log
+       WHERE action IN ('build.cleanup_authorize','build.cleanup')
+         AND detail->>'cleanupId'=$1`,
+      [String(cleanupId)],
+    );
+    expect(Number(cleanupAudit.rows[0]?.count)).toBe(2);
+
+    const cancelledProposal = await propose(
+      originalModel.id,
+      [firstSiloId, secondSiloId],
+      'pause, resume, and cancelled checkpoint retention rehearsal',
+    );
+    const cancelledBuild = await confirm(Number(cancelledProposal['id']));
+    expect(
+      await drainDocumentJobs(
+        { pool, files, embedder, leaseOwner: 'm11-before-process-restart' },
+        1,
+      ),
+    ).toBe(1);
+    await withTransaction(pool, (database) =>
+      changeBuildState(database, cancelledBuild.buildId, 'pause', administratorId),
+    );
+    expect(
+      await drainDocumentJobs({ pool, files, embedder, leaseOwner: 'm11-paused-worker' }),
+    ).toBe(0);
+    await withTransaction(pool, (database) =>
+      changeBuildState(database, cancelledBuild.buildId, 'resume', administratorId),
+    );
+    expect(
+      await drainDocumentJobs({ pool, files, embedder, leaseOwner: 'm11-after-process-restart' }),
+    ).toBe(1);
+    await withTransaction(pool, (database) =>
+      changeBuildState(database, cancelledBuild.buildId, 'cancel', administratorId),
+    );
+    const retained = await pool.query<{ count: string }>(
+      'SELECT count(*)::text AS count FROM noderag.build_document_checkpoint WHERE build_id=$1',
+      [cancelledBuild.buildId],
+    );
+    expect(Number(retained.rows[0]?.count)).toBe(2);
+    await expect(
+      withTransaction(pool, (database) =>
+        discardBuildCheckpoints(database, cancelledBuild.buildId, 'DISCARD', administratorId),
+      ),
+    ).rejects.toThrow('checkpoint-confirmation-mismatch');
+    expect(
+      await withTransaction(pool, (database) =>
+        discardBuildCheckpoints(
+          database,
+          cancelledBuild.buildId,
+          `DISCARD BUILD ${String(cancelledBuild.buildId)} CHECKPOINTS`,
+          administratorId,
+        ),
+      ),
+    ).toBe(2);
+
+    const revision = 'm11-revision-model';
+    const revisionArtifact = 'ab'.repeat(32);
+    const revisionDigest = createHash('sha256')
+      .update(
+        [
+          originalModel.name,
+          revision,
+          revisionArtifact,
+          originalModel.tokenizer_revision,
+          originalModel.quantization,
+          originalModel.dimensions,
+          originalModel.maximum_tokens,
+          originalModel.pooling,
+          originalModel.normalization,
+          originalModel.query_prefix,
+          originalModel.document_prefix,
+          originalModel.license,
+        ].join('\n'),
+      )
+      .digest('hex');
+    const revisionModel = await pool.query<{ id: number }>(
+      `INSERT INTO noderag.model_manifest
+         (name,source_revision,artifact_sha256,tokenizer_revision,quantization,dimensions,
+          maximum_tokens,pooling,normalization,query_prefix,document_prefix,license,
+          manifest_digest)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+      [
+        originalModel.name,
+        revision,
+        revisionArtifact,
+        originalModel.tokenizer_revision,
+        originalModel.quantization,
+        originalModel.dimensions,
+        originalModel.maximum_tokens,
+        originalModel.pooling,
+        originalModel.normalization,
+        originalModel.query_prefix,
+        originalModel.document_prefix,
+        originalModel.license,
+        revisionDigest,
+      ],
+    );
+    const revisionModelId = revisionModel.rows[0]?.id;
+    if (revisionModelId === undefined) throw new Error('revision model missing');
+    const partialRevisionProposal = await propose(
+      revisionModelId,
+      [firstSiloId],
+      'invalid partial model revision',
+    );
+    await expect(confirm(Number(partialRevisionProposal['id']))).rejects.toThrow(
+      'model-change-requires-all-silos',
+    );
+    const revisionProposal = await propose(
+      revisionModelId,
+      [firstSiloId, secondSiloId],
+      'model revision atomic swap',
+    );
+    const revisionBuild = await confirm(Number(revisionProposal['id']));
+    expect(revisionBuild.activationKind).toBe('model_revision');
+    expect(await drainDocumentJobs({ pool, files, embedder, leaseOwner: 'm11-revision' })).toBe(2);
+    const revisedVector = await pool.query<{ old_embedding: string; new_embedding: string }>(
+      `SELECT old.embedding::text AS old_embedding,revised.embedding::text AS new_embedding
+       FROM noderag.embedding_cache old
+       JOIN noderag.embedding_cache revised ON revised.chunk_sha256=old.chunk_sha256
+       WHERE old.model_manifest_id=$1 AND revised.model_manifest_id=$2 LIMIT 1`,
+      [originalModel.id, revisionModelId],
+    );
+    expect(revisedVector.rows[0]?.new_embedding).not.toBe(revisedVector.rows[0]?.old_embedding);
+    await verifyStagedSilo(pool, revisionBuild.buildId, firstSiloId, administratorId);
+    await verifyStagedSilo(pool, revisionBuild.buildId, secondSiloId, administratorId);
+    let enterEmbedding!: () => void;
+    let releaseEmbedding!: () => void;
+    const embeddingEntered = new Promise<void>((resolve) => {
+      enterEmbedding = resolve;
+    });
+    const embeddingReleased = new Promise<void>((resolve) => {
+      releaseEmbedding = resolve;
+    });
+    let gated = false;
+    embeddingGate = async (modelSelection) => {
+      if (gated || modelSelection?.manifestDigest !== originalModel.manifest_digest) return;
+      gated = true;
+      enterEmbedding();
+      await embeddingReleased;
+    };
+    const inFlightSearch = vectorSearch([firstSiloId, secondSiloId]);
+    await embeddingEntered;
+    let activationSettled = false;
+    const activation = activateVerifiedBuild(
+      pool,
+      revisionBuild.buildId,
+      [firstSiloId, secondSiloId],
+      administratorId,
+    ).finally(() => {
+      activationSettled = true;
+    });
+    let cutoverWaiting = false;
+    for (let attempt = 0; attempt < 100 && !cutoverWaiting; attempt += 1) {
+      const waiting = await pool.query<{ waiting: boolean }>(
+        `SELECT EXISTS(SELECT 1 FROM pg_locks
+                       WHERE locktype='advisory' AND NOT granted) AS waiting`,
+      );
+      cutoverWaiting = waiting.rows[0]?.waiting ?? false;
+      if (!cutoverWaiting) await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    const settledBeforeRelease = activationSettled;
+    releaseEmbedding();
+    const [searchResult, revisionActivation] = await Promise.all([inFlightSearch, activation]);
+    embeddingGate = undefined;
+    expect(cutoverWaiting).toBe(true);
+    expect(settledBeforeRelease).toBe(false);
+    expect(searchResult.statusCode, searchResult.body).toBe(200);
+    const activeModels = await pool.query<{ count: string }>(
+      `SELECT count(DISTINCT build.model_manifest_id)::text AS count
+       FROM noderag.silo_build_state state JOIN noderag.build build ON build.id=state.build_id
+       WHERE state.state='active'`,
+    );
+    expect(Number(activeModels.rows[0]?.count)).toBe(1);
+    await expectValidEmbeddingReferences();
+    expect(
+      (await vectorSearch([firstSiloId, secondSiloId])).json<{ items: unknown[] }>().items.length,
+    ).toBeGreaterThan(0);
+    await rollbackBuildActivation(pool, revisionActivation as number, administratorId);
+    await expectValidEmbeddingReferences();
+    expect((await vectorSearch([firstSiloId, secondSiloId])).statusCode).toBe(200);
+  });
+
+  it('atomically swaps a differently typed vector parent and restores the old parent', async () => {
+    const current = await pool.query<{
+      id: number;
+      name: string;
+      tokenizer_revision: string;
+      quantization: string;
+      maximum_tokens: number;
+      pooling: string;
+      normalization: string;
+      query_prefix: string;
+      document_prefix: string;
+      license: string;
+    }>('SELECT * FROM noderag.model_manifest WHERE active');
+    const model = current.rows[0];
+    if (model === undefined) throw new Error('active model missing');
+    const sourceRevision = 'm11-three-dimension';
+    const artifactSha256 = 'cd'.repeat(32);
+    const dimensions = 3;
+    const manifestDigest = createHash('sha256')
+      .update(
+        [
+          model.name,
+          sourceRevision,
+          artifactSha256,
+          model.tokenizer_revision,
+          model.quantization,
+          dimensions,
+          model.maximum_tokens,
+          model.pooling,
+          model.normalization,
+          model.query_prefix,
+          model.document_prefix,
+          model.license,
+        ].join('\n'),
+      )
+      .digest('hex');
+    const inserted = await pool.query<{ id: number }>(
+      `INSERT INTO noderag.model_manifest
+         (name,source_revision,artifact_sha256,tokenizer_revision,quantization,dimensions,
+          maximum_tokens,pooling,normalization,query_prefix,document_prefix,license,
+          manifest_digest)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+      [
+        model.name,
+        sourceRevision,
+        artifactSha256,
+        model.tokenizer_revision,
+        model.quantization,
+        dimensions,
+        model.maximum_tokens,
+        model.pooling,
+        model.normalization,
+        model.query_prefix,
+        model.document_prefix,
+        model.license,
+        manifestDigest,
+      ],
+    );
+    const modelId = inserted.rows[0]?.id;
+    if (modelId === undefined) throw new Error('dimension model missing');
+    const proposal = await withTransaction(pool, (database) =>
+      createRebuildProposal(database, {
+        modelManifestId: modelId,
+        targetChars: 1200,
+        overlapChars: 200,
+        maxTokens: 1024,
+        snapWindow: 0.15,
+        headingPrefix: true,
+        rulesVersion: 3,
+        siloIds: [firstSiloId, secondSiloId],
+        reason: 'dimension parent swap',
+        createdBy: administratorId,
+        embeddingCharactersPerSecond: 10_000,
+        availableBytes: 100n * 1024n ** 3n,
+        freeSpaceReserveBytes: 10n * 1024n ** 3n,
+      }),
+    );
+    const build = await withTransaction(pool, (database) =>
+      confirmRebuildProposal(database, Number(proposal['id']), administratorId),
+    );
+    expect(build.activationKind).toBe('dimension_change');
+    await pool.query(
+      "UPDATE noderag.job SET state='cancelled',finished_at=now() WHERE build_id=$1",
+      [build.buildId],
+    );
+    const staging = await pool.query<{ silo_id: number; staging_table: string }>(
+      `SELECT silo_id,staging_table FROM noderag.silo_build_state
+       WHERE build_id=$1 ORDER BY silo_id`,
+      [build.buildId],
+    );
+    for (const row of staging.rows) {
+      expect(row.staging_table).toMatch(/^chunk_stage_b\d+_s\d+$/u);
+      await pool.query(
+        `INSERT INTO noderag.${row.staging_table}
+           (silo_id,document_id,build_id,ordinal,text,page_start,page_end,
+            character_start,character_end,byte_start,byte_end,embedding,token_count,
+            heading_path,chunk_sha256,part_of,structure_kind,structure_kinds,continuation)
+         SELECT chunk.silo_id,chunk.document_id,$1,chunk.ordinal,chunk.text,
+                chunk.page_start,chunk.page_end,chunk.character_start,chunk.character_end,
+                chunk.byte_start,chunk.byte_end,'[1,0,0]'::halfvec,chunk.token_count,
+                chunk.heading_path,chunk.chunk_sha256,chunk.part_of,chunk.structure_kind,
+                chunk.structure_kinds,chunk.continuation
+         FROM noderag.chunk chunk
+         JOIN noderag.silo_build_state active
+           ON active.silo_id=chunk.silo_id AND active.build_id=chunk.build_id
+          AND active.state='active'
+         WHERE chunk.silo_id=$2`,
+        [build.buildId, row.silo_id],
+      );
+      await pool.query(
+        `INSERT INTO noderag.embedding_cache
+           (chunk_sha256,model_manifest_id,dimensions,embedding,refcount)
+         SELECT DISTINCT chunk_sha256,$1::smallint,$2::integer,'[1,0,0]'::halfvec,0
+         FROM noderag.${row.staging_table}
+         ON CONFLICT(chunk_sha256,model_manifest_id) DO NOTHING`,
+        [modelId, dimensions],
+      );
+      await pool.query(
+        `INSERT INTO noderag.build_document_checkpoint
+           (build_id,silo_id,document_id,markdown_sha256,embedded_text_digest,
+            model_manifest_digest,chunk_count,state)
+         SELECT $1,document.silo_id,document.id,document.markdown_sha256,
+                decode(repeat('00',32),'hex'),$3,count(stage.id)::integer,'complete'
+         FROM noderag.document document
+         JOIN noderag.${row.staging_table} stage
+           ON stage.silo_id=document.silo_id AND stage.document_id=document.id
+         WHERE document.silo_id=$2
+         GROUP BY document.silo_id,document.id,document.markdown_sha256`,
+        [build.buildId, row.silo_id, manifestDigest],
+      );
+      const verification = await verifyStagedSilo(
+        pool,
+        build.buildId,
+        row.silo_id,
+        administratorId,
+      );
+      expect(verification).toMatchObject({ state: 'passed', dimensionMismatches: 0 });
+    }
+    const activationId = await activateVerifiedBuild(
+      pool,
+      build.buildId,
+      [firstSiloId, secondSiloId],
+      administratorId,
+    );
+    const activeType = await pool.query<{ formatted: string }>(
+      `SELECT format_type(atttypid,atttypmod) AS formatted
+       FROM pg_attribute WHERE attrelid='noderag.chunk'::regclass AND attname='embedding'`,
+    );
+    expect(activeType.rows[0]?.formatted).toBe('halfvec(3)');
+    const activeDimensionPartitions = await pool.query<{
+      silo_id: number;
+      table_name: string | null;
+    }>(
+      `SELECT silo.id AS silo_id,
+              to_regclass('noderag.chunk_s' || silo.id::text)::text AS table_name
+       FROM noderag.silo silo WHERE silo.id=ANY($1::smallint[]) ORDER BY silo.id`,
+      [[firstSiloId, secondSiloId]],
+    );
+    expect(activeDimensionPartitions.rows).toEqual([
+      { silo_id: firstSiloId, table_name: `chunk_s${String(firstSiloId)}` },
+      { silo_id: secondSiloId, table_name: `chunk_s${String(secondSiloId)}` },
+    ]);
+    const invalidActiveReferences = await pool.query(
+      `SELECT 1 FROM noderag.embedding_cache cache
+       LEFT JOIN noderag.build build ON build.model_manifest_id=cache.model_manifest_id
+       LEFT JOIN noderag.chunk chunk
+         ON chunk.build_id=build.id AND chunk.chunk_sha256=cache.chunk_sha256
+       GROUP BY cache.chunk_sha256,cache.model_manifest_id,cache.refcount
+       HAVING cache.refcount<>count(chunk.id) LIMIT 1`,
+    );
+    expect(invalidActiveReferences.rowCount).toBe(0);
+    const search = await app.inject({
+      method: 'POST',
+      url: '/v1/search',
+      headers: { cookie },
+      payload: {
+        query: 'register',
+        mode: 'keyword',
+        silos: [firstSiloId, secondSiloId],
+        limit: 10,
+      },
+    });
+    expect(search.statusCode, search.body).toBe(200);
+    expect(search.json<{ items: unknown[] }>().items.length).toBeGreaterThanOrEqual(2);
+    const vectorSearch = await app.inject({
+      method: 'POST',
+      url: '/v1/search',
+      headers: { cookie },
+      payload: {
+        query: 'register',
+        mode: 'vector',
+        silos: [firstSiloId, secondSiloId],
+        limit: 10,
+      },
+    });
+    expect(vectorSearch.statusCode, vectorSearch.body).toBe(200);
+    expect(vectorSearch.json<{ items: unknown[] }>().items.length).toBeGreaterThanOrEqual(2);
+    await rollbackBuildActivation(pool, activationId, administratorId);
+    const restoredType = await pool.query<{ formatted: string }>(
+      `SELECT format_type(atttypid,atttypmod) AS formatted
+       FROM pg_attribute WHERE attrelid='noderag.chunk'::regclass AND attname='embedding'`,
+    );
+    expect(restoredType.rows[0]?.formatted).toBe('halfvec(1024)');
+    const restoredPartitions = await pool.query<{ silo_id: number; table_name: string | null }>(
+      `SELECT silo.id AS silo_id,
+              to_regclass('noderag.chunk_s' || silo.id::text)::text AS table_name
+       FROM noderag.silo silo WHERE silo.id=ANY($1::smallint[]) ORDER BY silo.id`,
+      [[firstSiloId, secondSiloId]],
+    );
+    expect(restoredPartitions.rows).toEqual(activeDimensionPartitions.rows);
+    const restoredVectorSearch = await app.inject({
+      method: 'POST',
+      url: '/v1/search',
+      headers: { cookie },
+      payload: {
+        query: 'register',
+        mode: 'vector',
+        silos: [firstSiloId, secondSiloId],
+        limit: 10,
+      },
+    });
+    expect(restoredVectorSearch.statusCode, restoredVectorSearch.body).toBe(200);
+    const rolledBackCleanupId = await withTransaction(pool, (database) =>
+      authorizeBuildCleanup(
+        database,
+        activationId,
+        `CLEANUP BUILD ${String(build.buildId)}`,
+        administratorId,
+      ),
+    );
+    await runAuthorizedBuildCleanup(pool, rolledBackCleanupId, administratorId);
+    const removedFailedParent = await pool.query<{ table_name: string | null }>(
+      `SELECT to_regclass($1)::text AS table_name`,
+      [`noderag.chunk_parent_failed_b${String(build.buildId)}`],
+    );
+    expect(removedFailedParent.rows[0]?.table_name).toBeNull();
+  });
+
   it('executes the administration mutation family with CSRF and idempotency', async () => {
     let sequence = 0;
     const mutate = async (
@@ -540,12 +1168,18 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
     });
     expect(model.statusCode, model.body).toBe(201);
     const modelId = Number(model.json<{ id: number | string }>().id);
-    const build = await mutate('POST', '/v1/admin/builds', {
+    const proposal = await mutate('POST', '/v1/admin/builds', {
       modelManifestId: modelId,
       reason: 'M08 administration contract exercise',
     });
+    expect(proposal.statusCode, proposal.body).toBe(202);
+    expect(proposal.json()).toMatchObject({ kind: 'rebuild_proposal', fits: true });
+    const proposalId = Number(proposal.json<{ id: number | string }>().id);
+    const build = await mutate('POST', `/v1/admin/build-proposals/${String(proposalId)}/confirm`, {
+      confirm: true,
+    });
     expect(build.statusCode, build.body).toBe(202);
-    const buildId = Number(build.json<{ id: number | string }>().id);
+    const buildId = Number(build.json<{ buildId: number | string }>().buildId);
     for (const action of ['pause', 'resume', 'cancel'] as const) {
       const changed = await mutate('PATCH', `/v1/admin/builds/${String(buildId)}`, { action });
       expect(changed.statusCode, `${action}: ${changed.body}`).toBe(200);

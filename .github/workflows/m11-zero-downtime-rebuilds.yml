@@ -1,0 +1,121 @@
+name: M11 zero-downtime rebuilds
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/m11-zero-downtime-rebuilds.yml'
+      - '.dependency-cruiser.cjs'
+      - '.prettierignore'
+      - '.prettierrc.json'
+      - 'adapters/**'
+      - 'packages/**'
+      - 'platform/**'
+      - 'scripts/**'
+      - 'spk/**'
+      - 'docker-testbed/**'
+      - 'fixtures/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - 'vitest.config.ts'
+      - 'eslint.config.mjs'
+      - 'LICENSE-POLICY.md'
+      - 'THIRD-PARTY.md'
+      - 'README.md'
+      - 'docs/Implementation/checklists/m11-checklist.md'
+      - 'docs/Implementation/m11-rebuild-operations.md'
+      - 'docs/Implementation/proofs/m11-proof.json'
+      - 'docs/Implementation/dsm-deferred-register.md'
+      - 'docs/Implementation/staged implementation.md'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m11-zero-downtime-rebuilds-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 22.22.0
+  PNPM_VERSION: 11.25.0
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Verify contracts, migrations, boundaries, tests, build, licenses, and secrets
+        run: |
+          pnpm ci:quality
+          pnpm repo:check
+
+  postgres-rebuild-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Rehearse checkpoints, continuous search, swaps, verification, rollback, and cleanup
+        run: pnpm test:integration
+
+  linux-compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    concurrency:
+      group: m01-model-${{ github.ref }}
+      cancel-in-progress: false
+    env:
+      NODERAG_M01_CPU_LIMIT: 2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Restore the checksum-verified M01 model cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: docker-testbed/runtime/models/qwen3-embedding-0.6b/bd58e9fd4b0467770da53678d8da25481c0f959b
+          key: m01-qwen3-embedding-${{ hashFiles('docker-testbed/m01/model-manifest.json') }}
+      - run: bash docker-testbed/scripts/verify-m01.sh
+      - if: always()
+        run: bash docker-testbed/scripts/down.sh
+
+  thin-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: |
+          corepack enable
+          corepack prepare pnpm@${PNPM_VERSION} --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Build twice and verify the M11 package payload
+        run: |
+          pnpm package:thin
+          first_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64.spk | awk '{print $1}')"
+          pnpm package:thin
+          second_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64.spk | awk '{print $1}')"
+          test "${first_sha}" = "${second_sha}"
+          pnpm package:verify

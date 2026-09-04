@@ -205,7 +205,7 @@ noderag_start() {
   NODERAG_MIGRATION_MANIFEST="${SYNOPKG_PKGDEST}/platform/migration-checksums.v1.json" \
   NODERAG_MIGRATIONS_DIRECTORY="${SYNOPKG_PKGDEST}/migrations" \
   NODERAG_ROUTE_AUTHORIZATION="${SYNOPKG_PKGDEST}/platform/route-authorization.v1.json" \
-  NODERAG_OPENAPI="${SYNOPKG_PKGDEST}/platform/openapi.m10.json" \
+  NODERAG_OPENAPI="${SYNOPKG_PKGDEST}/platform/openapi.m11.json" \
   NODERAG_SECRET_ROOT="${SYNOPKG_PKGVAR}/secrets/root.key" \
   NODERAG_SETUP_TOKEN_FILE="${SYNOPKG_PKGVAR}/secrets/setup.token" \
   NODERAG_DATA_ROOT="${SYNOPKG_PKGVAR}/data" \

@@ -36,8 +36,8 @@ Recorded: 2026-09-04
 - [x] The deferred DSM register has an owner, procedure, expected result, and severity for every live-only assertion.
 - [x] `docs/planning/M1-TESTBED-FEASIBILITY.md` contains final commands, measurements, hashes, conclusions, and provisional values.
 - [x] All Milestone 1 scripts pass syntax and local core/full validation.
-- [ ] The implementation commit is pushed to `main` and its M01 GitHub Actions run succeeds.
-- [ ] `m01-proof.json` records the implementation commit and successful workflow run.
+- [x] The implementation commit is pushed to `main` and its M01 GitHub Actions run succeeds.
+- [x] `m01-proof.json` records the implementation commit and successful workflow run.
 - [ ] The proof-closure commit is pushed and its own workflow run succeeds.
 - [ ] Annotated tag `m01-complete` resolves to the proof-closure commit.
 

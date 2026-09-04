@@ -1,6 +1,6 @@
 # Milestone 1 — Docker Testbed Feasibility Record
 
-Status: local feasibility evidence complete; GitHub proof closure pending
+Status: implementation CI passed; GitHub proof closure pending
 Recorded: 2026-09-04
 Evidence environment: WSL 2 and Docker Desktop, not DSM
 Certification ceiling: `testbed-complete`

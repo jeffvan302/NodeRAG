@@ -1,14 +1,14 @@
 {
   "version": 1,
   "milestone": "M01",
-  "recordedAt": "2026-09-04T06:53:06Z",
+  "recordedAt": "2026-09-04T07:00:04Z",
   "reviewer": "Codex with executable local gates",
-  "milestoneCommit": null,
+  "milestoneCommit": "33b319a99000c7e9eea51a0a971f24003c6ef1df",
   "upstreamCommit": null,
   "migrationHead": null,
   "dependencyLockSha256": "3e5523ec8179d1e078c11d37d099d44913b2e0ac4434d493db432f262e98026e",
   "modelManifestRevision": "bd58e9fd4b0467770da53678d8da25481c0f959b",
-  "readinessState": "feasibility-passed-awaiting-remote-ci",
+  "readinessState": "implementation-ci-passed-awaiting-proof-closure",
   "featureFlags": {
     "ollamaVision": false
   },
@@ -30,7 +30,15 @@
     "checklist": "docs/Implementation/checklists/m01-checklist.md",
     "deferredDsmRegister": "docs/Implementation/dsm-deferred-register.md",
     "workflow": ".github/workflows/m01-feasibility.yml",
-    "implementationWorkflowRun": null,
+    "implementationWorkflowRun": {
+      "runId": 33846609533,
+      "jobId": 100939789924,
+      "headSha": "33b319a99000c7e9eea51a0a971f24003c6ef1df",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33846609533",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T06:59:47Z"
+    },
     "proofClosureCommit": null,
     "proofClosureWorkflowRun": null,
     "host": {
@@ -105,7 +113,8 @@
       "Aligned the direct ONNX Runtime dependency with Transformers and disabled install-time audit/funding calls.",
       "Added a namespace-aware OOXML fallback for valid namespace-prefixed XLSX files while preserving cached formula values.",
       "Derived and supplied empty typed key/value caches for q4f16 and fp16 first-pass embedding graphs.",
-      "Moved the spksrc build state from DrvFS to an ext4-backed Docker named volume and exported only evidence manifests."
+      "Moved the spksrc build state from DrvFS to an ext4-backed Docker named volume and exported only evidence manifests.",
+      "Set the GitHub feasibility job's Compose CPU ceiling to the runner's two available CPUs after the first clean run rejected the workstation-oriented 12-CPU limit."
     ]
   },
   "invariants": {
@@ -136,7 +145,7 @@
     "fullModelBenchmark": "passed",
     "spksrcCrossBuild": "passed",
     "gitDiffCheck": "passed",
-    "remoteCi": "pending"
+    "remoteCi": "passed-implementation"
   },
   "liveEvidence": {},
   "environment": "docker-testbed",
@@ -145,6 +154,6 @@
     "DSM-001 through DSM-017 in docs/Implementation/dsm-deferred-register.md"
   ],
   "failures": [],
-  "gate": "implementation-passed-awaiting-remote",
+  "gate": "proof-closure-pending",
   "nextMilestoneAuthorized": false
 }

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "milestone": "M09",
-  "recordedAt": "2026-09-04T15:03:22Z",
+  "recordedAt": "2026-09-04T15:06:23Z",
   "reviewer": "Codex with executable local and GitHub gates",
   "implementationBaseCommit": "d7f030eb016e1b6f76f93423392936516e331c32",
   "milestoneCommit": "79755f113039005aa4e6eb77f3be62a19b6925e4",
@@ -122,6 +122,42 @@
       "openApiM09Bundled": true,
       "runAs": "package"
     },
+    "proofClosureCommit": "ee56c3a8d357ab177b98410e0f3a99c569e89450",
+    "proofClosureWorkflowRun": {
+      "runId": 33887389197,
+      "headSha": "ee56c3a8d357ab177b98410e0f3a99c569e89450",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33887389197",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T15:06:23Z",
+      "jobs": [
+        {
+          "name": "linux-compatibility",
+          "jobId": 101070432194,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality",
+          "jobId": 101070432205,
+          "conclusion": "success"
+        },
+        {
+          "name": "thin-spk",
+          "jobId": 101070432345,
+          "conclusion": "success"
+        },
+        {
+          "name": "postgres-integration",
+          "jobId": 101070432502,
+          "conclusion": "success"
+        },
+        {
+          "name": "browser-e2e",
+          "jobId": 101070432926,
+          "conclusion": "success"
+        }
+      ]
+    },
     "certificationCommitEvidence": "The commit containing the completed proof must pass the same five-job workflow before the annotated m09-complete tag is created.",
     "completionTag": "m09-complete"
   },
@@ -164,7 +200,7 @@
     "thinSpkRepeatBuild": "passed",
     "thinSpkStaticVerification": "passed",
     "nonRootLifecycleSimulation": "passed",
-    "remoteCi": "passed-implementation-run"
+    "remoteCi": "passed-implementation-and-proof-closure-runs"
   },
   "liveEvidence": {},
   "environment": "docker-testbed",
@@ -179,5 +215,5 @@
   ],
   "failures": [],
   "gate": "passed",
-  "nextMilestoneAuthorized": false
+  "nextMilestoneAuthorized": true
 }

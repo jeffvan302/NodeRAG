@@ -71,9 +71,9 @@ Recorded: 2026-09-04
 
 - [x] The M09 implementation commit is pushed to `main` and all five M09 workflow jobs pass.
 - [x] `m09-proof.json` freezes commit, workflow, contract, browser, database, and package evidence.
-- [ ] A proof-closure commit passes the same five-job workflow.
-- [ ] The final certification commit passes every required M09 GitHub job.
-- [ ] Annotated tag `m09-complete` resolves remotely to the final certification commit.
+- [x] Proof-closure commit `ee56c3a8d357ab177b98410e0f3a99c569e89450` passes M09 run `33887389197` and all five jobs.
+- [x] The final certification commit passes every required M09 GitHub job before tagging.
+- [x] Annotated tag `m09-complete` resolves remotely to the final certification commit.
 
 ## Honest limitations and DSM deferral
 

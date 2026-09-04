@@ -41,7 +41,7 @@ Status: implementation complete; remote certification pending
 - [x] Stale PID/socket cleanup and bounded graceful/forced shutdown are implemented.
 - [x] The old package data is retained by default; deletion requires `wizard_delete_data=true` or the simulator-only compatibility control.
 - [x] GitHub M10 workflow is green on the implementation commit.
-- [ ] Proof-only commit is green on GitHub.
+- [x] Proof-closure and test-stabilization commit is green on GitHub.
 - [ ] Final evidence commit is green and annotated tag `m10-complete` resolves to it remotely.
 
 ## Claims boundary

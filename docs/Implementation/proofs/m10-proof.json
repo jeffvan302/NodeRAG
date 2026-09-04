@@ -1,11 +1,12 @@
 {
   "version": 1,
   "milestone": "M10",
-  "recordedAt": "2026-09-04T16:31:18Z",
+  "recordedAt": "2026-09-04T17:35:02Z",
   "reviewer": "Codex with executable local and GitHub gates",
   "implementationBaseCommit": "e9fcc86120da4d4ca1013cf878fdd3f357376b77",
   "milestoneCommit": "ab0a31d0af1bbe5c638e5eee486348fcd90dafa1",
   "upstreamCommit": "ab0a31d0af1bbe5c638e5eee486348fcd90dafa1",
+  "proofClosureCommit": "5329f6277115b83149045ca76c1f4479a209ac2d",
   "migrationHead": "000008_package_lifecycle",
   "dependencyLockSha256": "650d397622523a38cc29d0c2b8ebffbb04b5b65f351e76b26cbac6114fa42ea7",
   "modelManifestRevision": "bd58e9fd4b0467770da53678d8da25481c0f959b",
@@ -63,6 +64,36 @@
         }
       ]
     },
+    "proofClosureWorkflowRun": {
+      "runId": 33898173760,
+      "headSha": "5329f6277115b83149045ca76c1f4479a209ac2d",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33898173760",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T17:30:10Z",
+      "jobs": [
+        {
+          "name": "quality",
+          "jobId": 101105784033,
+          "conclusion": "success"
+        },
+        {
+          "name": "postgres-integration",
+          "jobId": 101105784108,
+          "conclusion": "success"
+        },
+        {
+          "name": "linux-compatibility",
+          "jobId": 101105784132,
+          "conclusion": "success"
+        },
+        {
+          "name": "production-package",
+          "jobId": 101105784440,
+          "conclusion": "success"
+        }
+      ]
+    },
     "regressionWorkflowRuns": [
       {
         "name": "M00 Docker testbed",
@@ -76,12 +107,12 @@
       },
       {
         "name": "M08 retrieval interfaces and evaluation",
-        "runId": 33892748819,
+        "runId": 33898173785,
         "conclusion": "success"
       },
       {
         "name": "M09 operator UI and first-run setup",
-        "runId": 33892748725,
+        "runId": 33898173852,
         "conclusion": "success"
       }
     ],
@@ -190,7 +221,7 @@
     "privatePostgresqlSocketAndPgvector": "passed",
     "setupIngestSearchAndPurge": "passed",
     "restartUpgradeRetainedAndDestructiveLifecycle": "passed",
-    "remoteCi": "passed-implementation-run-and-triggered-regressions"
+    "remoteCi": "passed-implementation-proof-closure-and-triggered-regressions"
   },
   "liveEvidence": {},
   "environment": "docker-testbed",
@@ -205,5 +236,5 @@
   ],
   "failures": [],
   "gate": "passed",
-  "nextMilestoneAuthorized": false
+  "nextMilestoneAuthorized": true
 }

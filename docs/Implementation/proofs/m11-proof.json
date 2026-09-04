@@ -1,12 +1,12 @@
 {
   "version": 1,
   "milestone": "M11",
-  "recordedAt": "2026-09-04T18:50:01Z",
+  "recordedAt": "2026-09-04T18:53:56Z",
   "reviewer": "Codex with executable local and GitHub gates",
   "implementationBaseCommit": "fd59404606d94a3a5136ad527ba90ded5e406910",
   "milestoneCommit": "1a1f4d690b256a29061a7d2f2e8d263fc9644c40",
   "upstreamCommit": "1a1f4d690b256a29061a7d2f2e8d263fc9644c40",
-  "proofClosureCommit": null,
+  "proofClosureCommit": "b9138076460739a4d7c5b1d9bf1175ff29078c05",
   "evidenceClosureCommit": null,
   "migrationHead": "000009_zero_downtime_rebuilds",
   "defaultModelManifestSha256": "a3e6f76a9d02f5e3fcd88491aab3ad3622739e785e8847d0e098362bf7640aaf",
@@ -52,7 +52,36 @@
         }
       ]
     },
-    "proofClosureWorkflowRun": null,
+    "proofClosureWorkflowRun": {
+      "runId": 33908068817,
+      "headSha": "b9138076460739a4d7c5b1d9bf1175ff29078c05",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33908068817",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T18:53:39Z",
+      "jobs": [
+        {
+          "name": "quality",
+          "jobId": 101137657334,
+          "conclusion": "success"
+        },
+        {
+          "name": "postgres-rebuild-integration",
+          "jobId": 101137657101,
+          "conclusion": "success"
+        },
+        {
+          "name": "linux-compatibility",
+          "jobId": 101137657407,
+          "conclusion": "success"
+        },
+        {
+          "name": "thin-package",
+          "jobId": 101137657199,
+          "conclusion": "success"
+        }
+      ]
+    },
     "evidenceClosureWorkflowRun": null,
     "regressionWorkflowRuns": [
       {
@@ -68,12 +97,12 @@
       {
         "name": "M09 operator UI and first-run setup",
         "runId": 33907715811,
-        "conclusion": "in_progress"
+        "conclusion": "success"
       },
       {
         "name": "M10 production SPK",
         "runId": 33907715798,
-        "conclusion": "in_progress"
+        "conclusion": "success"
       }
     ],
     "thinSpk": {
@@ -113,11 +142,11 @@
     "thinSpkRepeatBuild": "passed",
     "rebuildLifecycle": "passed",
     "continuousSearchDuringCutover": "passed",
-    "remoteCi": "implementation-commit-passed-proof-and-evidence-closure-pending"
+    "remoteCi": "implementation-and-proof-closure-passed-evidence-closure-pending"
   },
   "liveEvidence": {},
   "environment": "docker-testbed",
-  "certification": "implementation-passed-proof-closure-pending",
+  "certification": "proof-closure-passed-evidence-closure-pending",
   "deferredDsmChecks": [
     "installed DSM package lifecycle under the package-created identity",
     "real NAS I/O contention and service responsiveness during rebuilds",
@@ -126,6 +155,6 @@
     "installed-device memory, thermal, and administration impact during cutover and rollback"
   ],
   "failures": [],
-  "gate": "implementation-passed",
+  "gate": "proof-closure-passed",
   "nextMilestoneAuthorized": false
 }

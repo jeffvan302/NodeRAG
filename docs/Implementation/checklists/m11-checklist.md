@@ -1,6 +1,6 @@
 # Milestone 11 Checklist — Zero-Downtime Rebuilds and Model Lifecycle
 
-Status: implementation and exact GitHub workflow complete; proof-closure certification pending
+Status: implementation and proof-closure workflows complete; final evidence certification pending
 
 ## Immutable planning and staging
 
@@ -41,7 +41,7 @@ Status: implementation and exact GitHub workflow complete; proof-closure certifi
 - [x] The full PostgreSQL integration suite passes locally, including same-model, revision, dimension, rollback, cleanup, and active-search cases.
 - [x] Typecheck passes locally.
 - [x] GitHub M11 workflow is green on the implementation commit.
-- [ ] Proof-only commit is green on GitHub.
+- [x] Proof-only commit is green on GitHub.
 - [ ] Final evidence commit is green and annotated tag `m11-complete` resolves to it remotely.
 
 ## Claims boundary

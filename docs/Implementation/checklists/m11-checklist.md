@@ -1,6 +1,6 @@
 # Milestone 11 Checklist — Zero-Downtime Rebuilds and Model Lifecycle
 
-Status: implementation and proof-closure workflows complete; final evidence certification pending
+Status: testbed complete
 
 ## Immutable planning and staging
 
@@ -42,7 +42,7 @@ Status: implementation and proof-closure workflows complete; final evidence cert
 - [x] Typecheck passes locally.
 - [x] GitHub M11 workflow is green on the implementation commit.
 - [x] Proof-only commit is green on GitHub.
-- [ ] Final evidence commit is green and annotated tag `m11-complete` resolves to it remotely.
+- [x] Final evidence commit is green and annotated tag `m11-complete` resolves to the certification commit remotely.
 
 ## Claims boundary
 

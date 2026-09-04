@@ -54,13 +54,13 @@ Tool arguments are strictly validated. Model-supplied silo IDs are treated only 
 
 Search audit events store principal, request ID, gateway, query SHA-256, query length, mode, filters, effective silo IDs, hit count, latency, and outcome. They never store raw search text. Audit reads are administrator-only.
 
-The M08 database diagnostic uses eight silos and 8,500 chunks, with 5,000 chunks in the target silo. It alternates 160 RLS-on/off measurements after warmup and requires the plan to retain both the target partition and HNSW index. The accepted result was:
+The M08 database diagnostic uses eight silos and 8,500 chunks, with 5,000 chunks in the target silo. It alternates 160 RLS-on/off samples after warmup. Each sample averages ten PostgreSQL-reported `EXPLAIN ANALYZE` execution times so runner/network scheduling is not mistaken for RLS cost. The gate also requires the plan to retain both the target partition and HNSW index. The accepted result was:
 
 | Gate                      |    Result | Threshold |
 | ------------------------- | --------: | --------: |
-| RLS-on p95                | 0.8689 ms |  Recorded |
-| RLS-off p95               | 0.8599 ms |  Recorded |
-| RLS overhead              |     1.05% |      ≤15% |
+| RLS-on p95                | 0.2018 ms |  Recorded |
+| RLS-off p95               | 0.1970 ms |  Recorded |
+| RLS overhead              |     2.44% |      ≤15% |
 | Scoped partition retained |       Yes |  Required |
 | HNSW index retained       |       Yes |  Required |
 | ANN Recall@10             |      0.90 |     ≥0.90 |

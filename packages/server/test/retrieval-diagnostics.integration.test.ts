@@ -14,6 +14,7 @@ import {
 
 const postgresImage =
   'pgvector/pgvector@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f';
+const measurementQueryRepetitions = 10;
 
 const percentile = (values: readonly number[], quantile: number): number => {
   const sorted = [...values].sort((left, right) => left - right);
@@ -119,6 +120,7 @@ describe.sequential('M08 measured ANN and RLS gates', () => {
     client: PoolClient,
     role: boolean,
     explain = false,
+    measure = false,
   ): Promise<{
     readonly elapsedMs: number;
     readonly rows: readonly { id: string }[];
@@ -131,18 +133,33 @@ describe.sequential('M08 measured ANN and RLS gates', () => {
       await client.query('SET LOCAL enable_seqscan=off');
       await client.query('SET LOCAL enable_bitmapscan=off');
       await client.query(`SELECT set_config('hnsw.ef_search','100',true)`);
-      const prefix = explain ? 'EXPLAIN (FORMAT JSON) ' : '';
+      const prefix = explain
+        ? 'EXPLAIN (FORMAT JSON) '
+        : measure
+          ? 'EXPLAIN (ANALYZE, TIMING OFF, SUMMARY ON, FORMAT JSON) '
+          : '';
       const started = performance.now();
-      const result = await client.query(
-        `${prefix}SELECT id::text FROM noderag.chunk
-         WHERE silo_id=$2 ORDER BY embedding <=> $1::halfvec LIMIT 10`,
-        [queryVector(targetSilo, 375), targetSilo],
-      );
-      const elapsedMs = performance.now() - started;
+      const query = `${prefix}SELECT id::text FROM noderag.chunk
+         WHERE silo_id=$2 ORDER BY embedding <=> $1::halfvec LIMIT 10`;
+      const parameters = [queryVector(targetSilo, 375), targetSilo];
+      let result = await client.query(query, parameters);
+      const executionTimes: number[] = [];
+      if (measure) {
+        for (let repeat = 0; repeat < measurementQueryRepetitions; repeat += 1) {
+          if (repeat > 0) result = await client.query(query, parameters);
+          const plan = result.rows[0]?.['QUERY PLAN'] as
+            readonly [{ readonly 'Execution Time'?: number }] | undefined;
+          executionTimes.push(plan?.[0]?.['Execution Time'] ?? Number.NaN);
+        }
+      }
+      const elapsedMs = measure
+        ? executionTimes.reduce((sum, value) => sum + value, 0) / executionTimes.length
+        : performance.now() - started;
+      if (!Number.isFinite(elapsedMs)) throw new Error('PostgreSQL did not report execution time.');
       await client.query('ROLLBACK');
       return explain
         ? { elapsedMs, rows: [], plan: result.rows[0]?.['QUERY PLAN'] }
-        : { elapsedMs, rows: result.rows as { id: string }[] };
+        : { elapsedMs, rows: measure ? [] : (result.rows as { id: string }[]) };
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -153,14 +170,14 @@ describe.sequential('M08 measured ANN and RLS gates', () => {
     const client = await pool.connect();
     try {
       for (let warm = 0; warm < 10; warm += 1) {
-        await scopedQuery(client, warm % 2 === 0);
+        await scopedQuery(client, warm % 2 === 0, false, true);
       }
       const rlsOn: number[] = [];
       const rlsOff: number[] = [];
       for (let sample = 0; sample < 80; sample += 1) {
         const firstRole = sample % 2 === 0;
-        const first = await scopedQuery(client, firstRole);
-        const second = await scopedQuery(client, !firstRole);
+        const first = await scopedQuery(client, firstRole, false, true);
+        const second = await scopedQuery(client, !firstRole, false, true);
         (firstRole ? rlsOn : rlsOff).push(first.elapsedMs);
         (firstRole ? rlsOff : rlsOn).push(second.elapsedMs);
       }
@@ -224,6 +241,7 @@ describe.sequential('M08 measured ANN and RLS gates', () => {
             totalChunks: 8500,
             resultSize: 10,
             samples: 160,
+            measurementQueryRepetitions,
           },
           measurement: { rlsOnP95Ms: measurement.rlsOnP95Ms, rlsOffP95Ms: measurement.rlsOffP95Ms },
           decision,

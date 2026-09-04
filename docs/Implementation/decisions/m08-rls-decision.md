@@ -10,11 +10,11 @@ Keep PostgreSQL row-level security enabled and forced on the chunk parent and ev
 
 ## Evidence
 
-The integration benchmark created eight realistic silo partitions and 8,500 `halfvec(1024)` chunks. The target partition contained 5,000 chunks. After ten warmups, the test alternated 160 RLS-on/off HNSW queries to reduce ordering bias.
+The integration benchmark created eight realistic silo partitions and 8,500 `halfvec(1024)` chunks. The target partition contained 5,000 chunks. After ten warmups, the test alternated 160 RLS-on/off HNSW samples to reduce ordering bias. Each sample averages ten PostgreSQL-reported `EXPLAIN ANALYZE` execution times, excluding client/network and transaction setup time.
 
-- RLS-on p95: 0.8689 ms
-- RLS-off p95: 0.8599 ms
-- Relative p95 overhead: 1.05%
+- RLS-on p95: 0.2018 ms
+- RLS-off p95: 0.1970 ms
+- Relative p95 overhead: 2.44%
 - Required maximum overhead: 15%
 - Target silo partition retained in the JSON query plan: yes
 - HNSW index retained in the JSON query plan: yes

@@ -49,8 +49,8 @@ Recorded: 2026-09-04
 ## Audit, RLS, ANN, and evaluation
 
 - [x] Search audit records hash/length/mode/filters/scope/hits/latency/request/principal/gateway/outcome and never raw query text.
-- [x] The RLS benchmark uses 8 silos, 8,500 chunks, a 5,000-chunk target partition, HNSW, warmup, and 160 alternating measurements.
-- [x] RLS-on p95 is 0.8689 ms versus 0.8599 ms off: 1.05% overhead, below the 15% gate.
+- [x] The RLS benchmark uses 8 silos, 8,500 chunks, a 5,000-chunk target partition, HNSW, warmup, 160 alternating samples, and 10 server-reported executions per sample.
+- [x] RLS-on p95 is 0.2018 ms versus 0.1970 ms off: 2.44% overhead, below the 15% gate.
 - [x] The measured plan retains both the scoped partition and HNSW index.
 - [x] The accepted decision keeps chunk RLS and is recorded in an ADR and database diagnostic.
 - [x] Approximate-versus-exact Recall@10 is recorded at 0.90.

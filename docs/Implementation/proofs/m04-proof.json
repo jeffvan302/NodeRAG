@@ -1,9 +1,9 @@
 {
   "version": 1,
   "milestone": "M04",
-  "recordedAt": "2026-09-04T09:17:47Z",
+  "recordedAt": "2026-09-04T09:42:02Z",
   "reviewer": "Codex with executable local gates",
-  "milestoneCommit": null,
+  "milestoneCommit": "d9ffd46a5502289c42c0db339336a083f4741bdd",
   "upstreamCommit": "a258a38091a63b3453c68c54f416e7ff20c5b334",
   "migrationHead": "000003_markdown_slice",
   "dependencyLockSha256": "c299069355f2b314dd67b1607b196847b9cd701bcc6a319b2ac0adee7f8ed9c7",
@@ -13,7 +13,28 @@
     "checklist": "docs/Implementation/checklists/m04-checklist.md",
     "deferredDsmRegister": "docs/Implementation/dsm-deferred-register.md",
     "workflow": ".github/workflows/m04-markdown.yml",
-    "implementationWorkflowRun": null,
+    "implementationWorkflowRun": {
+      "runId": 33859493618,
+      "headSha": "d9ffd46a5502289c42c0db339336a083f4741bdd",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33859493618",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T09:42:02Z",
+      "jobs": [
+        {
+          "name": "linux-compatibility",
+          "jobId": 100980418820,
+          "conclusion": "success"
+        },
+        { "name": "quality", "jobId": 100980419139, "conclusion": "success" },
+        {
+          "name": "markdown-integration",
+          "jobId": 100980419145,
+          "conclusion": "success"
+        },
+        { "name": "thin-spk", "jobId": 100980419176, "conclusion": "success" }
+      ]
+    },
     "proofClosureCommit": null,
     "proofClosureWorkflowRun": null,
     "completionTag": "m04-complete",
@@ -168,7 +189,7 @@
     "thinSpkRepeatBuild": "passed",
     "thinSpkStaticVerification": "passed",
     "nonRootLifecycleSimulation": "passed",
-    "remoteCi": "pending"
+    "remoteCi": "implementation-run-passed; evidence-closure pending"
   },
   "liveEvidence": {},
   "environment": "docker-testbed",

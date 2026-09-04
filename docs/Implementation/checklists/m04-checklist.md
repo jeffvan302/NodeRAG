@@ -86,8 +86,8 @@ Recorded: 2026-09-04
 - [x] Migration verification, strict TypeScript, ESLint, unit tests, production build, bundle smoke, license, secret scan, and repository hygiene pass locally.
 - [x] The PostgreSQL/pgvector integration suite passes upload, identity, RLS, normalization, restart, cache, locator, and search behavior.
 - [x] The deterministic thin SPK build and non-root end-to-end package lifecycle pass locally.
-- [ ] The implementation commit is pushed to `main` and all four M04 GitHub Actions jobs succeed.
-- [ ] `m04-proof.json` records the exact implementation workflow and successful job IDs.
+- [x] The implementation commit is pushed to `main` and all four M04 GitHub Actions jobs succeed.
+- [x] `m04-proof.json` records the exact implementation workflow and successful job IDs.
 - [ ] The proof-closure and final certification commits pass M04 CI, and annotated tag `m04-complete` resolves to the certification commit remotely.
 
 M05 remains unauthorized until the three remote-delivery items above are complete.

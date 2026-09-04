@@ -160,4 +160,7 @@ The following are deliberately deferred:
 
 ## Gate state
 
-All local M04 gates pass. Remote implementation, proof-closure, and certification runs remain required before the annotated `m04-complete` tag may be pushed and M05 may begin.
+All local M04 gates and the exact implementation commit's four GitHub jobs pass.
+The milestone becomes `testbed-complete` only after the proof-closure and
+certification commits pass the same workflow and annotated tag `m04-complete`
+resolves to the certification commit.

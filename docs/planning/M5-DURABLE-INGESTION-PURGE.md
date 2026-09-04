@@ -1,6 +1,6 @@
 # Milestone 5 — Durable Ingestion, Verification, Sources, and Purge Record
 
-Status: implementation-ci-passed-proof-closure-pending
+Status: testbed-complete
 
 Recorded: 2026-09-04
 
@@ -132,8 +132,8 @@ The M05 GitHub workflow separates repository quality, the cumulative integration
 
 No result here closes a row in `docs/Implementation/dsm-deferred-register.md`. Live package identity/ACLs, Synology Node/native ABI, filesystem and share behavior, reverse proxy, reboot recovery, q8 memory/thermals, upgrade/backup, and soak remain for the exact M14 release candidate on the user's Synology.
 
-M06 is authorized only after the implementation, proof-closure, and certification commits all pass M05 CI and annotated tag `m05-complete` is remotely verified.
+M06 is authorized only after the final certification commit passes M05 CI and annotated tag `m05-complete` is remotely verified.
 
 ## Gate state
 
-All local M05 gates pass. Implementation commit `95ceb2ddfa9338a1ecf2855b4823134da6da77ac` passed all four M05 GitHub jobs in workflow run `33864961082`. Proof-closure and certification evidence remains pending.
+All local M05 gates pass. Implementation commit `95ceb2ddfa9338a1ecf2855b4823134da6da77ac` passed all four M05 GitHub jobs in workflow run `33864961082`, and proof-closure commit `732921e3007b756140871daa7b70ecab34df19db` passed all four jobs in run `33865188033`. The final certification commit is subject to the same workflow before annotated tag `m05-complete` is pushed and verified.

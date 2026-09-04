@@ -1,7 +1,7 @@
 {
   "version": 1,
   "milestone": "M05",
-  "recordedAt": "2026-09-04T10:50:34Z",
+  "recordedAt": "2026-09-04T10:53:06Z",
   "reviewer": "Codex with executable local gates",
   "milestoneCommit": "95ceb2ddfa9338a1ecf2855b4823134da6da77ac",
   "upstreamCommit": "e389c29502b2bcfd7abc43cd6605cfbc227cfbd4",
@@ -39,11 +39,34 @@
         { "name": "quality", "jobId": 100997608474, "conclusion": "success" }
       ]
     },
-    "proofClosureCommit": null,
-    "proofClosureWorkflowRun": null,
-    "certificationCommit": null,
-    "certificationWorkflowRun": null,
-    "completionTag": null,
+    "proofClosureCommit": "732921e3007b756140871daa7b70ecab34df19db",
+    "proofClosureWorkflowRun": {
+      "runId": 33865188033,
+      "headSha": "732921e3007b756140871daa7b70ecab34df19db",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33865188033",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T10:53:06Z",
+      "jobs": [
+        { "name": "quality", "jobId": 100998321516, "conclusion": "success" },
+        {
+          "name": "durable-ingestion-integration",
+          "jobId": 100998321679,
+          "conclusion": "success"
+        },
+        {
+          "name": "thin-spk",
+          "jobId": 100998321703,
+          "conclusion": "success"
+        },
+        {
+          "name": "linux-compatibility",
+          "jobId": 100998321926,
+          "conclusion": "success"
+        }
+      ]
+    },
+    "completionTag": "m05-complete",
     "database": {
       "postgresMajor": 17,
       "pgvectorVersion": "0.8.6",
@@ -157,11 +180,11 @@
     "thinSpkRepeatBuild": "passed",
     "thinSpkStaticVerification": "passed",
     "nonRootLifecycleSimulation": "passed",
-    "remoteCi": "implementation-passed-proof-closure-pending"
+    "remoteCi": "passed"
   },
   "liveEvidence": {},
   "environment": "docker-testbed",
-  "certification": "implementation-ci-passed-proof-closure-pending",
+  "certification": "testbed-complete",
   "deferredDsmChecks": [
     "Package Center install, upgrade, and three-process supervision",
     "Synology Node runtime and onnxruntime-node native ABI",
@@ -171,6 +194,6 @@
     "nice/ionice enforcement, q8 memory, thermals, and DSM responsiveness"
   ],
   "failures": [],
-  "gate": "implementation-passed-proof-closure-pending",
-  "nextMilestoneAuthorized": false
+  "gate": "passed",
+  "nextMilestoneAuthorized": true
 }

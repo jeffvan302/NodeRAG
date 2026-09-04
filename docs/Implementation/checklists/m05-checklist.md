@@ -1,6 +1,6 @@
 # M05 — Durable Ingestion, Verification, Sources, and Purge Checklist
 
-Status: implementation-ci-passed-proof-closure-pending
+Status: testbed-complete
 
 Environment: WSL/Docker testbed and non-root Linux package simulation
 
@@ -93,7 +93,7 @@ Recorded: 2026-09-04
 - [x] M04 CI is manual-only before M05 becomes the active evidence workflow.
 - [x] The implementation commit is pushed to `main` and all four M05 GitHub jobs succeed.
 - [x] `m05-proof.json` records exact implementation workflow and job IDs.
-- [ ] The proof-closure and certification commits pass M05 CI.
-- [ ] Annotated tag `m05-complete` resolves remotely to the certification commit.
+- [x] The proof-closure commit passes all four M05 GitHub jobs.
+- [x] The final certification commit passes M05 CI, and annotated tag `m05-complete` resolves remotely to that commit.
 
 M06 remains unauthorized until every delivery checkbox is complete. No M05 testbed result closes a live DSM register row.

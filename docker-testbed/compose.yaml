@@ -26,19 +26,6 @@ services:
     networks:
       - backend
 
-  m01-storage-init:
-    image: node@sha256:dd9d21971ec4395903fa6143c2b9267d048ae01ca6d3ea96f16cb30df6187d94
-    profiles:
-      - m01
-    user: "0:0"
-    network_mode: none
-    command:
-      - sh
-      - -ec
-      - mkdir -p /probe-volume && chown 1000:1000 /probe-volume && chmod 0700 /probe-volume
-    volumes:
-      - m01-storage:/probe-volume
-
   m01-node:
     build:
       context: .

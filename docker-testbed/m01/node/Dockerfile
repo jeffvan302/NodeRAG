@@ -13,5 +13,8 @@ COPY m01/node/src ./src
 COPY m01/contracts ./contracts
 COPY m01/model-manifest.json ./model-manifest.json
 
+# An empty named volume inherits this directory's ownership on first mount.
+RUN install -d -o node -g node -m 0700 /probe-volume
+
 USER node
 ENTRYPOINT ["node"]

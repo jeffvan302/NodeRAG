@@ -35,3 +35,7 @@ spk/noderag/ui/config text eol=lf
 *.png binary
 *.spk binary
 *.xlsx binary
+
+# Preserve generated legacy-encoding fixtures byte-for-byte across platforms.
+fixtures/formats/txt/shift-jis.txt binary
+fixtures/formats/txt/utf16-no-bom.txt binary

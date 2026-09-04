@@ -20,8 +20,6 @@
     "SPDXRef-Package-7a1bcc1878c4c9712eea",
     "SPDXRef-Package-c095a4b4c15e6dc06657",
     "SPDXRef-Package-fd27d20a6428c4defb5c",
-    "SPDXRef-Package-e2648bd7fb6fcd0e2257",
-    "SPDXRef-Package-a882d492e4d994692d93",
     "SPDXRef-Package-07216d895122110a20fa",
     "SPDXRef-Package-169a06c5cb51bd3427c3",
     "SPDXRef-Package-84a96edf818709ec7815",
@@ -358,42 +356,6 @@
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
           "referenceLocator": "pkg:npm/%40napi-rs%2Fcanvas-linux-x64-gnu@1.0.8"
-        }
-      ]
-    },
-    {
-      "name": "@napi-rs/canvas-linux-x64-musl",
-      "SPDXID": "SPDXRef-Package-e2648bd7fb6fcd0e2257",
-      "versionInfo": "1.0.8",
-      "downloadLocation": "NOASSERTION",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "homepage": "https://github.com/Brooooooklyn/canvas#readme",
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40napi-rs%2Fcanvas-linux-x64-musl@1.0.8"
-        }
-      ]
-    },
-    {
-      "name": "@napi-rs/canvas-win32-x64-msvc",
-      "SPDXID": "SPDXRef-Package-a882d492e4d994692d93",
-      "versionInfo": "1.0.8",
-      "downloadLocation": "NOASSERTION",
-      "filesAnalyzed": false,
-      "licenseConcluded": "MIT",
-      "licenseDeclared": "MIT",
-      "copyrightText": "NOASSERTION",
-      "homepage": "https://github.com/Brooooooklyn/canvas#readme",
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40napi-rs%2Fcanvas-win32-x64-msvc@1.0.8"
         }
       ]
     },
@@ -2955,16 +2917,6 @@
       "spdxElementId": "SPDXRef-DOCUMENT",
       "relationshipType": "DESCRIBES",
       "relatedSpdxElement": "SPDXRef-Package-fd27d20a6428c4defb5c"
-    },
-    {
-      "spdxElementId": "SPDXRef-DOCUMENT",
-      "relationshipType": "DESCRIBES",
-      "relatedSpdxElement": "SPDXRef-Package-e2648bd7fb6fcd0e2257"
-    },
-    {
-      "spdxElementId": "SPDXRef-DOCUMENT",
-      "relationshipType": "DESCRIBES",
-      "relatedSpdxElement": "SPDXRef-Package-a882d492e4d994692d93"
     },
     {
       "spdxElementId": "SPDXRef-DOCUMENT",

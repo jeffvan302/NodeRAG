@@ -1,7 +1,7 @@
 {
   "version": 1,
   "milestone": "M13",
-  "recordedAt": "2026-09-04T22:39:21Z",
+  "recordedAt": "2026-09-04T22:49:54Z",
   "reviewer": "Codex with executable local, Docker, package, and GitHub gates",
   "implementationBaseCommit": "c30df0a78555e27e0e3566fbaed251e3807c8143",
   "milestoneCommit": null,
@@ -19,8 +19,8 @@
     "faultSecurityMatrixSha256": "9c2bbc4af0f6ece68bddc9438193c2c989f930d66bd202f2a4ad02ad21f7ce72",
     "faultSecurityCaseCount": 18,
     "sbom": "platform/sbom.spdx.json",
-    "sbomSha256": "094658e72e6ded51e7d850565b892d7c471584d3c84a666d60fe88738789bec5",
-    "sbomRuntimePackageCount": 152,
+    "sbomSha256": "31f3286ece2b80bebec3495674154088aa3b0c2002d9b32f72aa94e3beea2914",
+    "sbomRuntimePackageCount": 150,
     "openApi": "platform/openapi.m13.json",
     "openApiVersion": "3.1.1",
     "openApiOperationCount": 90,
@@ -39,7 +39,7 @@
     "localDocker": {
       "environment": "WSL Ubuntu-24.04 with Docker Desktop Linux/amd64",
       "transport": "windows-cli-interop",
-      "nodeRunnerImage": "noderag-testbed-m12-node@sha256:b9b8d5af1d8aace7a30e89c21fcd0f2491b40886faabfb7a6ff820b8838a20e8",
+      "nodeRunnerImage": "noderag-testbed-m12-node@sha256:d10de8152f876efd495a551537aea773cec91c4a6717a1d62bcfdb28bb1787b3",
       "postgres17Image": "pgvector/pgvector@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f",
       "postgres16Image": "postgres@sha256:bb3e1a57e5407e0a5280b4211980a5e537f4abd234a87014ac979849a78dd825",
       "command": "bash docker-testbed/scripts/verify-m13.sh --docker",
@@ -48,7 +48,7 @@
       "postgresMajorRehearsal": "passed-16.15-to-17-with-retained-source-rollback"
     },
     "thinSpk": {
-      "sha256": "a834dc10d66aa7481eac7ffe1f7a71689b912835ee3a46f2670635c346faffdd",
+      "sha256": "f781b7159d6db57981df0d5d779bede335a85a12e314b4018a21867d06d2889d",
       "repeatBuildDeterministic": true,
       "archiveVerification": "passed",
       "nonRootLifecycleSimulation": "passed",
@@ -66,7 +66,8 @@
     "Detached installation-local references before replacing restored identities on an initialized blank target.",
     "Allowed only controlled retention and nested foreign-key nullification through the append-only audit trigger.",
     "Added an explicit portable-import runtime path that maps a verified corpus into an empty selected silo without replacing appliance identity or installation-local state.",
-    "Committed PostgreSQL activation, installation-local safety resets, verification evidence, and the restore success marker in one transaction."
+    "Committed PostgreSQL activation, installation-local safety resets, verification evidence, and the restore success marker in one transaction.",
+    "Made the generated SBOM target Linux x64/glibc explicitly so host-only Windows and musl optional packages cannot create cross-platform drift."
   ],
   "invariants": {
     "unknownSchemaFailsBackup": true,
@@ -92,7 +93,7 @@
     "postgres16To17Upgrade": "passed-with-retained-source-rollback",
     "productionBuild": "passed",
     "licensePolicy": "passed-6-license-classes",
-    "sbom": "passed-152-locked-runtime-packages",
+    "sbom": "passed-150-target-runtime-packages-on-windows-and-linux",
     "secretScan": "passed",
     "repositoryHygiene": "passed",
     "thinSpkLifecycle": "passed",

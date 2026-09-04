@@ -162,7 +162,11 @@ describe('M08 retrieval algorithms', () => {
   it('uses authenticated opaque cursors and rejects tampering', () => {
     const cursor = encodeCursor({ kind: 'documents', id: 42 });
     expect(decodeCursor(cursor)).toEqual({ kind: 'documents', id: 42 });
-    expect(() => decodeCursor(`${cursor.slice(0, -1)}x`)).toThrow(CursorError);
+    const separator = cursor.indexOf('.');
+    const signatureStart = separator + 1;
+    const replacement = cursor[signatureStart] === 'A' ? 'B' : 'A';
+    const tampered = `${cursor.slice(0, signatureStart)}${replacement}${cursor.slice(signatureStart + 1)}`;
+    expect(() => decodeCursor(tampered)).toThrow(CursorError);
     expect(() => decodeCursor('not-a-cursor')).toThrow(CursorError);
   });
 });

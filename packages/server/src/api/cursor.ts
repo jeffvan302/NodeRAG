@@ -25,6 +25,7 @@ export const decodeCursor = <T>(cursor: string): T => {
   } catch {
     throw new CursorError();
   }
+  if (actual.toString('base64url') !== signature) throw new CursorError();
   if (actual.length !== expected.length || !timingSafeEqual(actual, expected))
     throw new CursorError();
   try {

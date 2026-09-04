@@ -1,0 +1,38 @@
+name: noderag-testbed
+
+services:
+  postgres:
+    image: ${NODERAG_TESTBED_POSTGRES_IMAGE:-pgvector/pgvector@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f}
+    restart: "no"
+    environment:
+      POSTGRES_DB: ${NODERAG_TESTBED_POSTGRES_DB:-noderag_test}
+      POSTGRES_USER: ${NODERAG_TESTBED_POSTGRES_USER:-noderag_test}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    ports:
+      - "127.0.0.1:${NODERAG_TESTBED_DB_PORT:-55432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks:
+      - backend
+
+secrets:
+  postgres_password:
+    file: ./.secrets/postgres_password
+
+volumes:
+  postgres-data:
+
+networks:
+  backend:
+    driver: bridge

@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Status | Draft v0.1 — design only, nothing built |
+| Status | Draft v0.2 — WSL/Docker-first testing amendment, design only |
 | Date | 2026-09-03 |
 | Target | Synology DSM 7.2+, x86_64, 8 GB+ RAM (Ryzen R1600 / V1500B / Atom C3538 class) |
 | Runtime | Node.js 22 (Synology `Node.js_v22` Package Center package) |
@@ -15,6 +15,7 @@
 | Silos | Access control only: `read` / `upload` per principal |
 | Vision | Remote Ollama VLM for images, tables and figures |
 | Install UX | One `.spk`, DSM volume picker at install, web setup wizard on a port |
+| Test sequence | M0–M14 in `docker-testbed/`, then one final live DSM certification |
 
 ---
 
@@ -75,7 +76,7 @@ That covers "the user picks the storage drive" for free — but it ties the *dat
 
 **Design:** treat the DSM-chosen volume as the default, then let the setup wizard place the *bulk* of the data wherever the user wants — including on an ordinary shared folder. The mechanism is a PostgreSQL tablespace for the large tables and indexes plus plain relocation for the model and extraction caches, while PGDATA itself stays somewhere with clean POSIX permissions. §5 works this through, including the four ways a shared folder can bite and the probe the wizard runs to catch them.
 
-> **Phase 0 spike:** confirm exactly what triggers Package Center's volume selector on DSM 7.2/7.3, and run the §5.4 permission probe against a real ACL-enabled shared folder. Do not build on assumption here.
+> **Final DSM certification:** confirm exactly what triggers Package Center's volume selector on the target DSM build and run the §5.4 permission probe against a real ACL-enabled shared folder. Until then, the storage adapter and package metadata are tested by contract, fixtures, static validation, and the non-root package simulator.
 
 ### 1.3 Native modules must match Synology's Node
 
@@ -88,7 +89,7 @@ We get lucky here: both critical native modules use **Node-API**, which is ABI-s
 
 The residual risk is not the Node ABI, it's the **C++ runtime**: ONNX Runtime prebuilds want a reasonably modern `libstdc++`/`GLIBCXX`, and DSM's is older than a current Debian. Mitigation, in order of preference: (a) it just works; (b) ship `libstdc++.so.6` from the matching toolchain in `target/lib` and set `LD_LIBRARY_PATH` in the service wrapper; (c) build ONNX Runtime from source in the spksrc toolchain.
 
-> **Phase 0 spike #1, and the highest-risk item in the plan.** Get `require('onnxruntime-node')` to load and run one inference on the actual NAS before anything else is designed further.
+> **Final DSM certification risk #1, and the highest-risk item in the plan.** The testbed proves Linux x86_64 behavior throughout M0–M14; the exact candidate must still load `onnxruntime-node` and run one inference on the actual NAS before v1.0.0 is released.
 
 ---
 
@@ -1057,7 +1058,7 @@ Against an achievable int8 throughput of perhaps 30–80 GFLOPS on a 4-core Zen-
 - A **schedule window** ("index only between 01:00 and 07:00") and a nice-level throttle, so indexing doesn't make Photos and File Station crawl.
 - Search-time embedding is one short query — ~0.3–1 s. That's acceptable interactively, but the API should still expose a "query embedding cache" for repeated queries.
 
-**Phase 0 spike #2:** benchmark q8 vs q4 vs fp16, sequence lengths 256/512/1024, thread counts 1…N on the real device. If q4 is within a few points of q8 on retrieval quality and 1.5–2× faster, it should probably be the default.
+**Final DSM certification risk #2:** repeat the testbed q8/q4/fp16 benchmark at sequence lengths 256/512/1024 and thread counts 1…N on the real device. Docker values are provisional; the NAS measurements choose the final hardware settings.
 
 ---
 
@@ -1945,7 +1946,7 @@ Where it fits: build the harness in **Phase 5** alongside search, use it to set 
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
-| 1 | `onnxruntime-node` won't load on DSM's libstdc++ | **High** | Phase 0 spike #1; fall back to bundling libstdc++, then to a source build |
+| 1 | `onnxruntime-node` won't load on DSM's libstdc++ | **High** | Final DSM certification; fall back to a licensed compatible libstdc++ where supportable, then to a source build and a new candidate |
 | 2 | Embedding is slower than users tolerate | **High** | Calibration benchmark in the wizard; q4 default; scheduling window; never re-embed unchanged content |
 | 3 | PG major upgrades across NodeRag versions | **High** | §8.4 dump/restore path built in v1, not retrofitted |
 | 4 | 8 GB RAM contention between PG and ONNX | Medium | Global mutex; conservative `shared_buffers`; refuse to start HNSW build during ingest |
@@ -2001,8 +2002,8 @@ Not much, if the decisions above hold: spksrc already builds PG for aarch64, and
 
 | Phase | Goal | Exit criteria |
 |---|---|---|
-| **0. Spikes** | De-risk the two unknowns | `onnxruntime-node` runs one inference on the NAS; cross-built PG 17 + pgvector starts as the package user; real seconds-per-chunk number recorded |
-| **1. Package skeleton** | A `.spk` that installs cleanly | Installs via Package Center, creates the package user, picks a volume, serves a "hello" page on :8787, starts/stops/uninstalls cleanly |
+| **0. Docker testbed** | Establish the primary development environment | Clean checkout starts healthy PG 17 + pgvector, passes a halfvec probe, protects secrets/fixtures, and records immutable tool/image versions |
+| **1. Package skeleton** | A statically and behaviorally validated thin `.spk` | Archive, metadata, non-root package-user simulation, hello/health, lifecycle scripts and clean simulated uninstall pass in WSL/Docker |
 | **2. Database + silos + identity** | Postgres in the box, access control from day one | `initdb` on first run, migrations, schema from §7 including partitioned silos; create/delete a silo from the UI (with its partitions); users, API keys, grants, sessions, audit log; the zero-grant-principal test suite passes |
 | **3. Ingest + embedding** | Content goes in | TXT/MD/PDF/DOCX/XLSX → page-scoped markdown with `page_basis` detection and sheet-per-page workbooks (§10.8); character chunker with boundary snapping, atomic units, header-repeating table splits, heading prefix and token guard (§11); dual locators (page range + code-point char range); versioned, bounded chunk profiles; model download + verify; standalone embedder with priority + fair-share queue across silos; embedding cache (§6.6); resumable ingest; calibration benchmark |
 | **3b. Locator verifier** | Offsets can't drift silently | §11.7: in-transaction assertion on every chunk, astral-plane CI fixture corpus, nightly sampling verifier surfacing mismatches on the admin dashboard |
@@ -2010,6 +2011,7 @@ Not much, if the decisions above hold: spksrc already builds PG for aarch64, and
 | **5. Search + API** | Content comes out | `/v1/search` in all three modes across permitted partitions, RLS benchmark and decision, full REST surface with parity, OpenAPI generated from route schemas, gateways, MCP endpoint |
 | **6. Front end** | People can use it | Search screen (§15.1), document browser and page preview, ingest console with failures and retry, admin screens, setup wizard |
 | **7. Polish** | Shippable | Hyper Backup integration, log rotation, upgrade path tested 1.0→1.1, accessibility pass, docs |
+| **Final DSM certification** | Certify the immutable release candidate | The exact candidate passes runtime, package-user PG/pgvector, install/setup/ingest/search/reboot/upgrade/restore/uninstall, performance and 24-hour soak checks before v1.0.0 |
 
 ---
 
@@ -2039,9 +2041,9 @@ Still open, and cheap to answer late:
 | D4 | Keyword-search language | `ts_config` is now system-wide and baked into a generated column; changing it reindexes `tsv` only — minutes, not days. `'simple'` is the safe default for mixed corpora |
 | D11 | Should `upload` include delete? | Currently yes (§6.3). Splitting delete into a third permission is cheap now and expensive once people rely on two levels |
 
-### 19.2 Measure, don't decide — Phase 0, before any of the above matters
+### 19.2 Measure, don't decide — final DSM certification after the testbed milestones
 
-These are not questions for anyone to answer from a chair. They are a few days of work whose results change the plan.
+These are not questions for anyone to answer from a chair or infer from Docker. M0–M14 must keep them in the deferred DSM register. They are executed against the immutable M14 candidate and block v1.0.0 if they fail.
 
 | # | Spike | Kills the project if it fails |
 |---|---|---|
@@ -2053,6 +2055,8 @@ These are not questions for anyone to answer from a chair. They are a few days o
 | S6 | One Ollama round trip from the NAS with a real table image, timed | No — it sets the vision cost model |
 
 ### 19.3 Facts about your environment that turn estimates into numbers
+
+Corpus and Ollama facts are useful during the testbed milestones. NAS-specific facts may be collected immediately if convenient, but are not required until final DSM certification.
 
 1. **The NAS model.** Sets the spksrc platform target, the thread count, and whether §9.5's estimates are optimistic or pessimistic.
 2. **Volume and share layout**, and whether the shares are ACL-enabled (§5).
@@ -2072,7 +2076,9 @@ Recorded so they are not rediscovered as surprises: reranking (§13, unaffordabl
 ## Companion documents
 
 - **`IMPLEMENTATION.md`** — build order, repo layout, stack, testing strategy, CI and release. The *how* to this document's *what*.
-- **`PHASE-0-RESULTS.md`** — to be written: the recorded outcomes of the six spikes in §19.2. Several numbers in §9.5 and §12 are estimates until it exists.
+- **`../Implementation/staged implementation.md`** — authoritative M0–M14 execution plan and final DSM certification note.
+- **`../../docker-testbed/TEST-PLAN.md`** — Docker-testbed expansion, evidence boundaries, and DSM handoff contract.
+- **`../Implementation/proofs/dsm-final-proof.json`** — generated only after M14; records the live outcomes of the six checks in §19.2. Several numbers in §9.5 and §12 remain provisional until it passes.
 
 ---
 

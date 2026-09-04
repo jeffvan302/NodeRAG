@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Status | Draft v0.1 |
+| Status | Draft v0.2 — WSL/Docker-first execution amendment |
 | Date | 2026-09-04 |
 | Companion | `ARCHITECTURE.md` — the *what*. This is the *how* |
 | Scope | v1.0 = the full system: silos, identity, five formats, vision, search, API, UI |
@@ -14,17 +14,17 @@
 
 ## 1. The one thing that shapes everything else
 
-**You cannot iterate on a NAS.**
+**You should not iterate on a NAS.**
 
 The deploy cycle is build the SPK → upload through Package Center → install → watch a log. Minutes per iteration, no debugger, no hot reload, and a mistake in `start-stop-status` means uninstalling by hand. A project that treats the NAS as its development environment will move at a tenth of the speed it should.
 
 So the governing rule of this whole plan:
 
-> **Roughly 95 % of development happens on an ordinary Linux workstation against an ordinary PostgreSQL. The NAS is an integration checkpoint, not a development environment.**
+> **Milestones 0–14 execute in the repository-owned WSL/Docker testbed. The NAS is the final certification target, not a development environment or a recurring milestone dependency.**
 
-Everything below follows from that. It means DSM-specific behaviour lives behind one thin adapter rather than being sprinkled through the codebase; it means a `docker compose` dev stack that mirrors the runtime closely enough to trust; and it means the SPK build is a CI artefact you install a few times a week, not a thing you wait for.
+Everything below follows from that. DSM-specific behaviour lives behind one thin adapter rather than being sprinkled through the codebase; `docker-testbed/` owns a Compose stack that mirrors every platform-independent behavior; and the SPK is built, unpacked, inspected, and exercised under a non-root package-user simulator throughout implementation.
 
-The corollary is a discipline: **anything that can only be tested on the NAS is a risk, so keep that list short and known.** Today it is exactly four things — `onnxruntime-node` loading against DSM's C++ runtime, the cross-built PostgreSQL starting as the package user, the DSM package lifecycle itself, and real embedding throughput. Those four are §3's spikes precisely because they are the ones the workstation cannot answer.
+The corollary is a discipline: **anything that can only be tested on the NAS is a deferred release risk, so keep that list explicit and never claim Docker proved it.** The principal live-only risks are `onnxruntime-node` loading against DSM's C++ runtime, cross-built PostgreSQL starting as the DSM-created package user, DSM package/resource/ACL/lifecycle behavior, and real embedding/resource performance. They are collected in the staged plan's final DSM certification note and block `v1.0.0`, but they do not block M0–M14 implementation.
 
 ---
 
@@ -54,22 +54,37 @@ Chosen for boring reasons; each line is a decision, not a default.
 
 ---
 
-## 3. Milestone 0 — the spikes, before anything else
+## 3. Milestone 0 — WSL/Docker testbed, before anything else
 
-Non-negotiable, and unaffected by the decision to build the full system. Two of these can end the project, and both are cheap to run. Building for three months and *then* discovering that ONNX Runtime will not load on DSM is the single worst outcome available.
+Milestone 0 establishes the repository-owned environment used by every later milestone. Its authoritative code and detailed plan live under `docker-testbed/`.
+
+The M0 gate requires:
+
+1. recorded Windows, WSL, Docker Engine, Compose, CPU, RAM, and disk inventory;
+2. healthy PostgreSQL 17 plus pgvector on an isolated Compose network;
+3. loopback-only database exposure and a generated Git-ignored secret;
+4. an immutable accepted database image digest;
+5. a real `halfvec` insert and similarity query;
+6. safe bootstrap, start, verify, stop, and confirmation-guarded reset scripts;
+7. fixture, secret, artifact, model, backup, and runtime-state hygiene;
+8. a clean-checkout CI path and `m00` checklist/proof.
+
+See `docker-testbed/README.md`, `docker-testbed/TEST-PLAN.md`, and `docs/Implementation/staged implementation.md` for the execution contract.
+
+### 3.1 Deferred DSM certification risks
+
+The following probes are not performed during M0–M14. Each is simulated or statically validated where possible, kept in the deferred DSM register, and executed against the exact immutable M14 candidate during final certification.
 
 | Spike | Question | Pass looks like | If it fails |
 |---|---|---|---|
-| **S1** | Does `onnxruntime-node` load and infer on the NAS? | `require()` succeeds, one forward pass returns a 1024-vector | (a) ship `libstdc++.so.6` in `target/lib` + `LD_LIBRARY_PATH`; (b) build ORT from source in the spksrc toolchain; (c) **re-open the local-only embedding decision** |
+| **S1** | Does `onnxruntime-node` load and infer on the NAS? | `require()` succeeds, one forward pass returns a 1024-vector | (a) ship a compatible `libstdc++.so.6` where licensing/support permits; (b) build ORT from source in spksrc; (c) reopen the local-only embedding decision |
 | **S2** | Does cross-built PG 17 + pgvector start as the package user? | `initdb`, start on a unix socket, `CREATE EXTENSION vector`, insert and query a `halfvec(1024)` | Fall back to the SynoCommunity PostgreSQL package as a dependency — a different install story, not a dead end |
 | **S3** | How fast is embedding, really? | Seconds/chunk recorded for q8 / q4 / fp16 × 512 / 1024 tokens × 1…N threads | Not a failure mode; it sets every estimate and may change the default quantisation |
 | **S4** | Can PGDATA live where the user wants it? | The §5.4 probe against a real ACL-enabled share: `chmod 0700` sticks, or it doesn't | Tablespace-only relocation; PGDATA stays in `@appdata` |
 | **S5** | Do the five formats survive one real page each? | A scanned PDF, a two-column PDF, a Word-saved DOCX, a Google-Docs-saved DOCX, a messy workbook — through a throwaway extractor | Turns §10.5 and §10.8 from reasoning into fact; may reorder the extractor work |
 | **S6** | What does one vision call cost from the NAS? | A real table image round-tripped to Ollama, timed | Sets the vision cost model and the default parallelism |
 
-**Do S1 and S2 first, on the real hardware, before writing a line of product code.** They are perhaps two days together. Everything after this document assumes they passed.
-
-Record every result in `docs/planning/PHASE-0-RESULTS.md`. The numbers from S3 and S6 become the constants the ETA calculations and the UI benchmarks are built on.
+Run S1–S6 only after M14 passes. Record them in `docs/Implementation/proofs/dsm-final-proof.json`; S3 and S6 replace the provisional Docker values used by ETA, capacity, and UI estimates. Any failure reopens the owning milestone and requires a new immutable candidate before retesting.
 
 ---
 
@@ -77,7 +92,8 @@ Record every result in `docs/planning/PHASE-0-RESULTS.md`. The numbers from S3 a
 
 ```
 NodeRag/
-├── docs/planning/          ARCHITECTURE.md, IMPLEMENTATION.md, PHASE-0-RESULTS.md
+├── docs/planning/          ARCHITECTURE.md, IMPLEMENTATION.md
+├── docs/Implementation/    staged plan, checklists, milestone and DSM proofs
 ├── packages/
 │   ├── shared/             types, the locator core, chunking rules, Zod schemas
 │   ├── server/             Fastify app, ingest worker, embedder, vision client, store
@@ -87,7 +103,7 @@ NodeRag/
 │   └── noderag/            Makefile, conf/, scripts/, WIZARD_UIFILES/
 ├── fixtures/               the format corpus + the astral-plane text corpus
 ├── eval/                   golden set + harness (§16 of ARCHITECTURE.md)
-└── docker-compose.dev.yml  PostgreSQL 17 + pgvector, matching the runtime
+└── docker-testbed/         Compose, scripts, fixture policy, artifacts, testbed plan
 ```
 
 **Why `shared` exists.** The browser needs the same locator arithmetic as the chunker — a highlight is `text.slice(char_start - page.char_start, …)` — and the same types the API returns. Duplicating either is how a UTF-16 offset bug gets reintroduced on one side only. `shared` has **no dependencies** beyond TypeScript, so it is trivially importable from both a Node bundle and a browser bundle.
@@ -178,7 +194,7 @@ The test that proves it: a suite that calls **every** route with a principal hol
 
 ## 6. Testing
 
-### 6.1 The two fixture corpora, built in Milestone 0
+### 6.1 The two fixture corpora, governed from Milestone 0 and populated by their owning milestones
 
 **`fixtures/formats/`** — one small real file per case, each with a hand-checked expected Markdown:
 
@@ -215,9 +231,10 @@ The astral fixture is the one that pays for itself: every chunker and locator te
 | **Security** | Zero-grant principal against every route; gateway narrowing; expired and revoked keys | Testcontainers |
 | **Contract** | Generated OpenAPI matches the routes; every response validates against its schema | None |
 | **Eval** | §16 harness against the golden set | A seeded index |
-| **Smoke (NAS)** | Install, first-run wizard, ingest one document, search it, uninstall | The real device |
+| **Package simulation** | Archive, metadata, lifecycle scripts, package-user restrictions, setup, ingest, search, uninstall | WSL/Docker |
+| **DSM final** | Install, setup, ingest, search, reboot, upgrade, backup, restore, uninstall, soak | The real device, after M14 only |
 
-The NAS smoke test is a written checklist, run at each milestone, not automated. Automating DSM package installation is a project of its own and would not pay for itself here.
+The final DSM test is a written, release-blocking checklist run once the immutable M14 candidate exists. M0–M14 record DSM-only cases in a deferred register and must not represent package simulation as live-device evidence.
 
 ### 6.3 A deterministic fake for the vision model
 
@@ -231,51 +248,43 @@ Re-ordered from `ARCHITECTURE.md` §18 to reach a **working vertical slice early
 
 | M | Milestone | Exit criterion — a thing you can actually check |
 |---|---|---|
-| **0** | Spikes (§3) | S1–S6 recorded in `PHASE-0-RESULTS.md`. S1 and S2 green |
-| **1** | Skeleton + dev stack | `docker compose up` gives PG 17 + pgvector; `pnpm dev` serves a page; migrations run; CI is green on an empty project |
-| **2** | Schema + identity | Every table from §7; partitions created and dropped by silo; `settings` singleton; principals, keys, grants (`read`/`upload`), sessions, audit. **The zero-grant test suite passes** |
-| **3** | **Vertical slice** | A `.md` file on disk → crawl → chunk → embed → `POST /v1/search` returns it with correct page and character locators. One format, one silo, no UI. **This is the milestone that proves the architecture** |
-| **4** | Locator verifier + purge | In-transaction assertion, astral fixtures green, nightly sampler, both offset units verified. **Delete a document and prove nothing survives**: no rows, no files, no unreachable cache entries (§7.6) |
-| **5** | Formats | TXT, PDF, DOCX, XLSX against the whole fixture corpus, including encoding detection and `page_basis` |
-| **6** | Vision | Ollama client, schema-constrained output, image filters, hash cache, `pending_vision` retry, the §10.5 page-level extraction gate |
-| **7** | Search + full API | Three modes, RRF, overlap collapse, the whole REST surface, generated OpenAPI, gateways, MCP |
-| **8** | Front end | Search screen, document browser, page preview, ingest console with failures, admin screens |
-| **9** | Packaging | The real SPK: bundled PG, lifecycle scripts, setup wizard, volume selection, `.sc` ports. Installs and uninstalls cleanly on the NAS |
-| **9b** | Rebuilds | §7.5 end-to-end: change the chunk size, watch staging partitions populate while search keeps serving, swap in. Then a model swap, flipping every silo in one transaction. **Rehearsed on a real corpus before it is ever needed** |
-| **10** | Evaluation | Golden set built from the real corpus; harness runs; defaults set from measurements rather than argument |
-| **11** | Hardening | RLS benchmark and decision, backup/restore, 1.0→1.1 upgrade rehearsal, log rotation, accessibility, CPU-budget tuning |
+| **0** | WSL/Docker testbed | Clean checkout starts healthy PG 17 + pgvector and passes the halfvec probe |
+| **1** | Contracts + testbed feasibility | Linux Node/ONNX, PG/pgvector, Argon2, extraction and Ollama probes pass; DSM register complete |
+| **2** | Repository + thin SPK | Workspace, migrations, UI/server skeleton, CI and simulated thin-package lifecycle pass |
+| **3** | Schema + identity | Partitions, RLS, identity, independent capabilities, readiness, audit and zero-grant suites pass |
+| **4** | Markdown vertical slice | Upload → durable job → chunk → embed → scoped search returns exact dual-unit locators |
+| **5** | Durable ingestion + purge | Crash recovery, watched-source retention, locator verifier and complete purge pass |
+| **6** | Five formats | TXT, Markdown, PDF, DOCX and XLSX fixture corpus passes in production-bundle simulation |
+| **7** | Vision | Schema-constrained Ollama client, deterministic fake, image cache and bad-PDF recovery pass |
+| **8** | Retrieval + API | Three search modes, REST, gateways, MCP and evaluation harness pass scope/contract matrices |
+| **9** | Complete UI | Setup, search, documents, ingest, administration, E2E and accessibility pass |
+| **10** | Production SPK simulation | Bundled artifacts, storage probe, supervision and lifecycle pass under package-user simulation |
+| **11** | Rebuilds | Chunk/model rebuild and rollback work under active search without mixed model spaces |
+| **12** | Evaluation | Quality gates pass; Docker latency/resource values are frozen as provisional |
+| **13** | Recovery + hardening | Backup, blank restore, upgrade/rollback, fault, security, SBOM and license gates pass |
+| **14** | Immutable candidate | Clean-room build, full regression and 24-hour Docker soak produce the tagged candidate |
 
-**M3 is the one to protect.** It is deliberately thin — one format, no UI, no vision — and it exercises every architectural seam at once: the partition boundary, the `SiloScope` choke point, the offset producer, the embedder process, the job queue. If something in this design is wrong, M3 is where it shows, and it is far cheaper to find out there than at M8.
+**M4 is the one to protect.** It is deliberately thin — one format, no UI, no vision — and it exercises every architectural seam at once: the partition boundary, the `SiloScope` choke point, the offset producer, the embedder process, and the job queue. If something in this design is wrong, M4 is where it shows, and it is far cheaper to find out there than at M9.
 
-**M9 is deliberately late.** Packaging is well understood after the spikes and does not need to block product work. The one caveat: run the NAS smoke test at M3, M5 and M7 anyway, so packaging drift is caught in hours rather than at the end.
+**M10 is deliberately late.** Thin-package archive and lifecycle simulation begins in M2, while the full production package waits until the application behavior is stable. The final live DSM test occurs only after M14 and uses the exact tagged candidate.
 
 ---
 
 ## 8. Development environment
 
-```yaml
-# docker-compose.dev.yml
-services:
-  db:
-    image: pgvector/pgvector:pg17
-    environment: [ POSTGRES_PASSWORD=dev, POSTGRES_DB=noderag ]
-    ports: [ "5433:5432" ]          # 5433 to match the runtime's habits
-    command: >
-      postgres -c shared_buffers=1GB -c maintenance_work_mem=1GB
-               -c max_connections=24
-```
+The authoritative environment is `docker-testbed/compose.yaml`; do not create a second root Compose file. Bootstrap and validate it from WSL with `docker-testbed/scripts/up.sh`. It begins with PostgreSQL 17 + pgvector, an isolated network, loopback-only port, health check, persistent volume, generated secret, and real halfvec probe. Later services are added only by their owning milestone.
 
-Same major version, same extension, same tuning shape as §8.3 — so a query plan seen in development is the plan the NAS will use. The one thing it cannot mirror is the CPU, so §9.5's timings only ever come from the device.
+The same PostgreSQL major, extension, schema, and tuning shape make local query behavior useful, but Docker cannot certify DSM CPU, C++ runtime, ACL, filesystem, package manager, or resource behavior. Those values remain provisional until final certification.
 
 `pnpm dev` runs the API with `tsx watch`, the UI with Vite, and the ingest worker as a separate process, all against `docker compose`. Local folders stand in for shared folders; `adapters/local` supplies the paths that `adapters/dsm` would.
 
-**One CI job builds inside a container matching DSM's glibc and libstdc++** and does nothing but `require('onnxruntime-node')` and run one inference. That converts S1 from a one-off spike into a continuously verified property, and it catches the day a dependency upgrade quietly bumps the C++ runtime requirement.
+**One CI job builds inside the documented Linux x86_64 compatibility container** and does nothing but `require('onnxruntime-node')` and run one inference. It continuously verifies the Linux baseline and catches dependency ABI changes. It must not be named or interpreted as proof of the DSM runtime.
 
 ---
 
 ## 9. CI
 
-On every push: typecheck → lint → `dependency-cruiser` → unit + property → integration (Testcontainers) → security suite → contract → the DSM-compat container job. Nightly: eval harness, licence audit.
+On every push: Compose validation → typecheck → lint → `dependency-cruiser` → unit + property → integration (Testcontainers) → security suite → contract → Linux compatibility → package simulation. Nightly: eval harness, licence audit, and applicable soak/fault slices.
 
 The licence audit matters because the project is private and redistributes bundled binaries: `license-checker` with an allowlist, failing on any GPL/AGPL runtime dependency, plus a `THIRD-PARTY.md` regenerated on each release. Cheap now, genuinely painful to reconstruct later.
 
@@ -285,7 +294,7 @@ The licence audit matters because the project is private and redistributes bundl
 
 `MAJOR.MINOR.PATCH`, with the PostgreSQL major pinned per NodeRag major (§8.4). The SPK's `INFO` version is derived from `package.json`, so there is one source of truth.
 
-A release is: tag → CI builds the SPK for each target platform → artefacts attached to the tag → manual install. Since distribution is manual, the release notes carry the upgrade instructions, and **every release that changes the schema is rehearsed against a copy of a real installation before it ships.** With no auto-update and no repo, a bad upgrade is a phone call, not a hotfix.
+A candidate is: clean CI build → `v1.0.0-rc.N` tag → checksummed SPK and proof bundle → clean testbed verification. A release is: final DSM certification of that exact candidate → `dsm-final-proof.json` → `v1.0.0` tag on the certified commit → private GitHub release. Since distribution is manual, release notes carry upgrade instructions, and every schema-changing release is rehearsed against a recovery copy before it ships.
 
 ---
 
@@ -293,9 +302,9 @@ A release is: tag → CI builds the SPK for each target platform → artefacts a
 
 Worth stating so it can be checked later rather than discovered:
 
-1. **ONNX Runtime works on DSM** (S1). Everything else is recoverable; this is the one that reopens a locked decision.
-2. **Cross-building PostgreSQL is a solved problem** because spksrc already does it (S2). If its `cross/postgresql` does not build for the target platform, the bundled-PG decision reverts to a package dependency.
+1. **ONNX Runtime works on DSM** (S1). This bet is intentionally deferred to final certification; failure blocks v1.0.0 and reopens a locked decision.
+2. **Cross-building PostgreSQL is a solved problem** because spksrc already does it (S2). The build is continuously verified in WSL/CI, but startup on DSM remains a final release gate.
 3. **Extraction quality is achievable in TypeScript.** The Python ecosystem is stronger here. If PDF reading-order reconstruction proves genuinely inadequate with `pdfjs-dist` and MuPDF, the fallback is routing more pages to the vision model (§10.5) — which works, and costs money and time.
-4. **8 GB is enough** for PostgreSQL, one ONNX session and the page cache (§6.8). S3 tests the CPU half; the memory half is only proven at real corpus size, which is M10.
-5. **A rebuild is a background operation, not an outage.** §7.5's staging-partition swap is the mechanism the whole "change the model later" promise rests on. M9b exists to prove it on real data before it is needed in anger.
-6. **The full-system scope survives contact with M3.** If the vertical slice takes materially longer than planned, the deferral discussed and rejected in §19.1 — silos now, identity later — is still available, and M2 is the last moment it is cheap.
+4. **8 GB is enough** for PostgreSQL, one ONNX session and the page cache (§6.8). Docker establishes provisional behavior; only final DSM certification proves the hardware claim.
+5. **A rebuild is a background operation, not an outage.** §7.5's staging-partition swap is the mechanism the whole "change the model later" promise rests on. M11 exists to prove it on real data before it is needed in anger.
+6. **The full-system scope survives contact with M4.** If the vertical slice takes materially longer than planned, the deferral discussed and rejected in §19.1 — silos now, identity later — is still available, and M3 is the last moment it is cheap.

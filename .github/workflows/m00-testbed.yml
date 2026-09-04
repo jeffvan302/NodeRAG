@@ -1,0 +1,83 @@
+name: M00 Docker testbed
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .gitattributes
+      - .github/workflows/m00-testbed.yml
+      - docker-testbed/**
+      - docs/Implementation/**
+      - docs/planning/ARCHITECTURE.md
+      - docs/planning/IMPLEMENTATION.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m00-testbed-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  testbed:
+    name: Bootstrap, pgvector, and persistence
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Record tool versions
+        run: |
+          uname -a
+          docker version
+          docker compose version
+
+      - name: Validate shell syntax
+        run: find docker-testbed/scripts -name '*.sh' -print0 | xargs -0 -n1 bash -n
+
+      - name: Bootstrap Compose model and local secret
+        run: bash docker-testbed/scripts/bootstrap.sh
+
+      - name: Verify repository and secret hygiene
+        run: |
+          grep -Eq 'pgvector/pgvector@sha256:[0-9a-f]{64}' docker-testbed/compose.yaml
+          test -s docker-testbed/.secrets/postgres_password
+          test "$(stat -c '%a' docker-testbed/.secrets/postgres_password)" = "600"
+          git check-ignore --quiet docker-testbed/.secrets/postgres_password
+          ! git ls-files --error-unmatch docker-testbed/.secrets/postgres_password
+          git diff --check
+
+      - name: Start and verify PostgreSQL with pgvector
+        run: bash docker-testbed/scripts/up.sh
+
+      - name: Verify loopback-only port binding
+        run: |
+          binding="$(docker inspect noderag-testbed-postgres-1 --format '{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostIp}}:{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort}}')"
+          test "${binding}" = "127.0.0.1:55432"
+
+      - name: Verify persistent volume across stop and start
+        run: bash docker-testbed/scripts/verify-persistence.sh
+
+      - name: Verify guarded reset refuses an unconfirmed deletion
+        run: |
+          set +e
+          bash docker-testbed/scripts/reset.sh >/tmp/noderag-reset-output.txt 2>&1
+          result=$?
+          set -e
+          test "${result}" = "2"
+          grep -F -- '--confirm-destroy-test-data' /tmp/noderag-reset-output.txt
+          bash docker-testbed/scripts/verify.sh
+
+      - name: Capture status and logs
+        if: always()
+        run: |
+          bash docker-testbed/scripts/status.sh || true
+          bash docker-testbed/scripts/logs.sh postgres || true
+
+      - name: Remove disposable CI resources
+        if: always()
+        run: bash docker-testbed/scripts/reset.sh --confirm-destroy-test-data || true

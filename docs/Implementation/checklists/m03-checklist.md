@@ -82,8 +82,8 @@ Recorded: 2026-09-04
 - [x] Seven unit files with 14 tests pass.
 - [x] Two PostgreSQL integration files with 17 tests pass against a real pgvector container.
 - [x] The thin SPK builds twice with the same SHA-256 and passes static and non-root lifecycle verification.
-- [ ] The implementation commit is pushed to `main` and all four M03 GitHub Actions jobs succeed.
-- [ ] `m03-proof.json` records the implementation workflow, exact artifacts, and successful jobs.
+- [x] The implementation commit is pushed to `main` and all four M03 GitHub Actions jobs succeed.
+- [x] `m03-proof.json` records the implementation workflow, exact artifacts, and successful jobs.
 - [ ] The proof-closure commit and final certification commit each pass their own M03 workflow.
 - [ ] Annotated tag `m03-complete` resolves to the final certification commit on the remote.
 

@@ -227,6 +227,7 @@ and recovery behavior remain live-device gates in
 
 ## Gate state
 
-All local M03 gates pass. The implementation becomes `testbed-complete` only
-after its exact commit and the two evidence-closure commits pass all four remote
-jobs and annotated tag `m03-complete` resolves to the certification commit.
+All local M03 gates and the exact implementation commit's four GitHub jobs pass.
+The milestone becomes `testbed-complete` only after the evidence-closure and
+certification commits pass the same workflow and annotated tag `m03-complete`
+resolves to the certification commit.

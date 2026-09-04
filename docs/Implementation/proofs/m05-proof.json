@@ -1,9 +1,9 @@
 {
   "version": 1,
   "milestone": "M05",
-  "recordedAt": "2026-09-04T10:35:33Z",
+  "recordedAt": "2026-09-04T10:50:34Z",
   "reviewer": "Codex with executable local gates",
-  "milestoneCommit": null,
+  "milestoneCommit": "95ceb2ddfa9338a1ecf2855b4823134da6da77ac",
   "upstreamCommit": "e389c29502b2bcfd7abc43cd6605cfbc227cfbd4",
   "migrationHead": "000004_durable_ingestion",
   "dependencyLockSha256": "c299069355f2b314dd67b1607b196847b9cd701bcc6a319b2ac0adee7f8ed9c7",
@@ -13,7 +13,32 @@
     "checklist": "docs/Implementation/checklists/m05-checklist.md",
     "deferredDsmRegister": "docs/Implementation/dsm-deferred-register.md",
     "workflow": ".github/workflows/m05-durable-ingestion.yml",
-    "implementationWorkflowRun": null,
+    "implementationWorkflowRun": {
+      "runId": 33864961082,
+      "headSha": "95ceb2ddfa9338a1ecf2855b4823134da6da77ac",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33864961082",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T10:50:34Z",
+      "jobs": [
+        {
+          "name": "linux-compatibility",
+          "jobId": 100997608105,
+          "conclusion": "success"
+        },
+        {
+          "name": "durable-ingestion-integration",
+          "jobId": 100997608366,
+          "conclusion": "success"
+        },
+        {
+          "name": "thin-spk",
+          "jobId": 100997608374,
+          "conclusion": "success"
+        },
+        { "name": "quality", "jobId": 100997608474, "conclusion": "success" }
+      ]
+    },
     "proofClosureCommit": null,
     "proofClosureWorkflowRun": null,
     "certificationCommit": null,
@@ -132,11 +157,11 @@
     "thinSpkRepeatBuild": "passed",
     "thinSpkStaticVerification": "passed",
     "nonRootLifecycleSimulation": "passed",
-    "remoteCi": "pending"
+    "remoteCi": "implementation-passed-proof-closure-pending"
   },
   "liveEvidence": {},
   "environment": "docker-testbed",
-  "certification": "implementation-complete-ci-pending",
+  "certification": "implementation-ci-passed-proof-closure-pending",
   "deferredDsmChecks": [
     "Package Center install, upgrade, and three-process supervision",
     "Synology Node runtime and onnxruntime-node native ABI",
@@ -146,6 +171,6 @@
     "nice/ionice enforcement, q8 memory, thermals, and DSM responsiveness"
   ],
   "failures": [],
-  "gate": "local-passed-remote-pending",
+  "gate": "implementation-passed-proof-closure-pending",
   "nextMilestoneAuthorized": false
 }

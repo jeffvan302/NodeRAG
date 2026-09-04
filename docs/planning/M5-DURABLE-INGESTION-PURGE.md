@@ -1,6 +1,6 @@
 # Milestone 5 — Durable Ingestion, Verification, Sources, and Purge Record
 
-Status: implementation-complete-ci-pending
+Status: implementation-ci-passed-proof-closure-pending
 
 Recorded: 2026-09-04
 
@@ -136,4 +136,4 @@ M06 is authorized only after the implementation, proof-closure, and certificatio
 
 ## Gate state
 
-All local M05 gates pass. GitHub implementation, proof-closure, and certification evidence is pending.
+All local M05 gates pass. Implementation commit `95ceb2ddfa9338a1ecf2855b4823134da6da77ac` passed all four M05 GitHub jobs in workflow run `33864961082`. Proof-closure and certification evidence remains pending.

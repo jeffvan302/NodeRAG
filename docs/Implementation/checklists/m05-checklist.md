@@ -1,6 +1,6 @@
 # M05 — Durable Ingestion, Verification, Sources, and Purge Checklist
 
-Status: implementation-complete-ci-pending
+Status: implementation-ci-passed-proof-closure-pending
 
 Environment: WSL/Docker testbed and non-root Linux package simulation
 
@@ -91,8 +91,8 @@ Recorded: 2026-09-04
 - [x] Frozen strict-peer install, migrations, TypeScript, lint, format, boundaries, unit, build/smoke, licenses, secrets, and repository hygiene pass locally.
 - [x] Four PostgreSQL 17/pgvector integration files pass 28 tests locally.
 - [x] M04 CI is manual-only before M05 becomes the active evidence workflow.
-- [ ] The implementation commit is pushed to `main` and all four M05 GitHub jobs succeed.
-- [ ] `m05-proof.json` records exact implementation workflow and job IDs.
+- [x] The implementation commit is pushed to `main` and all four M05 GitHub jobs succeed.
+- [x] `m05-proof.json` records exact implementation workflow and job IDs.
 - [ ] The proof-closure and certification commits pass M05 CI.
 - [ ] Annotated tag `m05-complete` resolves remotely to the certification commit.
 

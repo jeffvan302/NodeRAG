@@ -1,6 +1,6 @@
 # Milestone 4 — Markdown Vertical Slice Record
 
-Status: implementation-complete-ci-pending
+Status: testbed-complete
 
 Recorded: 2026-09-04
 
@@ -160,7 +160,6 @@ The following are deliberately deferred:
 
 ## Gate state
 
-All local M04 gates and the exact implementation commit's four GitHub jobs pass.
-The milestone becomes `testbed-complete` only after the proof-closure and
-certification commits pass the same workflow and annotated tag `m04-complete`
-resolves to the certification commit.
+All local M04 gates pass. The exact implementation and proof-closure commits
+also pass all four GitHub jobs. The final certification commit is subject to the
+same workflow before annotated tag `m04-complete` is pushed and verified.

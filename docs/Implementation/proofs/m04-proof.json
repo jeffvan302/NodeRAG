@@ -1,10 +1,10 @@
 {
   "version": 1,
   "milestone": "M04",
-  "recordedAt": "2026-09-04T09:42:02Z",
+  "recordedAt": "2026-09-04T09:45:13Z",
   "reviewer": "Codex with executable local gates",
   "milestoneCommit": "d9ffd46a5502289c42c0db339336a083f4741bdd",
-  "upstreamCommit": "a258a38091a63b3453c68c54f416e7ff20c5b334",
+  "upstreamCommit": "0f51324e50d6b93a6316925f4ff599d6254f3cf5",
   "migrationHead": "000003_markdown_slice",
   "dependencyLockSha256": "c299069355f2b314dd67b1607b196847b9cd701bcc6a319b2ac0adee7f8ed9c7",
   "readinessState": "operational-after-one-time-bootstrap",
@@ -35,8 +35,29 @@
         { "name": "thin-spk", "jobId": 100980419176, "conclusion": "success" }
       ]
     },
-    "proofClosureCommit": null,
-    "proofClosureWorkflowRun": null,
+    "proofClosureCommit": "0f51324e50d6b93a6316925f4ff599d6254f3cf5",
+    "proofClosureWorkflowRun": {
+      "runId": 33859753301,
+      "headSha": "0f51324e50d6b93a6316925f4ff599d6254f3cf5",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33859753301",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T09:45:13Z",
+      "jobs": [
+        { "name": "thin-spk", "jobId": 100981246165, "conclusion": "success" },
+        {
+          "name": "linux-compatibility",
+          "jobId": 100981246448,
+          "conclusion": "success"
+        },
+        {
+          "name": "markdown-integration",
+          "jobId": 100981246477,
+          "conclusion": "success"
+        },
+        { "name": "quality", "jobId": 100981246483, "conclusion": "success" }
+      ]
+    },
     "completionTag": "m04-complete",
     "toolchain": {
       "nodeCompatibility": ">=22.13 <23",
@@ -189,11 +210,11 @@
     "thinSpkRepeatBuild": "passed",
     "thinSpkStaticVerification": "passed",
     "nonRootLifecycleSimulation": "passed",
-    "remoteCi": "implementation-run-passed; evidence-closure pending"
+    "remoteCi": "passed"
   },
   "liveEvidence": {},
   "environment": "docker-testbed",
-  "certification": "pending-remote-ci",
+  "certification": "testbed-complete",
   "deferredDsmChecks": [
     "Package Center install, upgrade, and three-process supervision",
     "Synology Node runtime and onnxruntime-node native ABI",
@@ -203,6 +224,6 @@
     "q8 embedding performance, memory, thermals, and DSM responsiveness"
   ],
   "failures": [],
-  "gate": "pending-remote-ci",
-  "nextMilestoneAuthorized": false
+  "gate": "passed",
+  "nextMilestoneAuthorized": true
 }

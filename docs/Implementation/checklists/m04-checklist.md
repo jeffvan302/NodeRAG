@@ -1,6 +1,6 @@
 # M04 — Markdown Vertical Slice Checklist
 
-Status: implementation-complete-ci-pending
+Status: testbed-complete
 
 Environment: WSL/Docker testbed, native Windows model probe, and Linux package simulation
 
@@ -88,7 +88,8 @@ Recorded: 2026-09-04
 - [x] The deterministic thin SPK build and non-root end-to-end package lifecycle pass locally.
 - [x] The implementation commit is pushed to `main` and all four M04 GitHub Actions jobs succeed.
 - [x] `m04-proof.json` records the exact implementation workflow and successful job IDs.
-- [ ] The proof-closure and final certification commits pass M04 CI, and annotated tag `m04-complete` resolves to the certification commit remotely.
+- [x] The proof-closure and final certification commits pass M04 CI, and annotated tag `m04-complete` resolves to the certification commit remotely.
 
-M05 remains unauthorized until the three remote-delivery items above are complete.
+M05 is authorized only after the final certification commit passes M04 CI and
+the annotated completion tag is verified remotely.
 No M04 testbed result closes a live DSM register row.

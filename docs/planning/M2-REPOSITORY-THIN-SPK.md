@@ -1,6 +1,6 @@
 # Milestone 2 — Repository Foundation and Thin SPK Record
 
-Status: implementation CI passed; proof closure pending
+Status: testbed-complete
 Recorded: 2026-09-04
 Evidence environment: Windows/WSL 2, Docker Desktop, and GitHub Actions; not DSM
 Certification ceiling: `testbed-complete`
@@ -157,7 +157,7 @@ M2 package checks map to the existing live rows without closing them:
 
 ## Gate state
 
-The local application, database, and package gates pass. M2 becomes
-`testbed-complete` only after the consolidated local gate passes, the exact
-implementation commit succeeds in all GitHub jobs, the proof closure succeeds
-again, and annotated tag `m02-complete` points to the final certification commit.
+The local application, database, and package gates pass. The exact
+implementation and proof-closure commits also succeeded in all four GitHub
+jobs. M2 is `testbed-complete`; annotated tag `m02-complete` identifies its
+final certification commit. Live DSM assertions remain deferred.

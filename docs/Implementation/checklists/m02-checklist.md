@@ -1,6 +1,6 @@
 # M02 — Repository Foundation, Development Stack, CI, and Thin SPK Checklist
 
-Status: implementation CI passed; proof closure pending
+Status: testbed-complete
 Environment: Docker testbed and Linux package simulation
 Recorded: 2026-09-04
 
@@ -40,8 +40,8 @@ Recorded: 2026-09-04
 - [x] The thin SPK builds twice with the same SHA-256 and passes package simulation locally.
 - [x] The implementation commit is pushed to `main` and every M02 GitHub Actions job succeeds.
 - [x] `m02-proof.json` records the implementation commit and successful workflow jobs.
-- [ ] The proof-closure commit is pushed and its own workflow succeeds.
-- [ ] Annotated tag `m02-complete` resolves to the final certification commit.
+- [x] The proof-closure commit is pushed and its own workflow succeeds.
+- [x] Annotated tag `m02-complete` resolves to the final certification commit.
 
 M03 is authorized only after every item above is complete. `testbed-complete`
 does not close a live DSM register row.

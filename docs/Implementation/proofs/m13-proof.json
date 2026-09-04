@@ -1,11 +1,11 @@
 {
   "version": 1,
   "milestone": "M13",
-  "recordedAt": "2026-09-04T22:53:20Z",
+  "recordedAt": "2026-09-04T22:57:05Z",
   "reviewer": "Codex with executable local, Docker, package, and GitHub gates",
   "implementationBaseCommit": "c30df0a78555e27e0e3566fbaed251e3807c8143",
   "milestoneCommit": "405e667befb25fb26f5d7633ec53d41bcc41aacb",
-  "proofClosureCommit": null,
+  "proofClosureCommit": "3cca8603a1761e05b3791fc267192b40c491e0e1",
   "evidenceClosureCommit": null,
   "migrationHead": "000011_recovery_hardening",
   "contracts": {
@@ -63,7 +63,28 @@
         }
       ]
     },
-    "proofClosureWorkflowRun": null,
+    "proofClosureWorkflowRun": {
+      "runId": 33927418333,
+      "headSha": "3cca8603a1761e05b3791fc267192b40c491e0e1",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33927418333",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T22:57:05Z",
+      "jobs": [
+        { "name": "quality", "jobId": 101198835702, "conclusion": "success" },
+        {
+          "name": "recovery-integration",
+          "jobId": 101198835846,
+          "conclusion": "success"
+        },
+        { "name": "thin-package", "jobId": 101198835866, "conclusion": "success" },
+        {
+          "name": "postgres-major-upgrade",
+          "jobId": 101198835927,
+          "conclusion": "success"
+        }
+      ]
+    },
     "evidenceClosureWorkflowRun": null,
     "localDocker": {
       "environment": "WSL Ubuntu-24.04 with Docker Desktop Linux/amd64",
@@ -127,7 +148,7 @@
     "repositoryHygiene": "passed",
     "thinSpkLifecycle": "passed",
     "thinSpkRepeatBuild": "passed-identical-sha256",
-    "remoteCi": "implementation-passed-proof-closure-pending"
+    "remoteCi": "implementation-and-proof-closure-passed-evidence-closure-pending"
   },
   "liveEvidence": {},
   "environment": "linux-amd64-docker-testbed",

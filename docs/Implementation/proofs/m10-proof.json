@@ -1,12 +1,13 @@
 {
   "version": 1,
   "milestone": "M10",
-  "recordedAt": "2026-09-04T17:35:02Z",
+  "recordedAt": "2026-09-04T18:05:32Z",
   "reviewer": "Codex with executable local and GitHub gates",
   "implementationBaseCommit": "e9fcc86120da4d4ca1013cf878fdd3f357376b77",
   "milestoneCommit": "ab0a31d0af1bbe5c638e5eee486348fcd90dafa1",
   "upstreamCommit": "ab0a31d0af1bbe5c638e5eee486348fcd90dafa1",
   "proofClosureCommit": "5329f6277115b83149045ca76c1f4479a209ac2d",
+  "evidenceClosureCommit": "120c79fb5f5ccc3a0000055cda8139025f79309d",
   "migrationHead": "000008_package_lifecycle",
   "dependencyLockSha256": "650d397622523a38cc29d0c2b8ebffbb04b5b65f351e76b26cbac6114fa42ea7",
   "modelManifestRevision": "bd58e9fd4b0467770da53678d8da25481c0f959b",
@@ -90,6 +91,36 @@
         {
           "name": "production-package",
           "jobId": 101105784440,
+          "conclusion": "success"
+        }
+      ]
+    },
+    "evidenceClosureWorkflowRun": {
+      "runId": 33901397033,
+      "headSha": "120c79fb5f5ccc3a0000055cda8139025f79309d",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33901397033",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T18:05:06Z",
+      "jobs": [
+        {
+          "name": "linux-compatibility",
+          "jobId": 101116069128,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality",
+          "jobId": 101116069390,
+          "conclusion": "success"
+        },
+        {
+          "name": "postgres-integration",
+          "jobId": 101116069411,
+          "conclusion": "success"
+        },
+        {
+          "name": "production-package",
+          "jobId": 101116069471,
           "conclusion": "success"
         }
       ]
@@ -221,7 +252,7 @@
     "privatePostgresqlSocketAndPgvector": "passed",
     "setupIngestSearchAndPurge": "passed",
     "restartUpgradeRetainedAndDestructiveLifecycle": "passed",
-    "remoteCi": "passed-implementation-proof-closure-and-triggered-regressions"
+    "remoteCi": "passed-implementation-proof-closure-evidence-closure-and-triggered-regressions"
   },
   "liveEvidence": {},
   "environment": "docker-testbed",

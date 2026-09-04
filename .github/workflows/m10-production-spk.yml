@@ -103,11 +103,19 @@ jobs:
           corepack enable
           corepack prepare pnpm@${PNPM_VERSION} --activate
       - run: pnpm install --frozen-lockfile
+      - id: runtime-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: spk/generated/m10
+          key: m10-dsm72-x64-postgresql-runtime-${{ hashFiles('docker-testbed/scripts/build-m10-postgres-runtime.sh', 'docker-testbed/scripts/common.sh') }}
       - name: Build twice, compare, inspect, and run the package-user lifecycle
+        env:
+          NODERAG_M10_REUSE_RUNTIME: ${{ steps.runtime-cache.outputs.cache-hit == 'true' && '1' || '0' }}
         run: |
           pnpm package:candidate
           first_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64-production.spk | awk '{print $1}')"
           pnpm package:candidate
           second_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64-production.spk | awk '{print $1}')"
           test "${first_sha}" = "${second_sha}"
+          NODERAG_M10_REUSE_RUNTIME=1 pnpm package:runtime
           pnpm package:candidate:verify

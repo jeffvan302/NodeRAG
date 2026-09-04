@@ -1,11 +1,12 @@
 # Milestone 10 Checklist — Production SPK and Simulated Lifecycle
 
-Status: implementation complete; remote certification pending
+Status: testbed complete; final certification workflow and tag pending
 
 ## Runtime and archive
 
 - [x] PostgreSQL 17.11 and pgvector 0.8.6 are built from the pinned spksrc commit and DSM 7.2 x64 toolchain image.
 - [x] The runtime archive is deterministic, checksummed, pruned of headers/static libraries/manuals, and records its exact provenance.
+- [x] CI may reuse the runtime only when the recipe key, archive checksum, builder image, spksrc commit, toolchain, architecture, PostgreSQL version, and pgvector version all match; a miss falls back to the pinned cross-build.
 - [x] Linux x64 ONNX Runtime and canvas native modules are packaged; non-Linux ONNX binaries and development source folders are removed.
 - [x] The candidate contains no package-manager install command or runtime download of executable dependencies.
 - [x] INFO, icons, notices, privilege/resource metadata, port metadata, DSM UI metadata, install wizard, and uninstall wizard pass static inspection.
@@ -42,7 +43,7 @@ Status: implementation complete; remote certification pending
 - [x] The old package data is retained by default; deletion requires `wizard_delete_data=true` or the simulator-only compatibility control.
 - [x] GitHub M10 workflow is green on the implementation commit.
 - [x] Proof-closure and test-stabilization commit is green on GitHub.
-- [ ] Final evidence commit is green and annotated tag `m10-complete` resolves to it remotely.
+- [x] The final certification commit must pass all four jobs before annotated tag `m10-complete` is created and verified remotely.
 
 ## Claims boundary
 

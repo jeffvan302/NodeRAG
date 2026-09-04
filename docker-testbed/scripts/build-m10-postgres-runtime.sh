@@ -20,6 +20,20 @@ case "${output_dir}" in
   "${repository_root}/spk/generated/m10") ;;
   *) echo "Refusing to replace an unexpected PostgreSQL runtime output path." >&2; exit 65 ;;
 esac
+if [[ "${NODERAG_M10_REUSE_RUNTIME:-0}" == "1" ]] &&
+  [[ -f "${output_dir}/postgresql-runtime.tar.gz" ]] &&
+  [[ -f "${output_dir}/postgresql-runtime.tar.gz.sha256" ]] &&
+  [[ -f "${output_dir}/postgresql-runtime.txt" ]] &&
+  (cd "${output_dir}" && sha256sum -c postgresql-runtime.tar.gz.sha256 >/dev/null) &&
+  grep -qx "spksrc_commit=${spksrc_commit}" "${output_dir}/postgresql-runtime.txt" &&
+  grep -qx "builder_image=${spksrc_image}" "${output_dir}/postgresql-runtime.txt" &&
+  grep -qx 'architecture=x86_64' "${output_dir}/postgresql-runtime.txt" &&
+  grep -qx 'toolchain=dsm-7.2-x64' "${output_dir}/postgresql-runtime.txt" &&
+  grep -qx 'postgresql=17.11' "${output_dir}/postgresql-runtime.txt" &&
+  grep -qx 'pgvector=0.8.6' "${output_dir}/postgresql-runtime.txt"; then
+  echo "Reused checksum-verified pinned DSM x64 PostgreSQL/pgvector runtime archive."
+  exit 0
+fi
 "${docker_command[@]}" volume inspect "${spksrc_volume}" >/dev/null 2>&1 ||
   "${docker_command[@]}" volume create "${spksrc_volume}" >/dev/null
 

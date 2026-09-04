@@ -1,0 +1,20 @@
+{
+  "name": "@noderag/m01-feasibility",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.22.0 <23"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "4.2.0",
+    "@xmldom/xmldom": "0.8.15",
+    "ajv": "8.20.0",
+    "argon2": "0.45.1",
+    "exceljs": "4.4.0",
+    "jszip": "3.10.1",
+    "mammoth": "1.12.2",
+    "onnxruntime-node": "1.24.3",
+    "pdfjs-dist": "6.3.289"
+  }
+}

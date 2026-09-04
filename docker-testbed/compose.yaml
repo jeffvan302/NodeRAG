@@ -26,12 +26,57 @@ services:
     networks:
       - backend
 
+  m01-storage-init:
+    image: node@sha256:dd9d21971ec4395903fa6143c2b9267d048ae01ca6d3ea96f16cb30df6187d94
+    profiles:
+      - m01
+    user: "0:0"
+    command:
+      - sh
+      - -ec
+      - install -d -o node -g node -m 0700 /probe-volume
+    volumes:
+      - m01-storage:/probe-volume
+
+  m01-node:
+    build:
+      context: .
+      dockerfile: m01/node/Dockerfile
+    profiles:
+      - m01
+    mem_limit: ${NODERAG_M01_MEMORY_LIMIT:-8g}
+    cpus: ${NODERAG_M01_CPU_LIMIT:-12}
+    user: "node:node"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      NODERAG_M01_MODEL_ROOT: /models/qwen3-embedding-0.6b/bd58e9fd4b0467770da53678d8da25481c0f959b
+      NODERAG_M01_FIXTURE_ROOT: /workspace/fixtures/formats
+      NODERAG_M01_OLLAMA_URL: ${NODERAG_M01_OLLAMA_URL:-http://host.docker.internal:11434}
+      NODERAG_M01_OLLAMA_MODEL: ${NODERAG_M01_OLLAMA_MODEL:-}
+      NODERAG_M01_OLLAMA_PARALLEL: ${NODERAG_M01_OLLAMA_PARALLEL:-1}
+      NODERAG_M01_CONTENT_MAY_LEAVE_LAN: ${NODERAG_M01_CONTENT_MAY_LEAVE_LAN:-false}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,mode=1777
+    volumes:
+      - ./runtime/models:/models:ro
+      - ../fixtures:/workspace/fixtures:ro
+      - m01-storage:/probe-volume
+    networks:
+      - backend
+
 secrets:
   postgres_password:
     file: ./.secrets/postgres_password
 
 volumes:
   postgres-data:
+  m01-storage:
 
 networks:
   backend:

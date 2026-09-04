@@ -39,6 +39,19 @@ Milestone 0 establishes:
 | M13 | Backup/restore, upgrade, disk-full, process-kill, corrupt-artifact, and network-failure rehearsals |
 | M14 | Clean-room release-candidate build, full regression, soak, SBOM, checksums, and proof bundle |
 
+## Milestone 1 feasibility gate
+
+Milestone 1 exercises the architecture-invalidating assumptions before a
+workspace or product service is created. Its clean-checkout suite verifies the
+Node 22 Linux compatibility image, the pinned q8 model, normalized 1,024-value
+embeddings, an 8 GB two-session memory case, Argon2id, synthetic extraction
+fixtures, storage safety, DSM contracts, PostgreSQL 17, and `halfvec(1024)`.
+
+The workstation-only full gate additionally compares q8, q4f16, and fp16 over
+256/512/1,024 tokens and one through twelve physical threads, and cross-builds
+PostgreSQL plus pgvector from pinned spksrc recipes. These performance and build
+results remain provisional until the final live DSM certification.
+
 Only add a service when a milestone owns it. Optional or expensive services must
 use Compose profiles so the base database remains quick to start. All service
 dependencies must use explicit health checks or successful one-shot completion

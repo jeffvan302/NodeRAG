@@ -1,0 +1,47 @@
+name: M01 feasibility
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/m01-feasibility.yml"
+      - "docker-testbed/**"
+      - "fixtures/**"
+      - "docs/Implementation/checklists/m01-checklist.md"
+      - "docs/Implementation/proofs/m01-proof.json"
+      - "docs/planning/M1-TESTBED-FEASIBILITY.md"
+  pull_request:
+    paths:
+      - ".github/workflows/m01-feasibility.yml"
+      - "docker-testbed/**"
+      - "fixtures/**"
+      - "docs/Implementation/checklists/m01-checklist.md"
+      - "docs/Implementation/proofs/m01-proof.json"
+      - "docs/planning/M1-TESTBED-FEASIBILITY.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m01-feasibility-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  feasibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Validate shell syntax
+        run: |
+          find docker-testbed/scripts -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
+
+      - name: Run Milestone 1 feasibility probes
+        run: bash docker-testbed/scripts/verify-m01.sh
+
+      - name: Stop the testbed
+        if: always()
+        run: bash docker-testbed/scripts/down.sh

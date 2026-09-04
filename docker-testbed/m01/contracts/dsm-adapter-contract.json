@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "package": "NodeRag",
+  "identity": {
+    "runAs": "package",
+    "rootForbidden": true,
+    "homeMode": "0700"
+  },
+  "paths": {
+    "target": "/var/packages/NodeRag/target",
+    "var": "/var/packages/NodeRag/var",
+    "etc": "/var/packages/NodeRag/etc",
+    "home": "/var/packages/NodeRag/home",
+    "shares": "/var/packages/NodeRag/shares"
+  },
+  "requiredAdapterMethods": [
+    "packageIdentity",
+    "targetPath",
+    "dataPath",
+    "configPath",
+    "homePath",
+    "resolveGrantedShare",
+    "validateStoragePath",
+    "checkPortConflict",
+    "serviceAction",
+    "serviceStatus"
+  ],
+  "lifecycleActions": [
+    "preinst",
+    "postinst",
+    "preupgrade",
+    "postupgrade",
+    "preuninst",
+    "postuninst",
+    "prestart",
+    "start",
+    "status",
+    "prestop",
+    "stop"
+  ],
+  "statusCodes": {
+    "running": 0,
+    "deadWithPid": 1,
+    "deadWithLock": 2,
+    "stopped": 3,
+    "unknown": 4,
+    "broken": 150
+  },
+  "defaultPort": 8787,
+  "defaultShare": "NodeRag"
+}

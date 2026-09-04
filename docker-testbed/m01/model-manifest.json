@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "model": "Qwen3-Embedding-0.6B",
+  "sourceRepository": "Qwen/Qwen3-Embedding-0.6B",
+  "sourceRevision": "bd58e9fd4b0467770da53678d8da25481c0f959b",
+  "license": "Apache-2.0",
+  "architectureBaseline": "linux/amd64 with AVX2",
+  "dimension": 1024,
+  "contextTokens": 32768,
+  "testbedMaxTokens": 1024,
+  "pooling": "last-token",
+  "normalization": "L2",
+  "queryPrefix": "Instruct: Given a user search query, retrieve relevant passages that answer the query\nQuery: ",
+  "documentPrefix": "",
+  "defaultVariant": "q8-avx2",
+  "files": [
+    {
+      "role": "model",
+      "variant": "q8-avx2",
+      "path": "onnx/model_quint8_avx2.onnx",
+      "sizeBytes": 600127788,
+      "sha256": "a7eda29cc374b01ae75eb1af1ab65c3c61a64c43f39f16e08c6e37c075dcbf4d",
+      "url": "https://huggingface.co/Qwen/Qwen3-Embedding-0.6B/resolve/bd58e9fd4b0467770da53678d8da25481c0f959b/onnx/model_quint8_avx2.onnx?download=true",
+      "required": true
+    },
+    {
+      "role": "tokenizer",
+      "path": "tokenizer.json",
+      "sizeBytes": 11423705,
+      "sha256": "def76fb086971c7867b829c23a26261e38d9d74e02139253b38aeb9df8b4b50a",
+      "url": "https://huggingface.co/Qwen/Qwen3-Embedding-0.6B/resolve/bd58e9fd4b0467770da53678d8da25481c0f959b/tokenizer.json?download=true",
+      "required": true
+    },
+    {
+      "role": "tokenizer-config",
+      "path": "tokenizer_config.json",
+      "sizeBytes": 9706,
+      "sha256": "253153d0738ceb4c668d2eff957714dd2bea0b56de772a9fdccd96cbf517e6a0",
+      "url": "https://huggingface.co/Qwen/Qwen3-Embedding-0.6B/resolve/bd58e9fd4b0467770da53678d8da25481c0f959b/tokenizer_config.json?download=true",
+      "required": true
+    },
+    {
+      "role": "model-config",
+      "path": "config.json",
+      "sizeBytes": 727,
+      "sha256": "b5bf1f51fc45be473a54718cef92448d90a1be001bf9b9a44b8c7f10a19feaa9",
+      "url": "https://huggingface.co/Qwen/Qwen3-Embedding-0.6B/resolve/bd58e9fd4b0467770da53678d8da25481c0f959b/config.json?download=true",
+      "required": true
+    }
+  ],
+  "benchmarkCandidates": [
+    {
+      "variant": "q4f16",
+      "repository": "onnx-community/Qwen3-Embedding-0.6B-ONNX",
+      "revision": "c25a394dd583836952667c12f008335071b3f43d",
+      "path": "onnx/model_q4f16.onnx",
+      "sizeBytes": 567458583,
+      "sha256": "7f9ebb9a77c428f2b4c2d8ed8a2ee64f292a0b1ce7a3f027ccaaef150ef7bdd1",
+      "url": "https://huggingface.co/onnx-community/Qwen3-Embedding-0.6B-ONNX/resolve/c25a394dd583836952667c12f008335071b3f43d/onnx/model_q4f16.onnx?download=true"
+    },
+    {
+      "variant": "fp16",
+      "repository": "onnx-community/Qwen3-Embedding-0.6B-ONNX",
+      "revision": "c25a394dd583836952667c12f008335071b3f43d",
+      "path": "onnx/model_fp16.onnx",
+      "externalDataPath": "onnx/model_fp16.onnx_data",
+      "sizeBytes": 583522,
+      "sha256": "f376cf065d912675dd559270e19361367ebc28c938b9811dd61d5834c78d0834",
+      "externalDataSizeBytes": 1199927296,
+      "externalDataSha256": "06fbfded30166e3a33fe5252d7002ed1c370a4ec1bf45aba778cdf6cf7d31439",
+      "url": "https://huggingface.co/onnx-community/Qwen3-Embedding-0.6B-ONNX/resolve/c25a394dd583836952667c12f008335071b3f43d/onnx/model_fp16.onnx?download=true",
+      "externalDataUrl": "https://huggingface.co/onnx-community/Qwen3-Embedding-0.6B-ONNX/resolve/c25a394dd583836952667c12f008335071b3f43d/onnx/model_fp16.onnx_data?download=true"
+    }
+  ]
+}

@@ -51,6 +51,34 @@ bash docker-testbed/scripts/verify.sh
 bash docker-testbed/scripts/verify-persistence.sh
 ```
 
+Milestone 1 adds a non-root Node 22 feasibility container, pinned Qwen ONNX
+artifacts, format fixtures, DSM contract simulation, and provisional resource
+measurements. Run the core milestone suite with:
+
+```bash
+bash docker-testbed/scripts/verify-m01.sh
+```
+
+The full q8/q4f16/fp16 benchmark downloads about 2.4 GB of pinned model files
+into the ignored `runtime/` directory and evaluates 256, 512, and 1,024 tokens
+with every thread count from one through twelve:
+
+```bash
+bash docker-testbed/scripts/verify-m01.sh --full
+```
+
+The production PostgreSQL and pgvector recipes can be cross-built with the
+pinned spksrc builder and a Docker named volume, avoiding unsupported Windows
+bind-mount semantics:
+
+```bash
+bash docker-testbed/scripts/crossbuild-m01-spksrc.sh
+```
+
+Generated measurements and cross-build logs are written under the ignored
+`docker-testbed/artifacts/m01/` path. Model binaries and build trees are never
+committed.
+
 To inspect status or the latest logs:
 
 ```bash

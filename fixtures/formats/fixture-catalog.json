@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "privacy": "synthetic non-private fixtures only",
+  "fixtures": [
+    {
+      "path": "txt/sample.txt",
+      "format": "txt",
+      "sizeBytes": 242,
+      "sha256": "ff20f2a1bb13d985776cd5f514637d82118c81104f0179b2fae625fe7e0f0e69",
+      "provenance": "repository-authored synthetic UTF-8 text",
+      "expectedDisposition": "usable-text"
+    },
+    {
+      "path": "md/sample.md",
+      "format": "markdown",
+      "sizeBytes": 296,
+      "sha256": "04a5d2dcbad168efe255b0d66075c5f3a29f879b1300303324117f4f56b6f24a",
+      "provenance": "repository-authored synthetic Markdown",
+      "expectedDisposition": "usable-markdown"
+    },
+    {
+      "path": "pdf/two-column.pdf",
+      "format": "pdf",
+      "sizeBytes": 2054,
+      "sha256": "d279a7d952043efc312a7f11ef5062abe6f8900b4536bb74d995fa431cdca3a0",
+      "provenance": "repository-authored synthetic text-layer PDF",
+      "expectedDisposition": "usable-text-left-column-then-right-column"
+    },
+    {
+      "path": "pdf/scanned.pdf",
+      "format": "pdf",
+      "sizeBytes": 77414,
+      "sha256": "d4cf00a9ad07afc5b348f343a098098f6f0a8d23402e2eb2112c14ddc304f0b1",
+      "provenance": "repository-authored raster-only PDF",
+      "expectedDisposition": "vision-required"
+    },
+    {
+      "path": "docx/word-saved.docx",
+      "format": "docx",
+      "sizeBytes": 37704,
+      "sha256": "733135b746c8cb16d02099ab773a1c57d182eded875f736f69097272e5bd2905",
+      "provenance": "repository-authored OOXML with an explicit page break; Word-compatible, not evidence of a specific Word build",
+      "expectedDisposition": "usable-text-and-table-with-rendered-page-basis"
+    },
+    {
+      "path": "docx/gdocs-export-synthetic.docx",
+      "format": "docx",
+      "sizeBytes": 37709,
+      "sha256": "53912ea98ee3f88a9e1eabef7381d336eba96fb0f328ffe118c97dc4d48459af",
+      "provenance": "repository-authored synthetic export-style OOXML; not represented as a real Google Docs export",
+      "expectedDisposition": "usable-text-and-table-with-page-basis-none",
+      "operatorInputStillRequired": "approved real Google Docs export"
+    },
+    {
+      "path": "xlsx/messy-workbook.xlsx",
+      "format": "xlsx",
+      "sizeBytes": 5438,
+      "sha256": "dd81d29559620d87144684e14487c6348e4a893cd674b515a1c7250d19a46a19",
+      "provenance": "repository-authored synthetic workbook with two regions, blanks, dates, currency, formulas, and notes",
+      "expectedDisposition": "usable-regions-and-formatted-values"
+    },
+    {
+      "path": "images/table.png",
+      "format": "png",
+      "sizeBytes": 64658,
+      "sha256": "d64ac371cfe0d2671b2a4a5ba16556d54835ee742273b1a506dfd880a297a9d1",
+      "provenance": "repository-authored synthetic table image",
+      "expectedDisposition": "ollama-vision-probe-input"
+    }
+  ]
+}

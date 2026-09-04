@@ -1,0 +1,5 @@
+NodeRag text fixture
+
+The archive contains maintenance procedures and inspection schedules.
+Unicode sample: café, Ελληνικά, 中文, 👨‍👩‍👧‍👦, and עברית.
+Line endings and paragraph boundaries must remain stable.

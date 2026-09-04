@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "milestone": "M01",
+  "recordedAt": "2026-09-04T06:53:06Z",
+  "reviewer": "Codex with executable local gates",
+  "milestoneCommit": null,
+  "upstreamCommit": null,
+  "migrationHead": null,
+  "dependencyLockSha256": "3e5523ec8179d1e078c11d37d099d44913b2e0ac4434d493db432f262e98026e",
+  "modelManifestRevision": "bd58e9fd4b0467770da53678d8da25481c0f959b",
+  "readinessState": "feasibility-passed-awaiting-remote-ci",
+  "featureFlags": {
+    "ollamaVision": false
+  },
+  "contracts": {
+    "nodeMajor": 22,
+    "postgresMajor": 17,
+    "pgvectorVersion": "0.8.6",
+    "vectorType": "halfvec(1024)",
+    "embeddingDimensions": 1024,
+    "defaultEmbeddingVariant": "q8-avx2",
+    "provisionalLongWorkerThreads": 8,
+    "shortQueryThreads": 1,
+    "memoryCeilingBytes": 8589934592,
+    "dsmRunAs": "package",
+    "declaredPort": 8787
+  },
+  "evidence": {
+    "feasibilityRecord": "docs/planning/M1-TESTBED-FEASIBILITY.md",
+    "checklist": "docs/Implementation/checklists/m01-checklist.md",
+    "deferredDsmRegister": "docs/Implementation/dsm-deferred-register.md",
+    "workflow": ".github/workflows/m01-feasibility.yml",
+    "implementationWorkflowRun": null,
+    "proofClosureCommit": null,
+    "proofClosureWorkflowRun": null,
+    "host": {
+      "os": "Microsoft Windows 11 Pro 10.0.26200 build 26200",
+      "cpu": "AMD Ryzen 9 5900X",
+      "physicalCores": 12,
+      "logicalCores": 24,
+      "ramGiB": 63.93
+    },
+    "wsl": {
+      "distribution": "Ubuntu 24.04.4 LTS",
+      "kernel": "6.6.87.2-microsoft-standard-WSL2",
+      "architecture": "x86_64",
+      "dockerTransport": "windows-cli-interop"
+    },
+    "nodeImage": {
+      "base": "node@sha256:dd9d21971ec4395903fa6143c2b9267d048ae01ca6d3ea96f16cb30df6187d94",
+      "node": "22.22.0",
+      "architecture": "linux/amd64",
+      "runsAs": "1000:1000",
+      "readOnlyRoot": true,
+      "capabilitiesDropped": "ALL"
+    },
+    "model": {
+      "repository": "Qwen/Qwen3-Embedding-0.6B",
+      "revision": "bd58e9fd4b0467770da53678d8da25481c0f959b",
+      "manifestSha256": "24a79ef804fbd256f4e7258be67025f2cb6138479b90199456885db85298c0e2",
+      "q8ArtifactSha256": "a7eda29cc374b01ae75eb1af1ab65c3c61a64c43f39f16e08c6e37c075dcbf4d",
+      "license": "Apache-2.0",
+      "pooling": "last-token",
+      "normalization": "L2"
+    },
+    "spksrc": {
+      "commit": "1f638f9f331d881b2fd5cb45bb24071e9f723400",
+      "builder": "ghcr.io/synocommunity/spksrc@sha256:31b66390e2357d5ab0be8c2e521dbc658a44afdfd50eb2e10346e5539f4e9811",
+      "architecture": "x64",
+      "toolchainVersion": "7.2",
+      "postgresArtifactSha256": "d09f36d9215b743eed22abbf554e6eab83e88e2457abe653cc6325263dda7400",
+      "pgvectorArtifactSha256": "dfbcdf62e2ff4041adcf6825aa3ddaa232643f782e04b71e17480c1d6a0cd449",
+      "artifactManifestSha256": "8ea22cd964db69fd2255da9f8ae376bec82874ee596c528345aea00e4e4d2814"
+    },
+    "fixtures": {
+      "count": 8,
+      "totalBytes": 225515,
+      "catalogSha256": "49b2a9f9305ec78f8a94d954282b5d1f5432530a7a73ef5c9ccb42b43e5eeb7b",
+      "privateDocumentsIncluded": false
+    },
+    "measurements": {
+      "embeddingDimensions": 1024,
+      "embeddingRepeatMaximumDelta": 0,
+      "twoSessionPeakCgroupBytes": 2016759808,
+      "benchmarkCells": 108,
+      "benchmarkMaximumRssBytes": 2896658432,
+      "argon2id": {
+        "memoryKiB": 65536,
+        "timeCost": 2,
+        "parallelism": 1,
+        "measuredMilliseconds": 113.99
+      },
+      "halfvecSelfCosineDistance": 0
+    },
+    "ollama": {
+      "route": "http://host.docker.internal:11434",
+      "reachable": true,
+      "authenticationConfigured": false,
+      "installedModels": 0,
+      "visionDisposition": "unavailable-no-vision-model",
+      "blocking": false,
+      "contentMayLeaveLan": false
+    },
+    "resolvedIssues": [
+      "Aligned the direct ONNX Runtime dependency with Transformers and disabled install-time audit/funding calls.",
+      "Added a namespace-aware OOXML fallback for valid namespace-prefixed XLSX files while preserving cached formula values.",
+      "Derived and supplied empty typed key/value caches for q4f16 and fp16 first-pass embedding graphs.",
+      "Moved the spksrc build state from DrvFS to an ext4-backed Docker named volume and exported only evidence manifests."
+    ]
+  },
+  "invariants": {
+    "embeddingExactly1024FiniteNormalizedValues": true,
+    "repeatedEmbeddingStable": true,
+    "twoOnnxSessionsFitMemoryCeiling": true,
+    "halfvec1024QueryPassed": true,
+    "argon2HashVerifyAndWrongPasswordPassed": true,
+    "unsafeStoragePathsRejected": true,
+    "generatedSecretsModelsAndArtifactsUntracked": true,
+    "productionRuntimeUnaffected": true,
+    "testbedEvidenceNotRepresentedAsDsmEvidence": true
+  },
+  "tests": {
+    "shellSyntax": "passed",
+    "composeConfig": "passed",
+    "dsmContractValidation": "passed",
+    "nonRootLifecycleSimulation": "passed",
+    "fixtureHashes": "passed",
+    "formatExtraction": "passed",
+    "onnxQ8Inference": "passed",
+    "secondOnnxSessionMemory": "passed",
+    "postgres17": "passed",
+    "pgvectorHalfvec1024": "passed",
+    "argon2id": "passed",
+    "storageProbe": "passed",
+    "ollamaAvailabilityDisposition": "passed-nonblocking-unavailable",
+    "fullModelBenchmark": "passed",
+    "spksrcCrossBuild": "passed",
+    "gitDiffCheck": "passed",
+    "remoteCi": "pending"
+  },
+  "liveEvidence": {},
+  "environment": "docker-testbed",
+  "certification": "testbed-complete",
+  "deferredDsmChecks": [
+    "DSM-001 through DSM-017 in docs/Implementation/dsm-deferred-register.md"
+  ],
+  "failures": [],
+  "gate": "implementation-passed-awaiting-remote",
+  "nextMilestoneAuthorized": false
+}

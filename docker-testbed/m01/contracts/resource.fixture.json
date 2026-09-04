@@ -1,0 +1,39 @@
+{
+  "data-share": {
+    "shares": [
+      {
+        "name": "NodeRag",
+        "permission": {
+          "rw": ["NodeRag"]
+        },
+        "once": true
+      }
+    ]
+  },
+  "port-config": {
+    "protocol-file": "port_conf/NodeRag.sc"
+  },
+  "webservice": {
+    "services": [
+      {
+        "service": "noderag",
+        "display_name": "NodeRag",
+        "type": "reverse_proxy",
+        "proxy": {
+          "backend": "http://127.0.0.1:8787"
+        }
+      }
+    ],
+    "portals": [
+      {
+        "service": "noderag",
+        "name": "noderag",
+        "display_name": "NodeRag",
+        "app": "SYNO.SDS.NodeRag",
+        "type": "alias",
+        "alias": "noderag"
+      }
+    ],
+    "pkg_dir_prepare": []
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "repository": "https://github.com/SynoCommunity/spksrc.git",
+  "commit": "1f638f9f331d881b2fd5cb45bb24071e9f723400",
+  "builderImage": "ghcr.io/synocommunity/spksrc@sha256:31b66390e2357d5ab0be8c2e521dbc658a44afdfd50eb2e10346e5539f4e9811",
+  "target": {
+    "architecture": "x64",
+    "toolchainVersion": "7.2"
+  },
+  "recipes": [
+    {
+      "name": "postgresql",
+      "path": "cross/postgresql",
+      "version": "17.11",
+      "makefileSha256": "cd5f7b419e217fc076d152b110fdff0f39366ed0cc59459c32b735544f8a7788",
+      "digestsFileSha256": "04063fba2e05d63b46a9d9758d01f056cfd6e27b12634941cece713d76a808cb",
+      "sourceSha256": "dd27f2b3c59e73ed14aa3324901242bf69a032a6347805f274e6260322d42979"
+    },
+    {
+      "name": "pgvector",
+      "path": "cross/pgvector",
+      "version": "0.8.6",
+      "makefileSha256": "5f5e3dd91be151ad7a27f69b27d6dfb1b615c196909f2b96023d824a8d4e2598",
+      "digestsFileSha256": "6e580ce431a6bcfec7dd6fac0c1122e2f9d16c92de1dd9e8941725968a3eac0d",
+      "sourceSha256": "10bf9938906e5d643bbc4a7eea104b6f57ba4898e5b76b20e60484ea1d5a7f8f"
+    },
+    {
+      "name": "nodejs_22",
+      "path": "native/nodejs_22",
+      "version": "22.23.2",
+      "makefileSha256": "2ca243b8b73929d7631b101b26320610994801284d2b4e7f7b8cf492891f7e2d",
+      "digestsFileSha256": "31c50ec9cba52fe396a8fd8e9213d32388ad405f0d029b301d560b7e2c17b002",
+      "sourceSha256": "d60acfe00a2932254bb0ad20e01b0d74397a0875595de719654b214f4b03f307",
+      "role": "spksrc native build dependency; production package runtime remains the Synology Node.js_v22 package and requires live ABI validation"
+    }
+  ]
+}

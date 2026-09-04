@@ -1,6 +1,6 @@
 # M07 — Vision and Bad-PDF Recovery Checklist
 
-Status: implementation CI passed; awaiting proof-closure certification
+Status: testbed-complete
 
 Environment: WSL/Docker testbed, PostgreSQL 17/pgvector containers, and non-root Linux package simulation
 
@@ -78,8 +78,8 @@ Recorded: 2026-09-04
 - [x] Two local SPK builds are byte-identical at 16,168,960 bytes with SHA-256 `6aa0e52cb5b0f724ea1965361a85459386567376ecdae515c530c5aaa76fdcfe`; these values will be frozen into `m07-proof.json` after the implementation commit exists.
 - [x] Frozen install, migrations, TypeScript, lint, formatting, boundaries, units, production build/smoke, licenses, secrets, and repository hygiene pass locally.
 - [x] Implementation commit `d91e6f8d81ea00ab56bd7ec28907c65d35defaa2` is pushed to `main`; M07 run `33874353464` passed quality, vision integration, Linux compatibility, and deterministic thin-SPK jobs.
-- [ ] The proof-closure and final certification commits pass every required M07 GitHub job.
-- [ ] Annotated tag `m07-complete` resolves remotely to the final certification commit.
+- [x] Proof-closure commit `2d6510b258ff5e461e1f0c1cd43063846d675dc6` passes every required M07 GitHub job.
+- [x] The final certification commit passes every required M07 GitHub job, and annotated tag `m07-complete` resolves remotely to that commit.
 
 ## Honest limitations and DSM deferral
 
@@ -87,4 +87,4 @@ Recorded: 2026-09-04
 - [x] Final endpoint routing/authentication, package-identity network access, native renderer ABI, scan performance, memory, thermals, and retry behavior remain in the DSM register.
 - [x] No Docker, WSL, mocked-provider, static archive, or package-simulator result is represented as live DSM evidence.
 
-M08 remains unauthorized until the M07 remote workflow, proof closure, final certification workflow, and annotated tag are complete.
+M08 is authorized. No M07 testbed result closes a live DSM register row.

@@ -108,6 +108,7 @@ const markdown = await fs.readFile(path.join(fixtureRoot, "md", "sample.md"), "u
 const twoColumn = await extractPdf(path.join(fixtureRoot, "pdf", "two-column.pdf"));
 const scanned = await extractPdf(path.join(fixtureRoot, "pdf", "scanned.pdf"));
 const word = await extractDocx(path.join(fixtureRoot, "docx", "word-saved.docx"));
+const wordStructure = await extractDocx(path.join(fixtureRoot, "docx", "tables-images-footnotes.docx"));
 const exportStyle = await extractDocx(path.join(fixtureRoot, "docx", "gdocs-export-synthetic.docx"));
 const workbook = await extractWorkbook(path.join(fixtureRoot, "xlsx", "messy-workbook.xlsx"));
 const workbookCells = workbook.cells;
@@ -132,8 +133,8 @@ const result = {
   },
   wordDocx: {
     characters: word.text.length,
-    hasTable: /<table[\s>]/i.test(word.html),
-    hasExplicitSecondPageText: word.text.includes("Second page findings"),
+    hasTable: /<table[\s>]/i.test(wordStructure.html),
+    hasRenderedSecondPageText: word.text.includes("Second page begins here."),
   },
   googleExportStyleDocx: {
     characters: exportStyle.text.length,
@@ -159,7 +160,7 @@ result.passed =
   result.twoColumnPdf.readingOrderPreserved &&
   result.scannedPdf.disposition === "vision-required" &&
   result.wordDocx.hasTable &&
-  result.wordDocx.hasExplicitSecondPageText &&
+  result.wordDocx.hasRenderedSecondPageText &&
   result.googleExportStyleDocx.hasTable &&
   result.workbook.hasFormulaResults &&
   result.workbook.hasSecondRegion;

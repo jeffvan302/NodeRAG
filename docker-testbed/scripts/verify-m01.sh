@@ -18,8 +18,20 @@ bash "${script_dir}/fetch-m01-models.sh"
 bash "${script_dir}/build-m01-node.sh"
 bash "${script_dir}/verify-m01-fixtures.sh"
 bash "${script_dir}/verify-m01-spksrc-pin.sh"
-bash "${script_dir}/verify-pgvector-1024.sh" >"${artifact_dir}/pgvector.json"
-bash "${script_dir}/probe-m01-storage.sh" >"${artifact_dir}/storage.json"
+run_json_probe() {
+  local output_path="$1"
+  shift
+  if ! "$@" >"${output_path}"; then
+    echo "M01 probe failed: $(basename -- "${output_path}")" >&2
+    if [[ -s "${output_path}" ]]; then
+      cat -- "${output_path}" >&2
+    fi
+    return 1
+  fi
+}
+
+run_json_probe "${artifact_dir}/pgvector.json" bash "${script_dir}/verify-pgvector-1024.sh"
+run_json_probe "${artifact_dir}/storage.json" bash "${script_dir}/probe-m01-storage.sh"
 
 for probe in \
   inventory-container.mjs \
@@ -30,7 +42,9 @@ for probe in \
   probe-ollama.mjs \
   probe-onnx.mjs \
   probe-second-session.mjs; do
-  bash "${script_dir}/run-m01-node.sh" "${probe}" >"${artifact_dir}/${probe%.mjs}.json"
+  run_json_probe \
+    "${artifact_dir}/${probe%.mjs}.json" \
+    bash "${script_dir}/run-m01-node.sh" "${probe}"
 done
 
 python3 - "${artifact_dir}" <<'PY'

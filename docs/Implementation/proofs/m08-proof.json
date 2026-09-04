@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "milestone": "M08",
+  "recordedAt": "2026-09-04T14:00:49Z",
+  "reviewer": "Codex with executable local and GitHub gates",
+  "implementationBaseCommit": "e05c6d076523b16f27a5d10c8df93fc6300a28ab",
+  "milestoneCommit": "7a1c10a5f90f2f7c037e0a22d12649b486e85cf2",
+  "upstreamCommit": "7a1c10a5f90f2f7c037e0a22d12649b486e85cf2",
+  "migrationHead": "000006_retrieval_interfaces",
+  "dependencyLockSha256": "56ffb811f94cb1ff39bd8c1e988c3c6f44d4be94edbbb947b48f9afa2e6ec9a5",
+  "modelManifestRevision": "bd58e9fd4b0467770da53678d8da25481c0f959b",
+  "readinessState": "operational-after-one-time-bootstrap",
+  "contracts": {
+    "authorizationInventory": "platform/route-authorization.v1.json",
+    "authorizationRouteCount": 78,
+    "openApi": "platform/openapi.m08.json",
+    "openApiVersion": "3.1.1",
+    "openApiSha256": "6aaa8f470fdc1f89e9aa0a9ea706a6ac0030e9cdf8fdbfd8d1384456de709158",
+    "migrationSha256": "2723b13e5dedf774ae3da96b1ea2386edf2e610e946b010c55bb7a20229d5d2e",
+    "mcpProtocolVersion": "2025-06-18",
+    "problemDetailStandard": "RFC 9457",
+    "rrfK": 60,
+    "gatewayPortRange": [5300, 5319],
+    "evaluationRelevanceUnit": "document-page"
+  },
+  "evidence": {
+    "milestonePlan": "docs/Implementation/staged implementation.md#14-milestone-8--complete-retrieval-rest-api-gateways-mcp-and-evaluation-harness",
+    "checklist": "docs/Implementation/checklists/m08-checklist.md",
+    "operations": "docs/Implementation/m08-retrieval-operations.md",
+    "rlsDecision": "docs/Implementation/decisions/m08-rls-decision.md",
+    "evaluationSchema": "docs/Implementation/evaluation/m08-golden-set.schema.json",
+    "deferredDsmRegister": "docs/Implementation/dsm-deferred-register.md#dsm-019",
+    "workflow": ".github/workflows/m08-retrieval-interfaces.yml",
+    "implementationWorkflowRun": {
+      "runId": 33881015555,
+      "headSha": "7a1c10a5f90f2f7c037e0a22d12649b486e85cf2",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33881015555",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T14:00:02Z",
+      "jobs": [
+        {
+          "name": "quality",
+          "jobId": 101049406054,
+          "conclusion": "success"
+        },
+        {
+          "name": "thin-spk",
+          "jobId": 101049406288,
+          "conclusion": "success"
+        },
+        {
+          "name": "retrieval-integration",
+          "jobId": 101049406318,
+          "conclusion": "success"
+        },
+        {
+          "name": "linux-compatibility",
+          "jobId": 101049406328,
+          "conclusion": "success"
+        }
+      ]
+    },
+    "supersededWorkflowRun": {
+      "runId": 33880280916,
+      "headSha": "e05c6d076523b16f27a5d10c8df93fc6300a28ab",
+      "conclusion": "failure",
+      "reason": "Client-wall sub-millisecond p95 timings measured shared-runner scheduling and reported 15.62% despite retaining the required silo partition and HNSW plan.",
+      "correction": "Use PostgreSQL-reported EXPLAIN ANALYZE execution time and average ten executions per each of 160 alternating samples.",
+      "rerunDisposition": "Three local corrected runs measured 3.44%, 3.63%, and 2.44%; the corrected GitHub run passed."
+    },
+    "retrieval": {
+      "modes": ["vector", "keyword", "hybrid"],
+      "queryNfcNormalization": true,
+      "activeModelQueryInstruction": true,
+      "perSiloPartitionSearch": true,
+      "hnswTransactionEfSearch": true,
+      "hnswIterativeScan": "relaxed_order",
+      "keywordParser": "websearch_to_tsquery-simple",
+      "boundedFilters": [
+        "silo",
+        "source",
+        "path-prefix",
+        "format",
+        "created-range",
+        "modified-range",
+        "page-range",
+        "has-images",
+        "has-tables"
+      ],
+      "overlapCollapse": true,
+      "formatAwareLabels": true,
+      "preSplitContext": true,
+      "authenticatedOpaqueCursor": true
+    },
+    "securityAndInterfaces": {
+      "startupRouteInventoryParity": true,
+      "generatedOpenApiDriftGate": true,
+      "requestIds": true,
+      "rfc9457Errors": true,
+      "csrfBrowserMutations": true,
+      "persistentMutationIdempotency": true,
+      "apiKeyCidr": true,
+      "apiKeyRateLimit": true,
+      "integrityCheckedStreamingDownloads": true,
+      "privatePathsNeverReturned": true,
+      "gatewayScopeIntersection": true,
+      "gatewayConflictIsolation": true,
+      "searchOnlyWholeArtifactDenial": true,
+      "rawSearchTextAudited": false,
+      "mcpTools": ["search_documents", "get_chunk_context", "get_document_page", "list_silos"]
+    },
+    "rlsBenchmark": {
+      "silos": 8,
+      "targetSiloChunks": 5000,
+      "otherSiloChunks": 500,
+      "totalChunks": 8500,
+      "resultSize": 10,
+      "alternatingSamples": 160,
+      "serverExecutionsPerSample": 10,
+      "timingSource": "PostgreSQL EXPLAIN ANALYZE with TIMING OFF",
+      "rlsOnP95Ms": 0.2018,
+      "rlsOffP95Ms": 0.197,
+      "overheadRatio": 0.024365482233502673,
+      "maximumOverheadRatio": 0.15,
+      "partitionRetained": true,
+      "hnswIndexRetained": true,
+      "decision": "keep_chunk_rls"
+    },
+    "annDiagnostic": {
+      "k": 10,
+      "recallAtK": 0.9,
+      "minimumRecallAtK": 0.9,
+      "decision": "ann_acceptable"
+    },
+    "evaluation": {
+      "stableExternalCaseId": true,
+      "documentRelevance": true,
+      "optionalZeroBasedPageOrdinals": true,
+      "chunkIdsForbidden": true,
+      "metrics": [
+        "recall-at-10",
+        "mrr",
+        "ndcg-at-10",
+        "zero-result-rate",
+        "latency-p50-p95",
+        "by-silo",
+        "by-format"
+      ]
+    },
+    "thinSpk": {
+      "name": "noderag-0.2.0-1-x86_64.spk",
+      "bytes": 16189440,
+      "sha256": "bc753fb8690215d0a0d648d3b0ab32725ec6574ad004a542eddbd86c3e79bfb5",
+      "repeatSha256": "bc753fb8690215d0a0d648d3b0ab32725ec6574ad004a542eddbd86c3e79bfb5",
+      "serverBundleSha256": "b6ae9976a10466fe49cad0fe3108f5a59202aea2c15b22d54bf179f20cfde348",
+      "workerBundleSha256": "e671585e3954add9aee0325fd1e3e40e5a100d67b40d7d046c7c6298fe213bdc",
+      "embedderBundleSha256": "a89f97a3e10b8e6315f240b1d450ca7d6fcb74a23a45fbc2a0bf135a3dcc88d2",
+      "migration000006Bundled": true,
+      "openApiM08Bundled": true,
+      "runAs": "package"
+    },
+    "proofClosureCommit": null,
+    "proofClosureWorkflowRun": null,
+    "certificationCommit": null,
+    "certificationWorkflowRun": null,
+    "completionTag": "m08-complete"
+  },
+  "invariants": {
+    "gatewayCanOnlyNarrowScope": true,
+    "mcpAndRestUseIdenticalScopeServices": true,
+    "searchOnlyCannotRetrieveWholeArtifacts": true,
+    "rawSearchTextIsNotPersisted": true,
+    "routeInventoryAndRuntimeCannotDrift": true,
+    "originalAndMarkdownDownloadsAreIntegrityChecked": true,
+    "chunkRlsDecisionIsMeasured": true,
+    "annRecallIsComparedWithExactSearch": true,
+    "evaluationSurvivesRechunking": true,
+    "thinSpkDeterministic": true,
+    "nonRootLifecycleSimulationPassed": true,
+    "testbedEvidenceNotRepresentedAsDsmEvidence": true
+  },
+  "tests": {
+    "frozenInstall": "passed",
+    "migrationVerification": "passed-6-forward-only-migrations",
+    "typecheck": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "dependencyBoundaries": "passed-90-modules-148-dependencies",
+    "unit": "passed-21-files-59-tests",
+    "postgres17PgvectorIntegration": "passed-8-files-44-tests",
+    "retrievalModesAndFilters": "passed",
+    "restMcpGatewayParity": "passed",
+    "adminReadAndMutationFamily": "passed",
+    "cursorTamperAndIdempotency": "passed",
+    "searchOnlyAndUnauthorizedIsolation": "passed",
+    "auditPrivacy": "passed",
+    "rlsAndAnnDiagnostic": "passed",
+    "productionBuild": "passed",
+    "builtServerSmoke": "passed",
+    "licensePolicy": "passed",
+    "secretScan": "passed",
+    "repositoryHygiene": "passed",
+    "linuxNodeOnnxArgon2DatabaseCompatibility": "passed",
+    "thinSpkRepeatBuild": "passed",
+    "thinSpkStaticVerification": "passed",
+    "nonRootLifecycleSimulation": "passed",
+    "remoteCi": "passed"
+  },
+  "liveEvidence": {},
+  "environment": "docker-testbed",
+  "certification": "testbed-complete",
+  "deferredDsmChecks": [
+    "installed-SPK retrieval latency, resource, thermal, and DSM-service impact",
+    "live gateway port ownership, conflict handling, firewall, reverse proxy, and web integration",
+    "package-identity concurrent REST and MCP access through every enabled gateway",
+    "live exact-versus-ANN recall sampling against the immutable release candidate",
+    "streamed original and Markdown integrity through final DSM storage and ACL paths"
+  ],
+  "failures": [],
+  "gate": "implementation-ci-passed-proof-closure-pending",
+  "nextMilestoneAuthorized": false
+}

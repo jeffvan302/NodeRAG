@@ -1,6 +1,6 @@
 # M08 — Retrieval, API, Gateway, MCP, and Evaluation Checklist
 
-Status: local gates passed; GitHub certification pending
+Status: implementation CI passed; proof-closure CI pending
 
 Environment: WSL/Docker testbed, PostgreSQL 17/pgvector containers, and non-root Linux package simulation
 
@@ -70,8 +70,8 @@ Recorded: 2026-09-04
 
 ## GitHub and closure
 
-- [ ] The M08 implementation commit is pushed to `main` and the M08 GitHub workflow passes.
-- [ ] `m08-proof.json` freezes commit, workflow, contract, diagnostic, and package evidence.
+- [x] The M08 implementation commit is pushed to `main`; M08 run `33881015555` passes all four required jobs.
+- [x] `m08-proof.json` freezes commit, workflow, contract, diagnostic, and package evidence.
 - [ ] The proof-closure commit passes every required M08 GitHub job.
 - [ ] The final certification commit passes every required M08 GitHub job.
 - [ ] Annotated tag `m08-complete` resolves remotely to the final certification commit.

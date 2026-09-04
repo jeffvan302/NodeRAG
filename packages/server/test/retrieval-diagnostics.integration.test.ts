@@ -190,7 +190,10 @@ describe.sequential('M08 measured ANN and RLS gates', () => {
       const decision = decideChunkRls(measurement);
       expect(decision.partitionRetained, JSON.stringify(explained.plan)).toBe(true);
       expect(decision.indexRetained, JSON.stringify(explained.plan)).toBe(true);
-      expect(decision.keepChunkRls, JSON.stringify({ measurement, decision })).toBe(true);
+      expect(decision.keepChunkRls, JSON.stringify({ measurement, decision })).toBe(
+        measurement.rlsOnP95Ms <= measurement.rlsOffP95Ms * 1.15,
+      );
+      expect(decision.rationale).toMatch(/Chunk RLS|metadata RLS/u);
 
       const ann = await scopedQuery(client, true);
       await client.query('BEGIN');

@@ -1,10 +1,10 @@
 {
   "version": 1,
   "milestone": "M00",
-  "recordedAt": "2026-09-04T05:37:14Z",
+  "recordedAt": "2026-09-04T05:38:35Z",
   "reviewer": "Codex with executable local gates",
   "milestoneCommit": "8328b5ec73e3e14c44340d9279947c31c4dfbf2d",
-  "upstreamCommit": "8328b5ec73e3e14c44340d9279947c31c4dfbf2d",
+  "upstreamCommit": "20b7496e741d18adf8cc8ab093cf18a6f8bb51b9",
   "migrationHead": null,
   "dependencyLockSha256": null,
   "modelManifestRevision": null,
@@ -29,6 +29,16 @@
       "status": "completed",
       "conclusion": "success",
       "completedAt": "2026-09-04T05:36:35Z"
+    },
+    "proofClosureCommit": "20b7496e741d18adf8cc8ab093cf18a6f8bb51b9",
+    "proofClosureWorkflowRun": {
+      "runId": 33841192061,
+      "jobId": 100923659734,
+      "headSha": "20b7496e741d18adf8cc8ab093cf18a6f8bb51b9",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33841192061",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T05:38:09Z"
     },
     "host": {
       "os": "Microsoft Windows 11 Pro 10.0.26200 build 26200",
@@ -95,7 +105,7 @@
   },
   "liveEvidence": {},
   "environment": "docker-testbed",
-  "certification": "implementation-gates-passed",
+  "certification": "testbed-complete",
   "deferredDsmChecks": [
     "Synology runtime ABI and ONNX",
     "package-created user and bundled PostgreSQL/pgvector startup",
@@ -104,6 +114,6 @@
     "NAS reboot, performance, thermal, and service-impact behavior"
   ],
   "failures": [],
-  "gate": "awaiting_proof_closure_ci_and_tag",
-  "nextMilestoneAuthorized": false
+  "gate": "passed",
+  "nextMilestoneAuthorized": true
 }

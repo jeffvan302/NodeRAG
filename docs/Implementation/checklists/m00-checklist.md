@@ -1,8 +1,8 @@
 # M00 — WSL/Docker Testbed Foundation Checklist
 
-Status: awaiting proof-closure CI and milestone tag
+Status: testbed-complete
 Environment: Docker testbed
-Recorded: 2026-09-04T05:37:14Z
+Recorded: 2026-09-04T05:38:35Z
 
 ## Repository and documentation
 

@@ -1,14 +1,14 @@
 {
   "version": 1,
   "milestone": "M12",
-  "recordedAt": "2026-09-04T20:50:30Z",
+  "recordedAt": "2026-09-04T21:00:19Z",
   "reviewer": "Codex with executable local, Docker, and GitHub gates",
   "implementationBaseCommit": "2c8da45ffbd18efd8f98a3cef34e6bd87a1cbaf2",
   "milestoneCommit": "f21dc28bd01d4ee6bb62a21718d495de015aa83f",
   "implementationClosureCommit": "66d8a18f049bdc914c18c6019fe9cbdedfc44a3f",
-  "upstreamCommit": "21c9485696691edb5d51a9dd850f5fb81836bc64",
+  "upstreamCommit": "41bbc7b7a40320f4e9500e4d43ed68c6eb8257fa",
   "proofClosureCommit": "21c9485696691edb5d51a9dd850f5fb81836bc64",
-  "evidenceClosureCommit": null,
+  "evidenceClosureCommit": "41bbc7b7a40320f4e9500e4d43ed68c6eb8257fa",
   "migrationHead": "000010_evaluation_baselines",
   "contracts": {
     "authorizationInventory": "platform/route-authorization.v1.json",
@@ -75,7 +75,20 @@
         { "name": "quality", "jobId": 101167791957, "conclusion": "success" }
       ]
     },
-    "evidenceClosureWorkflowRun": null,
+    "evidenceClosureWorkflowRun": {
+      "runId": 33918284886,
+      "headSha": "41bbc7b7a40320f4e9500e4d43ed68c6eb8257fa",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33918284886",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T21:00:19Z",
+      "jobs": [
+        { "name": "evaluation-integration", "jobId": 101170440129, "conclusion": "success" },
+        { "name": "thin-package", "jobId": 101170440354, "conclusion": "success" },
+        { "name": "quality", "jobId": 101170440503, "conclusion": "success" },
+        { "name": "real-model-evaluation", "jobId": 101170440696, "conclusion": "success" }
+      ]
+    },
     "localDocker": {
       "image": "noderag-testbed-m12-node@sha256:f589864fa9f26a11fa835c2825012f8c83e202a5b84abd893b61284c2208ac0e",
       "platform": "linux/amd64",
@@ -153,11 +166,11 @@
     "thinSpkLifecycle": "passed",
     "thinSpkRepeatBuild": "passed",
     "dockerRealModelEvaluation": "passed",
-    "remoteCi": "implementation-and-proof-closure-passed; evidence-closure-pending"
+    "remoteCi": "implementation-proof-closure-and-evidence-closure-passed"
   },
   "liveEvidence": {},
   "environment": "linux-amd64-docker-testbed",
-  "certification": "proof-closure-passed",
+  "certification": "testbed-complete",
   "deferredDsmChecks": [
     "installed-SPK repeat of the versioned M12 corpus and accepted q8 vector baseline",
     "NAS p50/p95, RSS, swap, CPU, temperature, and disk-latency measurement",
@@ -166,6 +179,6 @@
     "Package Center identity, filesystem, lifecycle, and reboot behavior for evaluation runs"
   ],
   "failures": [],
-  "gate": "proof-closure-passed",
-  "nextMilestoneAuthorized": false
+  "gate": "passed",
+  "nextMilestoneAuthorized": true
 }

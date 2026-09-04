@@ -1,6 +1,6 @@
 # Milestone 12 Checklist — Evaluation, Performance, and Measured Defaults
 
-Status: testbed implementation complete; GitHub certification pending
+Status: testbed complete
 
 ## Corpus and curation
 
@@ -46,8 +46,8 @@ Status: testbed implementation complete; GitHub certification pending
 - [x] The end-to-end `verify-m12.sh --real` command passes locally.
 - [x] GitHub implementation workflow is green.
 - [x] Proof-only commit is green on GitHub.
-- [ ] Final evidence commit is green on GitHub.
-- [ ] Annotated tag `m12-complete` resolves remotely to the certification commit.
+- [x] Final evidence commit is green on GitHub.
+- [x] Annotated tag `m12-complete` resolves remotely to the certification commit.
 - [x] DSM timing, thermals, Package Center, administration UI, and file-sharing impact remain explicitly deferred to DSM-023.
 
 ## Claims boundary

@@ -213,7 +213,7 @@ const extractCanonicalDocument = async (
       `SELECT id FROM noderag.build WHERE state = 'active'`,
     );
     const buildId = databaseInteger(build.rows[0]?.id, 'active build id');
-    if (job.kind === 'vision' && !awaitingVision) {
+    if ((job.kind === 'vision' && !awaitingVision) || job.kind === 'extract') {
       const removed = await database.query<{ count: string }>(
         `WITH deleted AS (
            DELETE FROM noderag.chunk

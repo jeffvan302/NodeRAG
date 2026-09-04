@@ -11,7 +11,7 @@
   "scripts": {
     "build": "corepack pnpm@11.25.0 --filter @noderag/ui build && corepack pnpm@11.25.0 --filter @noderag/server build",
     "boundaries": "depcruise --config .dependency-cruiser.cjs --output-type err-long packages adapters scripts",
-    "ci:quality": "corepack pnpm@11.25.0 migrations:verify && corepack pnpm@11.25.0 typecheck && corepack pnpm@11.25.0 lint && corepack pnpm@11.25.0 format:check && corepack pnpm@11.25.0 boundaries && corepack pnpm@11.25.0 test:unit && corepack pnpm@11.25.0 build && corepack pnpm@11.25.0 build:smoke && corepack pnpm@11.25.0 license:check && corepack pnpm@11.25.0 security:scan",
+    "ci:quality": "corepack pnpm@11.25.0 migrations:verify && corepack pnpm@11.25.0 openapi:verify && corepack pnpm@11.25.0 typecheck && corepack pnpm@11.25.0 lint && corepack pnpm@11.25.0 format:check && corepack pnpm@11.25.0 boundaries && corepack pnpm@11.25.0 test:unit && corepack pnpm@11.25.0 build && corepack pnpm@11.25.0 build:smoke && corepack pnpm@11.25.0 license:check && corepack pnpm@11.25.0 security:scan",
     "build:smoke": "node scripts/smoke-built-server.mjs",
     "dev": "node scripts/dev.mjs",
     "format": "prettier --write .dependency-cruiser.cjs adapters packages platform scripts README.md SECURITY.md LICENSE-POLICY.md THIRD-PARTY.md package.json pnpm-workspace.yaml tsconfig.base.json eslint.config.mjs vitest.config.ts",
@@ -21,6 +21,8 @@
     "lint": "eslint . --max-warnings 0",
     "migrate": "corepack pnpm@11.25.0 --filter @noderag/server migrate",
     "migrations:verify": "node scripts/verify-migrations.mjs",
+    "openapi:generate": "node scripts/generate-openapi.mjs",
+    "openapi:verify": "node scripts/generate-openapi.mjs --check",
     "package:thin": "corepack pnpm@11.25.0 build && node scripts/generate-package-icons.mjs && bash scripts/build-thin-spk.sh",
     "package:verify": "bash scripts/verify-thin-spk.sh",
     "repo:check": "bash scripts/verify-repo-hygiene.sh",

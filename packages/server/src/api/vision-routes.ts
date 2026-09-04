@@ -28,6 +28,7 @@ const retrySchema = z
     siloId: z.number().int().positive().max(32_767).optional(),
   })
   .strict();
+const imageRevisionSchema = z.object({ siloId: z.number().int().positive().max(32_767) }).strict();
 
 const problem = (status: number, code: string, requestId: string) => ({
   type: `https://noderag.local/problems/${code}`,
@@ -278,6 +279,79 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
         return reply.code(409).send(problem(409, 'idempotency_conflict', request.id));
       const code = error instanceof Error ? error.message : 'vision-retry-failed';
       return reply.code(400).send(problem(400, code, request.id));
+    }
+  });
+
+  app.post('/v1/images/:id/revision', async (request, reply) => {
+    const principal = await options.authenticate(request);
+    if (principal === null)
+      return reply.code(401).send(problem(401, 'authentication_required', request.id));
+    if (!mutationAllowed(principal, request))
+      return reply.code(403).send(problem(403, 'csrf_rejected', request.id));
+    const imageId = idSchema.safeParse((request.params as { id?: unknown }).id);
+    const body = imageRevisionSchema.safeParse(request.body);
+    if (!imageId.success || !body.success)
+      return reply.code(400).send(problem(400, 'invalid_request', request.id));
+    const scope = await SiloScope.resolve(options.pool, principal.principalId, 'upload', {
+      requestedSiloIds: [body.data.siloId],
+    });
+    if (!scope.includes(body.data.siloId))
+      return reply.code(404).send(problem(404, 'not_found', request.id));
+    try {
+      const result = await executeIdempotent(
+        options.pool,
+        {
+          principalId: principal.principalId,
+          operation: `image-vision-revision:${String(imageId.data)}`,
+          key: idempotencyKey(request),
+          request: JSON.stringify({ imageId: imageId.data, siloId: body.data.siloId }),
+        },
+        async (database) => {
+          await database.query(`SELECT set_config('app.silo_ids', $1, true)`, [
+            scope.postgresArray(),
+          ]);
+          const image = await database.query<{ document_id: unknown }>(
+            `UPDATE noderag.document_image
+             SET state='pending_vision',last_error_code=NULL
+             WHERE id=$1 AND silo_id=$2 RETURNING document_id`,
+            [imageId.data, body.data.siloId],
+          );
+          const documentId = image.rows[0]?.document_id;
+          if (documentId === undefined) throw new Error('image-not-found');
+          const queued = await database.query<{ id: unknown }>(
+            `INSERT INTO noderag.job
+               (kind,document_id,silo_id,build_id,priority,payload)
+             SELECT 'vision',$1,$2,id,3,
+                    jsonb_build_object('reason','image-revision','imageId',$3::bigint)
+             FROM noderag.build WHERE state='active'
+             ON CONFLICT (document_id, kind)
+               WHERE document_id IS NOT NULL
+                 AND state IN ('pending','leased','retry_wait','paused')
+             DO UPDATE SET state='pending',run_after=now(),retry_at=NULL,
+                           cancel_requested_at=NULL,updated_at=now(),
+                           payload=EXCLUDED.payload
+             RETURNING id`,
+            [documentId, body.data.siloId, imageId.data],
+          );
+          return {
+            status: 202,
+            headers: {},
+            body: {
+              accepted: true,
+              imageId: imageId.data,
+              jobId: queued.rows[0]?.id,
+            },
+          };
+        },
+      );
+      return reply.code(result.response.status).send(result.response.body);
+    } catch (error) {
+      if (error instanceof IdempotencyConflictError)
+        return reply.code(409).send(problem(409, 'idempotency_conflict', request.id));
+      const code = error instanceof Error ? error.message : 'image-revision-failed';
+      return reply
+        .code(code === 'image-not-found' ? 404 : 400)
+        .send(problem(code === 'image-not-found' ? 404 : 400, code, request.id));
     }
   });
 

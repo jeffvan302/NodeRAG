@@ -174,7 +174,7 @@ describe.sequential('M03 identity and authorization foundation', () => {
     const head = await state.pool.query<{ name: string }>(
       'SELECT name FROM public.noderag_migrations ORDER BY id DESC LIMIT 1',
     );
-    expect(head.rows[0]?.name).toBe('000005_vision_recovery');
+    expect(head.rows[0]?.name).toBe('000006_retrieval_interfaces');
     const cacheType = await state.pool.query<{ formatted: string }>(
       `SELECT format_type(a.atttypid, a.atttypmod) AS formatted
        FROM pg_attribute a
@@ -765,7 +765,7 @@ describe.sequential('M03 identity and authorization foundation', () => {
       headers: { cookie },
     });
     expect(openApi.statusCode).toBe(200);
-    expect(openApi.json()).toMatchObject({ openapi: '3.1.0', info: { version: '0.2.0' } });
+    expect(openApi.json()).toMatchObject({ openapi: '3.1.1', info: { version: '0.2.0' } });
     const rejectedOrigin = await app.inject({
       method: 'PATCH',
       url: '/v1/auth/password',

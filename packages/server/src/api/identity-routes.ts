@@ -70,6 +70,17 @@ export const registerIdentityRoutes = (
     reply.code(200).send(await setupStatus(options.pool)),
   );
 
+  app.get('/v1/setup/events', async (request, reply) => {
+    const status = await setupStatus(options.pool);
+    const body = `id: ${request.id}\nevent: setup-status\ndata: ${JSON.stringify(status)}\n\n`;
+    return reply
+      .header('cache-control', 'no-cache, no-transform')
+      .header('connection', 'keep-alive')
+      .type('text/event-stream; charset=utf-8')
+      .code(200)
+      .send(body);
+  });
+
   app.post('/v1/setup/verify-token', async (request, reply) => {
     const body = setupTokenSchema.parse(request.body);
     return reply.code(200).send({ valid: await verifySetupToken(options.pool, body.setupToken) });
@@ -227,7 +238,7 @@ export const registerIdentityRoutes = (
     const principal = await authenticate(request);
     if (principal === null)
       return reply.code(401).send(problem(401, 'authentication_required', request.id));
-    const path = resolve(process.env['NODERAG_OPENAPI'] ?? 'platform/openapi.m07.json');
+    const path = resolve(process.env['NODERAG_OPENAPI'] ?? 'platform/openapi.m08.json');
     return reply
       .type('application/json')
       .code(200)

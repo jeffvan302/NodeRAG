@@ -47,42 +47,43 @@ const requireServerAdministrator = async (
   if (admin.rowCount !== 1) throw new Error('server-admin-required');
 };
 
-export const createApiKey = async (
-  pool: Pool,
+export const createApiKeyInTransaction = async (
+  database: SqlClient,
   input: CreateApiKeyInput,
 ): Promise<CreatedApiKey> => {
   const prefix = randomBase62(8);
   const token = `nrag_${prefix}_${randomBase62(43)}`;
-  return withTransaction(pool, async (database) => {
-    await requireServerAdministrator(database, input.createdBy);
-    const principal = await database.query<{ id: number }>(
-      `INSERT INTO noderag.principal (kind, label, created_by)
+  await requireServerAdministrator(database, input.createdBy);
+  const principal = await database.query<{ id: number }>(
+    `INSERT INTO noderag.principal (kind, label, created_by)
        VALUES ('api_key', $1, $2) RETURNING id`,
-      [input.label, input.createdBy],
-    );
-    const principalId = databaseInteger(principal.rows[0]?.id, 'API key principal id');
-    await database.query(
-      `INSERT INTO noderag.api_key
+    [input.label, input.createdBy],
+  );
+  const principalId = databaseInteger(principal.rows[0]?.id, 'API key principal id');
+  await database.query(
+    `INSERT INTO noderag.api_key
          (principal_id, prefix, key_sha256, search_only, expires_at, cidr_allow, rate_per_min)
        VALUES ($1, $2, $3, $4, $5, $6::inet[], $7)`,
-      [
-        principalId,
-        prefix,
-        sha256(token),
-        input.searchOnly ?? true,
-        input.expiresAt ?? null,
-        input.cidrAllow ?? null,
-        input.ratePerMinute ?? null,
-      ],
-    );
-    await database.query(
-      `INSERT INTO noderag.audit_log (principal_id, action, result, detail)
+    [
+      principalId,
+      prefix,
+      sha256(token),
+      input.searchOnly ?? true,
+      input.expiresAt ?? null,
+      input.cidrAllow ?? null,
+      input.ratePerMinute ?? null,
+    ],
+  );
+  await database.query(
+    `INSERT INTO noderag.audit_log (principal_id, action, result, detail)
        VALUES ($1, 'api_key.create', 'ok', jsonb_build_object('keyPrincipalId', $2::bigint, 'prefix', $3::text))`,
-      [input.createdBy, principalId, prefix],
-    );
-    return { principalId, prefix, token };
-  });
+    [input.createdBy, principalId, prefix],
+  );
+  return { principalId, prefix, token };
 };
+
+export const createApiKey = async (pool: Pool, input: CreateApiKeyInput): Promise<CreatedApiKey> =>
+  withTransaction(pool, (database) => createApiKeyInTransaction(database, input));
 
 interface ApiKeyRow {
   readonly principal_id: number;

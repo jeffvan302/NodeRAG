@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noderag.local/schemas/evaluation-golden-set.v1.json",
+  "title": "NodeRag evaluation golden set",
+  "type": "object",
+  "required": ["version", "cases"],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "case": {
+      "type": "object",
+      "required": ["id", "silo", "query", "relevant"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "silo": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{1,62}$"
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "relevant": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/relevantDocument"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 4000
+        }
+      },
+      "additionalProperties": false
+    },
+    "relevantDocument": {
+      "type": "object",
+      "required": ["document"],
+      "properties": {
+        "document": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Stable document path or external identity, never an internal chunk ID."
+        },
+        "pages": {
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "description": "Optional zero-based page ordinals. Omit when the whole document is relevant."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

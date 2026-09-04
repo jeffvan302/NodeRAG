@@ -25,6 +25,17 @@ export type RequestAuthenticator = (
   request: FastifyRequest,
 ) => Promise<AuthenticatedPrincipal | null>;
 
+export class RequestAuthenticationError extends Error {
+  constructor(
+    readonly status: 403 | 429,
+    readonly code: 'cidr_denied' | 'rate_limited' | 'server_admin_required',
+    readonly retryAfterSeconds?: number,
+  ) {
+    super(code);
+    this.name = 'RequestAuthenticationError';
+  }
+}
+
 export const createRequestAuthenticator = (
   pool: Pool,
   expectedOrigin: string,
@@ -57,7 +68,12 @@ export const createRequestAuthenticator = (
         authorization.slice('Bearer '.length),
         request.ip,
       );
-      if (!result.ok) return null;
+      if (!result.ok) {
+        if (result.code === 'rate-limited')
+          throw new RequestAuthenticationError(429, 'rate_limited', 60);
+        if (result.code === 'cidr-denied') throw new RequestAuthenticationError(403, 'cidr_denied');
+        return null;
+      }
       const details = await principalDetails(result.principalId);
       if (details === null) return null;
       return {

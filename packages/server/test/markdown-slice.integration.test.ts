@@ -334,7 +334,12 @@ describe.sequential('M04 Markdown vertical slice', () => {
       payload: { query: 'cobalt ledger turbine costs', siloIds: [siloId], limit: 5 },
     });
     expect(deniedSearch.statusCode).toBe(200);
-    expect(deniedSearch.json()).toEqual({ items: [] });
+    expect(deniedSearch.json()).toEqual({
+      items: [],
+      mode: 'vector',
+      elapsedMs: 0,
+      nextCursor: null,
+    });
     expect(embedder.embeddedTexts).toBe(embeddedBeforeDeniedSearch);
   });
 });

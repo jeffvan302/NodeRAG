@@ -11,6 +11,14 @@ import { registerContentRoutes, type ContentRoutesOptions } from './api/content-
 import { registerIdentityRoutes, type IdentityRoutesOptions } from './api/identity-routes.js';
 import { registerDurabilityRoutes } from './api/durability-routes.js';
 import { registerVisionRoutes } from './api/vision-routes.js';
+import { registerRetrievalRoutes } from './api/retrieval-routes.js';
+import { registerAdminRoutes, type GatewayControl } from './api/admin-routes.js';
+import { registerMcpRoutes } from './api/mcp-routes.js';
+import { RequestAuthenticationError } from './api/authentication.js';
+import { sendProblem } from './api/problem.js';
+import { ZodError } from 'zod';
+import { captureRegisteredRoutes, assertRouteParity } from './api/route-contract.js';
+import { loadAuthorizationInventory } from './api/authorization.js';
 import type { ReadinessProbe } from './store/readiness.js';
 
 const contentTypes: Readonly<Record<string, string>> = {
@@ -21,6 +29,17 @@ const contentTypes: Readonly<Record<string, string>> = {
   '.svg': 'image/svg+xml',
 };
 
+const isProblemPayload = (payload: unknown): payload is Record<string, unknown> =>
+  typeof payload === 'object' &&
+  payload !== null &&
+  typeof (payload as Record<string, unknown>)['type'] === 'string' &&
+  String((payload as Record<string, unknown>)['type']).startsWith(
+    'https://noderag.local/problems/',
+  ) &&
+  typeof (payload as Record<string, unknown>)['status'] === 'number' &&
+  typeof (payload as Record<string, unknown>)['code'] === 'string' &&
+  typeof (payload as Record<string, unknown>)['requestId'] === 'string';
+
 const fallbackHtml = `<!doctype html><html><head><meta charset="utf-8"><title>NodeRag</title></head><body><main><h1>NodeRag</h1><p>The thin service is running.</p></main></body></html>`;
 
 export interface BuildAppOptions {
@@ -30,6 +49,9 @@ export interface BuildAppOptions {
   readonly uiRoot: string;
   readonly identity?: IdentityRoutesOptions;
   readonly content?: ContentRoutesOptions;
+  readonly gatewayId?: number;
+  readonly gatewayControl?: GatewayControl;
+  readonly gatewaySurface?: boolean;
 }
 
 const safeUiFile = async (root: string, requestPath: string): Promise<string | null> => {
@@ -49,6 +71,39 @@ export const buildApp = (options: BuildAppOptions): FastifyInstance => {
     logger: options.logger === false ? false : loggerOptions,
     genReqId: (request) => request.headers['x-request-id']?.toString() ?? crypto.randomUUID(),
   });
+  captureRegisteredRoutes(app);
+
+  app.addHook('onRequest', async (request, reply) => {
+    reply.header('x-request-id', request.id);
+  });
+  app.addHook('preSerialization', async (request, reply, payload) => {
+    if (!isProblemPayload(payload)) return payload;
+    reply.type('application/problem+json');
+    return {
+      ...payload,
+      instance: payload['instance'] ?? `urn:noderag:request:${request.id}`,
+    };
+  });
+  app.setErrorHandler((error, request, reply) => {
+    if (error instanceof RequestAuthenticationError) {
+      if (error.retryAfterSeconds !== undefined)
+        reply.header('retry-after', String(error.retryAfterSeconds));
+      return sendProblem(reply, error.status, error.code, request.id);
+    }
+    if (error instanceof ZodError) return sendProblem(reply, 400, 'invalid_request', request.id);
+    if (error instanceof Error && 'statusCode' in error) {
+      const statusCode = error.statusCode;
+      if (typeof statusCode === 'number' && statusCode >= 400 && statusCode < 500) {
+        return sendProblem(reply, statusCode, 'request_rejected', request.id);
+      }
+    }
+    request.log.error(
+      { errorName: error instanceof Error ? error.name : 'unknown' },
+      'request failed',
+    );
+    return sendProblem(reply, 500, 'internal_error', request.id);
+  });
+  app.setNotFoundHandler((request, reply) => sendProblem(reply, 404, 'not_found', request.id));
 
   app.get('/health', async (_request, reply) => {
     const response = healthResponseSchema.parse({
@@ -78,23 +133,28 @@ export const buildApp = (options: BuildAppOptions): FastifyInstance => {
 
   if (options.identity !== undefined) registerIdentityRoutes(app, options.identity);
   if (options.content !== undefined) {
-    registerContentRoutes(app, options.content);
-    registerDurabilityRoutes(app, {
-      pool: options.content.pool,
-      authenticate: options.content.authenticate,
-      files: options.content.files,
-      sourceRoots: options.content.sourceRoots ?? [],
-    });
-    registerVisionRoutes(app, {
-      pool: options.content.pool,
-      authenticate: options.content.authenticate,
-      ...(options.content.visionBearerToken === undefined
-        ? {}
-        : { runtimeBearerToken: options.content.visionBearerToken }),
-      ...(options.content.secretVault === undefined
-        ? {}
-        : { secretVault: options.content.secretVault }),
-    });
+    registerRetrievalRoutes(app, options.content, options.gatewayId);
+    registerMcpRoutes(app, options.content, options.gatewayId);
+    if (options.gatewaySurface !== true) {
+      registerContentRoutes(app, options.content);
+      registerAdminRoutes(app, options.content, options.gatewayControl);
+      registerDurabilityRoutes(app, {
+        pool: options.content.pool,
+        authenticate: options.content.authenticate,
+        files: options.content.files,
+        sourceRoots: options.content.sourceRoots ?? [],
+      });
+      registerVisionRoutes(app, {
+        pool: options.content.pool,
+        authenticate: options.content.authenticate,
+        ...(options.content.visionBearerToken === undefined
+          ? {}
+          : { runtimeBearerToken: options.content.visionBearerToken }),
+        ...(options.content.secretVault === undefined
+          ? {}
+          : { secretVault: options.content.secretVault }),
+      });
+    }
   }
 
   app.get('/*', async (request, reply) => {
@@ -102,11 +162,19 @@ export const buildApp = (options: BuildAppOptions): FastifyInstance => {
     const file = await safeUiFile(options.uiRoot, requestPath);
     if (file === null) {
       if (requestPath === '/') return reply.type('text/html; charset=utf-8').send(fallbackHtml);
-      return reply.code(404).send({ code: 'not_found', requestId: request.id });
+      return sendProblem(reply, 404, 'not_found', request.id);
     }
     const contentType = contentTypes[extname(file).toLowerCase()] ?? 'application/octet-stream';
     return reply.type(contentType).send(await readFile(file));
   });
+
+  if (
+    options.identity !== undefined &&
+    options.content !== undefined &&
+    options.gatewaySurface !== true
+  ) {
+    app.addHook('onReady', async () => assertRouteParity(app, await loadAuthorizationInventory()));
+  }
 
   return app;
 };

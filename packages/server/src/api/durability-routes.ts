@@ -57,6 +57,7 @@ const documentPurgeBodySchema = z.object({
   siloId: z.number().int().min(1).max(32_767),
   confirmDocumentId: z.number().int().positive(),
 });
+const documentReindexBodySchema = z.object({ siloId: z.number().int().min(1).max(32_767) });
 const siloPurgeBodySchema = z.object({ confirmSlug: z.string().min(2).max(63) });
 const eventQuerySchema = z.object({ once: z.coerce.boolean().default(false) });
 
@@ -640,6 +641,82 @@ export const registerDurabilityRoutes = (
   jobMutation('/v1/jobs/:id/pause', 'upload');
   jobMutation('/v1/jobs/:id/resume', 'upload');
   jobMutation('/v1/jobs/:id/retry', 'reindex');
+
+  app.post('/v1/documents/:id/reindex', async (request, reply) => {
+    const principal = await requirePrincipal(request, options.authenticate);
+    if (principal === null)
+      return reply.code(401).send(problem(401, 'authentication_required', request.id));
+    if (!mutationAllowed(principal, request))
+      return reply.code(403).send(problem(403, 'csrf_rejected', request.id));
+    const documentId = idSchema.safeParse((request.params as { id?: unknown }).id);
+    const body = documentReindexBodySchema.safeParse(request.body);
+    if (!documentId.success || !body.success)
+      return reply.code(400).send(problem(400, 'invalid_request', request.id));
+    const scope = await SiloScope.resolve(options.pool, principal.principalId, 'reindex', {
+      requestedSiloIds: [body.data.siloId],
+    });
+    if (!scope.includes(body.data.siloId))
+      return reply.code(404).send(problem(404, 'not_found', request.id));
+    try {
+      const result = await executeIdempotent(
+        options.pool,
+        {
+          principalId: principal.principalId,
+          operation: `document-reindex:${String(documentId.data)}`,
+          key: requireIdempotencyKey(request),
+          request: stableDigest({ documentId: documentId.data, siloId: body.data.siloId }),
+        },
+        async (database) => {
+          await database.query(`SELECT set_config('app.silo_ids', $1, true)`, [
+            scope.postgresArray(),
+          ]);
+          const document = await database.query<{ extension: string }>(
+            `SELECT extension FROM noderag.document
+             WHERE id = $1 AND silo_id = $2 AND state <> 'purging' FOR UPDATE`,
+            [documentId.data, body.data.siloId],
+          );
+          const row = document.rows[0];
+          if (row === undefined) throw new Error('document-not-found');
+          const queued = await database.query<{ id: unknown }>(
+            `INSERT INTO noderag.job (kind, document_id, silo_id, priority, payload)
+             VALUES ('extract', $1, $2, 3,
+                     jsonb_build_object('format', $3::text, 'reason', 'manual-reindex'))
+             ON CONFLICT (document_id, kind)
+               WHERE document_id IS NOT NULL
+                 AND state IN ('pending', 'leased', 'retry_wait', 'paused')
+             DO UPDATE SET state = 'pending', run_after = now(), retry_at = NULL,
+                           cancel_requested_at = NULL, attempts = 0,
+                           logical_attempt = 0, updated_at = now()
+             RETURNING id`,
+            [documentId.data, body.data.siloId, row.extension],
+          );
+          const jobId = databaseInteger(queued.rows[0]?.id, 'reindex job id');
+          await database.query(
+            `UPDATE noderag.document SET state = 'pending', error_code = NULL,
+                                            error_detail = NULL
+             WHERE id = $1 AND silo_id = $2`,
+            [documentId.data, body.data.siloId],
+          );
+          await database.query(
+            `INSERT INTO noderag.job_event (job_id, sequence, event_type, detail)
+             SELECT $1, COALESCE(max(sequence) + 1, 0), 'queued',
+                    jsonb_build_object('reason', 'manual-reindex')
+             FROM noderag.job_event WHERE job_id = $1`,
+            [jobId],
+          );
+          return { status: 202, headers: {}, body: { accepted: true, jobId } };
+        },
+      );
+      return reply.code(result.response.status).send(result.response.body);
+    } catch (error) {
+      if (error instanceof IdempotencyConflictError)
+        return reply.code(409).send(problem(409, 'idempotency_conflict', request.id));
+      const code = error instanceof Error ? error.message : 'reindex-failed';
+      return reply
+        .code(code === 'document-not-found' ? 404 : 400)
+        .send(problem(code === 'document-not-found' ? 404 : 400, code, request.id));
+    }
+  });
 
   app.delete('/v1/documents/:id', async (request, reply) => {
     const principal = await requirePrincipal(request, options.authenticate);

@@ -1,61 +1,6 @@
 name: M07 vision and bad-PDF recovery
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/m07-vision-recovery.yml'
-      - '.dependency-cruiser.cjs'
-      - '.gitignore'
-      - '.gitmodules'
-      - '.prettierignore'
-      - '.prettierrc.json'
-      - 'adapters/**'
-      - 'packages/**'
-      - 'platform/**'
-      - 'scripts/**'
-      - 'spk/**'
-      - 'docker-testbed/**'
-      - 'fixtures/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'tsconfig.base.json'
-      - 'vitest.config.ts'
-      - 'eslint.config.mjs'
-      - 'LICENSE-POLICY.md'
-      - 'THIRD-PARTY.md'
-      - 'README.md'
-      - 'docs/Implementation/checklists/m07-checklist.md'
-      - 'docs/Implementation/proofs/m07-proof.json'
-      - 'docs/Implementation/staged implementation.md'
-  pull_request:
-    paths:
-      - '.github/workflows/m07-vision-recovery.yml'
-      - '.dependency-cruiser.cjs'
-      - '.gitignore'
-      - '.gitmodules'
-      - '.prettierignore'
-      - '.prettierrc.json'
-      - 'adapters/**'
-      - 'packages/**'
-      - 'platform/**'
-      - 'scripts/**'
-      - 'spk/**'
-      - 'docker-testbed/**'
-      - 'fixtures/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - 'tsconfig.base.json'
-      - 'vitest.config.ts'
-      - 'eslint.config.mjs'
-      - 'LICENSE-POLICY.md'
-      - 'THIRD-PARTY.md'
-      - 'README.md'
-      - 'docs/Implementation/checklists/m07-checklist.md'
-      - 'docs/Implementation/proofs/m07-proof.json'
-      - 'docs/Implementation/staged implementation.md'
   workflow_dispatch:
     inputs:
       run_real_provider:

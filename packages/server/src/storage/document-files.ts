@@ -217,6 +217,36 @@ export class DocumentFileStore {
     return createReadStream(this.paths(documentId, extension).originalAbsolute);
   }
 
+  async verifyOriginal(
+    documentId: number,
+    extension: string,
+    expectedSha256: Uint8Array,
+  ): Promise<boolean> {
+    const hash = createHash('sha256');
+    try {
+      for await (const chunk of this.openOriginal(documentId, extension))
+        hash.update(chunk as Buffer);
+      return hash.digest().equals(Buffer.from(expectedSha256));
+    } catch {
+      return false;
+    }
+  }
+
+  managedAbsolute(relativePath: string): string {
+    if (relativePath.length === 0 || relativePath.includes('\0')) {
+      throw new Error('Invalid managed relative path.');
+    }
+    const absolute = resolve(this.root, relativePath);
+    if (absolute !== this.root && !absolute.startsWith(`${this.root}${sep}`)) {
+      throw new Error('Managed path escaped its root.');
+    }
+    return absolute;
+  }
+
+  openManaged(relativePath: string) {
+    return createReadStream(this.managedAbsolute(relativePath));
+  }
+
   async removeDocument(documentId: number): Promise<void> {
     const directory = this.paths(documentId).directoryAbsolute;
     const expectedRoot = join(this.root, 'documents');

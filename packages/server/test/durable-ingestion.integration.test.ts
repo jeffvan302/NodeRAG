@@ -206,7 +206,7 @@ describe.sequential('M05 durable ingestion, sources, verification, and purge', (
     );
     const first = await claimNextJob(pool, 'm05-worker-stale', 1000);
     expect(first).toMatchObject({ id: jobId, leaseEpoch: 1, logicalAttempt: 1, attempts: 1 });
-    expect(first?.frozenConfig).toMatchObject({ schemaRevision: '000005_vision_recovery' });
+    expect(first?.frozenConfig).toMatchObject({ schemaRevision: '000006_retrieval_interfaces' });
     await pool.query(
       `UPDATE noderag.job SET leased_until = now() - interval '1 second' WHERE id = $1`,
       [jobId],
@@ -943,7 +943,12 @@ describe.sequential('M05 durable ingestion, sources, verification, and purge', (
       headers: { cookie: deleteOnlyBrowser.cookie },
       payload: { query: 'ultramarine bearing', siloIds: [siloId] },
     });
-    expect(invisible.json()).toEqual({ items: [] });
+    expect(invisible.json()).toEqual({
+      items: [],
+      mode: 'vector',
+      elapsedMs: 0,
+      nextCursor: null,
+    });
 
     const firstPurge = await app.inject({
       method: 'DELETE',

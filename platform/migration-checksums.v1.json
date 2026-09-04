@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expectedHead": "000005_vision_recovery",
+  "expectedHead": "000006_retrieval_interfaces",
   "migrations": [
     {
       "id": "000001_foundation",
@@ -30,6 +30,12 @@
       "id": "000005_vision_recovery",
       "path": "packages/server/migrations/000005_vision_recovery.sql",
       "sha256": "eee5929738120f38c319c35205c3ac12547b3300dbe331fab07f0d8020e0ba70",
+      "direction": "up-only"
+    },
+    {
+      "id": "000006_retrieval_interfaces",
+      "path": "packages/server/migrations/000006_retrieval_interfaces.sql",
+      "sha256": "2723b13e5dedf774ae3da96b1ea2386edf2e610e946b010c55bb7a20229d5d2e",
       "direction": "up-only"
     }
   ]

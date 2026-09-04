@@ -8,6 +8,9 @@ import { DocumentFileStore } from './storage/document-files.js';
 import { runMigrations } from './store/migrations.js';
 import { createDatabaseReadinessProbe, unavailableReadiness } from './store/readiness.js';
 import { loadOrCreateSecretRoot, SecretVault } from './identity/secrets.js';
+import { GatewayListenerManager } from './api/gateway-listeners.js';
+import type { IdentityRoutesOptions } from './api/identity-routes.js';
+import type { ContentRoutesOptions } from './api/content-routes.js';
 
 const main = async (): Promise<void> => {
   const config = await loadRuntimeConfig();
@@ -22,43 +25,58 @@ const main = async (): Promise<void> => {
   }
   const expectedOrigin =
     process.env['NODERAG_ORIGIN'] ?? `http://${config.host}:${String(config.port)}`;
-  const securedRoutes =
-    pool === null
-      ? {}
-      : (() => {
-          const authenticate = createRequestAuthenticator(pool, expectedOrigin);
-          return {
-            identity: {
-              pool,
-              expectedOrigin,
-              secureCookie: (process.env['NODERAG_ORIGIN'] ?? '').startsWith('https://'),
-              authenticate,
-            },
-            content: {
-              pool,
-              authenticate,
-              files,
-              embedder,
-              sourceRoots: config.sourceRoots,
-              ...(config.visionBearerToken === undefined
-                ? {}
-                : { visionBearerToken: config.visionBearerToken }),
-              secretVault,
-            },
-          };
-        })();
+  let identity: IdentityRoutesOptions | undefined;
+  let content: ContentRoutesOptions | undefined;
+  if (pool !== null) {
+    const authenticate = createRequestAuthenticator(pool, expectedOrigin);
+    identity = {
+      pool,
+      expectedOrigin,
+      secureCookie: (process.env['NODERAG_ORIGIN'] ?? '').startsWith('https://'),
+      authenticate,
+    };
+    content = {
+      pool,
+      authenticate,
+      files,
+      embedder,
+      sourceRoots: config.sourceRoots,
+      ...(config.visionBearerToken === undefined
+        ? {}
+        : { visionBearerToken: config.visionBearerToken }),
+      secretVault,
+    };
+  }
+  let gatewayManager: GatewayListenerManager | undefined;
+  if (pool !== null && content !== undefined && config.database !== null) {
+    const gatewayContent = content;
+    const gatewayDatabase = config.database;
+    gatewayManager = new GatewayListenerManager(pool, config.host, (gatewayId) =>
+      buildApp({
+        readiness: createDatabaseReadinessProbe(gatewayDatabase),
+        uiRoot: config.uiRoot,
+        logger: false,
+        content: gatewayContent,
+        gatewayId,
+        gatewaySurface: true,
+      }),
+    );
+  }
   const app = buildApp({
     readiness:
       config.database === null
         ? unavailableReadiness
         : createDatabaseReadinessProbe(config.database),
     uiRoot: config.uiRoot,
-    ...securedRoutes,
+    ...(identity === undefined ? {} : { identity }),
+    ...(content === undefined ? {} : { content }),
+    ...(gatewayManager === undefined ? {} : { gatewayControl: gatewayManager }),
   });
 
   const shutdown = async (signal: string): Promise<void> => {
     app.log.info({ signal }, 'stopping NodeRag');
     await app.close();
+    await gatewayManager?.close();
     await embedder.close();
     await pool?.end();
     process.exitCode = 0;
@@ -67,6 +85,7 @@ const main = async (): Promise<void> => {
   process.once('SIGTERM', () => void shutdown('SIGTERM'));
 
   await app.listen({ host: config.host, port: config.port });
+  await gatewayManager?.reconcile();
 };
 
 void main().catch((error: unknown) => {

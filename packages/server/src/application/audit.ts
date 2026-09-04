@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
 import type { SqlClient } from '../store/database.js';
 
-const forbiddenDetailKey = /(authorization|body|cookie|password|query|secret|token)/i;
+const forbiddenDetailKey =
+  /^(authorization|body|cookie|password|rawQuery|queryText|searchText|secret|token)$/i;
 
 const sanitizeValue = (value: unknown): unknown => {
+  if (value instanceof Date) return value.toISOString();
   if (
     value === null ||
     typeof value === 'string' ||

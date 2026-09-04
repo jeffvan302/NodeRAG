@@ -19,7 +19,11 @@ ON CONFLICT (singleton) DO UPDATE SET marker = EXCLUDED.marker;
 SQL
 
 docker_compose stop postgres
-docker_compose start postgres
+# Reconcile the service through `up` instead of issuing a one-shot `start`.
+# On loaded CI hosts, Docker can report a successful start while a stop event is
+# still settling; `up -d` reasserts the desired running state before the
+# readiness probe below.
+docker_compose up -d postgres
 bash "${script_dir}/verify.sh"
 
 actual_marker="$(

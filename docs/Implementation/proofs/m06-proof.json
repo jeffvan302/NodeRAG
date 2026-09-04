@@ -1,0 +1,195 @@
+{
+  "version": 1,
+  "milestone": "M06",
+  "recordedAt": "2026-09-04T12:00:38Z",
+  "reviewer": "Codex with executable local and GitHub gates",
+  "milestoneCommit": "3617fb6872ef75184b7a4bb0c56658b58fb32840",
+  "upstreamCommit": "c67506ab621ccc866b7a871ef80cbe2e33d11646",
+  "migrationHead": "000004_durable_ingestion",
+  "dependencyLockSha256": "5df3bfa0443a8a600c616e0889ee3969d30f8e8e267f44c67ab145807cfb377b",
+  "readinessState": "operational-after-one-time-bootstrap",
+  "evidence": {
+    "milestonePlan": "docs/Implementation/staged implementation.md#12-milestone-6--txt-pdf-docx-and-xlsx-extraction",
+    "checklist": "docs/Implementation/checklists/m06-checklist.md",
+    "deferredDsmRegister": "docs/Implementation/dsm-deferred-register.md",
+    "workflow": ".github/workflows/m06-format-extraction.yml",
+    "implementationWorkflowRun": {
+      "runId": 33870467010,
+      "headSha": "3617fb6872ef75184b7a4bb0c56658b58fb32840",
+      "url": "https://github.com/jeffvan302/NodeRAG/actions/runs/33870467010",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-09-04T12:00:38Z",
+      "jobs": [
+        {
+          "name": "thin-spk",
+          "jobId": 101014961601,
+          "conclusion": "success"
+        },
+        {
+          "name": "format-extraction-integration",
+          "jobId": 101014961772,
+          "conclusion": "success"
+        },
+        {
+          "name": "linux-compatibility",
+          "jobId": 101014961931,
+          "conclusion": "success"
+        },
+        {
+          "name": "quality",
+          "jobId": 101014962013,
+          "conclusion": "success"
+        }
+      ]
+    },
+    "resolvedPreCertificationFailures": [
+      {
+        "runId": 33869184096,
+        "headSha": "d80028b0fab01ff7132130cd673602c968d77ff9",
+        "cause": "Git text normalization changed the generated Shift-JIS fixture bytes after Linux checkout.",
+        "resolution": "Explicit binary attributes preserve legacy-encoded fixture bytes."
+      },
+      {
+        "runIds": [33869461714, 33869890922, 33870113572],
+        "cause": "The cumulative M01 extraction probe expected pagination and table features in one legacy DOCX fixture after M06 split those concerns into precise fixtures.",
+        "resolution": "The compatibility probe now validates rendered pagination and structural tables against their respective M06 controls and emits failed JSON probe evidence."
+      }
+    ],
+    "extractionContract": {
+      "formats": ["md", "txt", "pdf", "docx", "xlsx"],
+      "pureBoundary": true,
+      "canonicalBeforeDatabaseExposure": true,
+      "normalization": ["LF", "NFC"],
+      "multiPageSeparator": "\n\n",
+      "dualLocators": ["utf16", "utf8"],
+      "pageMarkersExcludedFromSearchableMarkdown": true
+    },
+    "textAndMarkdown": {
+      "bomDecoding": ["utf8", "utf16le", "utf16be"],
+      "bomlessUtf16Heuristic": true,
+      "strictUtf8BeforeLegacyDetection": true,
+      "legacyDecoder": "chardet@2.2.0 + iconv-lite@0.7.3",
+      "replacementCharacterPenalty": true,
+      "offsetsMatchOriginalFlag": true
+    },
+    "pdf": {
+      "engine": "pdfjs-dist@6.3.289",
+      "productionEsmRuntimeAndWorkerBundled": true,
+      "coordinateReadingOrder": true,
+      "twoColumnOrdering": true,
+      "duplicateSuppression": true,
+      "ligatureFolding": true,
+      "conservativeHyphenJoining": true,
+      "confidenceFallback": true,
+      "scanDisposition": "awaiting_vision",
+      "encryptedPdfRejected": true
+    },
+    "docx": {
+      "directBoundedOoxml": true,
+      "paginationBases": ["rendered", "explicit", "none"],
+      "structures": ["headings", "emphasis", "lists", "tables", "images", "footnotes"],
+      "imageSha256Provenance": true,
+      "zipSafetyLimits": true
+    },
+    "xlsx": {
+      "streamingParser": "saxes@6.0.0",
+      "excelJsRuntimeDependency": false,
+      "namespaceAware": true,
+      "oneSheetPerPage": true,
+      "displayFormatting": ["date", "number", "percentage", "currency"],
+      "formulaCachePolicy": "cached-value-or-explicit-warning",
+      "mergedLabelsRepeated": true,
+      "wideRegionRecordLayoutThresholdColumns": 15,
+      "limitsEnforced": ["sheets", "cells", "entries", "uncompressed-bytes", "compression-ratio"]
+    },
+    "persistenceAndRetrieval": {
+      "fiveFormatUploadSignatureValidation": true,
+      "managedOriginalExtensionsPreserved": true,
+      "fiveFormatWatchedSources": true,
+      "pageAndImageRowsPersisted": true,
+      "pageAwareChunksOnlyWithHonestPageEvidence": true,
+      "scanCreatesNoChunksBeforeVision": true,
+      "exactChunkAndVectorReusePreserved": true
+    },
+    "fixtures": {
+      "catalog": "fixtures/formats/fixture-catalog.json",
+      "catalogSha256": "d54ec15a5b1d17b7205b4e35fce8f253eedd97b4b774b4ba578f920dc3dea073",
+      "count": 26,
+      "deterministicGenerator": "scripts/generate-m06-fixtures.mjs",
+      "linuxByteVerification": true,
+      "syntheticControlsIdentifiedAsSynthetic": true,
+      "approvedRealGoogleExportStillRequired": true,
+      "licensedRealNoToUnicodeSampleStillRequired": true
+    },
+    "authorizationAndContract": {
+      "siloScopePreserved": true,
+      "originCsrfIdempotencyPreserved": true,
+      "openApi": "platform/openapi.m06.json",
+      "openApiSha256": "ce56717ec252f4706747e09573302556488c182636320d3237f1088cb183a16f"
+    },
+    "thinSpk": {
+      "name": "noderag-0.2.0-1-x86_64.spk",
+      "bytes": 2365440,
+      "sha256": "de771049c87d341b65fa1d9cc422670880ac60f05d5fcffebfc785a4666c72dd",
+      "repeatSha256": "de771049c87d341b65fa1d9cc422670880ac60f05d5fcffebfc785a4666c72dd",
+      "serverBundleSha256": "2932aaff6c34f7cb6ffb1303c01cdb7d3d09a485c1b2dab71fa2c39351a82a88",
+      "workerBundleSha256": "6772b4064e6c7ceb0d58cc89fe10b4903342f0e1d34d60f7ffc22e73b67f208a",
+      "embedderBundleSha256": "a89f97a3e10b8e6315f240b1d450ca7d6fcb74a23a45fbc2a0bf135a3dcc88d2",
+      "allFiveFormatsUploadedAndIndexed": true,
+      "scanWaitingStateTested": true,
+      "pdfJsEsmAssetsBundled": true,
+      "runAs": "package"
+    }
+  },
+  "invariants": {
+    "untrustedArchivePathsCannotEscape": true,
+    "malformedUtf8CannotSilentlyPassAsUtf8": true,
+    "encryptedPdfCannotEnterSearch": true,
+    "canonicalLocatorsMatchBothUnits": true,
+    "pageLessFormatsDoNotInventPages": true,
+    "scanCannotExposeChunksBeforeVision": true,
+    "visionRemainsInjectedCapability": true,
+    "thinSpkDeterministic": true,
+    "nonRootLifecycleSimulationPassed": true,
+    "testbedEvidenceNotRepresentedAsDsmEvidence": true
+  },
+  "tests": {
+    "frozenInstall": "passed",
+    "peerDependencies": "passed",
+    "migrationVerification": "passed-4-forward-only-migrations",
+    "typecheck": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "dependencyBoundaries": "passed-67-modules-93-dependencies",
+    "unit": "passed-16-files-39-tests",
+    "postgres17PgvectorIntegration": "passed-5-files-32-tests",
+    "fiveFormatUploadAndCrawl": "passed",
+    "scanWaitingAndSignatureRejection": "passed",
+    "productionBuild": "passed",
+    "builtServerSmoke": "passed",
+    "licensePolicy": "passed",
+    "secretScan": "passed",
+    "repositoryHygiene": "passed",
+    "linuxFixtureByteVerification": "passed-26-fixtures",
+    "linuxNodeOnnxArgon2DatabaseCompatibility": "passed",
+    "thinSpkRepeatBuild": "passed",
+    "thinSpkStaticVerification": "passed",
+    "nonRootLifecycleSimulation": "passed",
+    "remoteCi": "implementation-passed-proof-closure-pending"
+  },
+  "liveEvidence": {},
+  "environment": "docker-testbed",
+  "certification": "implementation-ci-passed-proof-closure-pending",
+  "deferredDsmChecks": [
+    "approved real Google Docs export and licensed no-ToUnicode PDF operator samples",
+    "Package Center install, upgrade, and three-process supervision",
+    "Synology Node runtime and onnxruntime-node native ABI",
+    "package identity, source-share, socket, original, canonical, and image ACLs",
+    "reverse-proxy Origin, cookie, SSE, five-format upload, and one-port behavior",
+    "installed-SPK five-format extraction, scan waiting, memory, and thermal matrix"
+  ],
+  "failures": [],
+  "gate": "implementation-passed-proof-closure-pending",
+  "nextMilestoneAuthorized": false
+}

@@ -1,6 +1,6 @@
 # M06 — TXT, PDF, DOCX, and XLSX Extraction Checklist
 
-Status: local-gates-passed; remote certification pending
+Status: implementation CI passed; proof-closure certification pending
 
 Environment: WSL/Docker testbed and non-root Linux package simulation
 
@@ -92,7 +92,7 @@ Recorded: 2026-09-04
 - [x] Non-root package simulation uploads MD, TXT, PDF, DOCX, XLSX, and a scan-only PDF through the packaged API and worker.
 - [x] Two final package builds are byte-identical at 2,365,440 bytes with SHA-256 `de771049c87d341b65fa1d9cc422670880ac60f05d5fcffebfc785a4666c72dd`; these values will be copied into `m06-proof.json` after the implementation commit exists.
 - [x] Frozen install, migrations, TypeScript, lint, formatting, boundaries, units, production build/smoke, licenses, secrets, repository hygiene, and all integration tests pass after documentation freeze.
-- [ ] The implementation commit is pushed to `main` and every M06 GitHub job succeeds.
+- [x] The implementation commit is pushed to `main` and every M06 GitHub job succeeds.
 - [ ] The proof-closure commit and final certification commit each pass every M06 GitHub job.
 - [ ] Annotated tag `m06-complete` resolves remotely to the final certification commit.
 

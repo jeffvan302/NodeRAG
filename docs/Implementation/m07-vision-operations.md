@@ -1,6 +1,12 @@
 # M07 Vision Operations
 
-NodeRag keeps vision disabled in practice until the system-wide endpoint and model pass a live activation test. The activation test first discovers the configured model through Ollama `/api/tags`, then sends the bundled table image through `/api/chat` with the exact versioned JSON schema used by ingestion. Settings are changed only after both calls succeed.
+NodeRag keeps vision disabled in practice until the system-wide endpoint and model pass a live activation test. The activation test first discovers the configured model through Ollama `/api/tags`, then sends the built-in table image through `/api/chat` with the exact versioned JSON schema used by ingestion. Settings are changed only after both calls succeed.
+
+The sample is a small deterministic PNG generated and retained by the server module itself. It is
+not loaded from a fixture path at request time, so provider activation behaves the same from a
+source checkout, a production bundle, a package, or any working directory. Unit coverage verifies
+its PNG signature, deterministic bytes, and copy isolation; the integration activation route sends
+those same bytes to the mocked provider.
 
 ## Supported endpoint patterns
 

@@ -4,7 +4,10 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 const json = (route: Route, body: unknown, status = 200) =>
   route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 
-const operational = async (page: Page) => {
+const operational = async (
+  page: Page,
+  account = { principalId: 1, username: 'admin', serverAdmin: true, searchOnly: false },
+) => {
   let signedIn = false;
   await page.route('**/ready', (route) =>
     json(route, {
@@ -27,14 +30,14 @@ const operational = async (page: Page) => {
   );
   await page.route('**/v1/auth/me', (route) =>
     signedIn
-      ? json(route, { principalId: 1, username: 'admin', serverAdmin: true, searchOnly: false })
+      ? json(route, account)
       : json(route, { status: 401, code: 'authentication_required' }, 401),
   );
   await page.route('**/v1/auth/login', (route) => {
     signedIn = true;
     return json(route, {
-      principalId: 1,
-      serverAdmin: true,
+      principalId: account.principalId,
+      serverAdmin: account.serverAdmin,
       csrfToken: 'test-csrf',
       expiresAt: '2030-01-01T00:00:00Z',
     });
@@ -463,6 +466,7 @@ test('administrators can configure knowledge spaces, settings, storage, and visi
   );
 
   await signIn(page);
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', '/favicon.svg');
   await page.getByRole('button', { name: 'Administration' }).click();
   await expect(page.getByText('Create isolated document libraries')).toBeVisible();
   const addSpace = page.locator('.admin-control-card').filter({ hasText: 'Add a knowledge space' });
@@ -504,6 +508,30 @@ test('administrators can configure knowledge spaces, settings, storage, and visi
       bearerToken: 'replacement-secret',
     });
 
+  await page.getByRole('button', { name: /^Color schemes/ }).click();
+  await expect(page.locator('.theme-choice')).toHaveCount(5);
+  await page.getByRole('button', { name: /^Midnight blue/ }).click();
+  await expect(page.locator('.app-shell')).toHaveAttribute('data-theme', 'blue');
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('noderag.color-scheme.1')))
+    .toBe('blue');
+  const blueSidebar = await page.locator('.sidebar').evaluate((element) => ({
+    background: getComputedStyle(element).backgroundColor,
+    border: getComputedStyle(element).borderRightColor,
+  }));
+  expect(blueSidebar).toEqual({ background: 'rgb(10, 25, 48)', border: 'rgb(102, 137, 186)' });
+
+  await page.reload();
+  await expect(page.locator('.app-shell')).toHaveAttribute('data-theme', 'blue');
+  await page.getByRole('button', { name: 'Administration' }).click();
+  await page.getByRole('button', { name: /^Color schemes/ }).click();
+  await expect(page.getByRole('button', { name: /^Midnight blue/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.getByRole('button', { name: /^Forest green/ }).click();
+  await expect(page.locator('.app-shell')).toHaveAttribute('data-theme', 'green');
+
   await page.getByRole('button', { name: /^Evaluation/ }).click();
   await expect(page.getByRole('heading', { name: 'Queue a pinned comparison' })).toBeVisible();
   const colors = await page
@@ -518,6 +546,28 @@ test('administrators can configure knowledge spaces, settings, storage, and visi
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
   expect(scan.violations).toEqual([]);
+});
+
+test('members can choose and retain a personal color scheme without administrator access', async ({
+  page,
+}) => {
+  await operational(page, {
+    principalId: 7,
+    username: 'member',
+    serverAdmin: false,
+    searchOnly: false,
+  });
+  await signIn(page);
+  await page.getByRole('button', { name: 'Administration' }).click();
+  await expect(page.getByRole('heading', { name: 'Choose your color scheme' })).toBeVisible();
+  await expect(page.locator('.admin-nav button')).toHaveCount(1);
+  await page.getByRole('button', { name: /^Deep red/ }).click();
+  await expect(page.locator('.app-shell')).toHaveAttribute('data-theme', 'red');
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem('noderag.color-scheme.7')))
+    .toBe('red');
+  await page.reload();
+  await expect(page.locator('.app-shell')).toHaveAttribute('data-theme', 'red');
 });
 
 test('login and search surfaces have no automatically detectable WCAG A/AA violations', async ({

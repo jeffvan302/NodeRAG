@@ -58,6 +58,12 @@ backups, restore, evaluation, image understanding, and the generated OpenAPI con
 section begins with a plain-language explanation instead of presenting the endpoint path as its
 description.
 
+The Color schemes section offers Light, Dark, Forest green, Midnight blue, and Deep red previews.
+Selecting one applies it immediately and stores the preference under the signed-in principal's ID
+in that browser. It does not alter server settings or another user's view. Forest green preserves
+the original NodeRag dark-green appearance. The NodeRag `N` appears in desktop and mobile
+navigation and in the browser/site icon.
+
 Administrators can add knowledge spaces and edit their names/descriptions; slugs remain permanent
 partition identifiers. System settings expose documented limits and explain whether they affect
 chunking, workers, search, or audit retention. Vision settings expose the Ollama-compatible address,
@@ -77,7 +83,7 @@ is displayed only in the create response.
 
 ## Accessibility and responsive behavior
 
-The UI provides a skip link, semantic headings/landmarks, programmatic labels, visible focus, text-backed status, keyboard-operable controls, Escape-close dialogs, light/dark system themes, 320-pixel responsive layouts, horizontal table overflow, automatic text direction, and reduced-motion behavior. Evaluation cards explicitly inherit the active panel foreground/background pair, preventing white-on-white content in dark mode. Playwright uses role and label locators rather than implementation selectors. Axe scans login, authenticated search, and the dark-mode administration/evaluation surface for WCAG 2 A/AA and 2.1 A/AA issues. The maintained human review list is `docs/Implementation/checklists/m09-accessibility-checklist.md`.
+The UI provides a skip link, semantic headings/landmarks, programmatic labels, visible focus, text-backed status, keyboard-operable controls, Escape-close dialogs, five explicit color schemes, 320-pixel responsive layouts, horizontal table overflow, automatic text direction, and reduced-motion behavior. Evaluation cards explicitly inherit the active panel foreground/background pair, preventing white-on-white content in dark schemes. Playwright uses role and label locators rather than implementation selectors. Axe scans login, authenticated search, and the themed administration/evaluation surface for WCAG 2 A/AA and 2.1 A/AA issues. The maintained human review list is `docs/Implementation/checklists/m09-accessibility-checklist.md`.
 
 ## Testbed verification
 
@@ -106,7 +112,9 @@ The two SPK hashes must match. The M09 workflow repeats quality, browser E2E/acc
 - **Calibration failed:** check active-model availability and embedder health before changing concurrency.
 - **Ollama test failed:** verify its URL is reachable from the NodeRag container/package namespace,
   the model is available to the account/server, and the API key is correct. Ollama Cloud must use
-  HTTPS and a bearer API key; a self-hosted endpoint may be unauthenticated.
+  HTTPS and a bearer API key; a self-hosted endpoint may be unauthenticated. If an error mentions a
+  local image fixture or `ENOENT`, the running server predates the built-in activation sample and
+  must be upgraded.
 - **CSRF/session error:** sign in again; do not copy cookies or CSRF values between browsers.
 - **Source rejected:** add the path to the package's declared source roots and verify the package user can traverse and read it.
 - **Missing original:** record review, restore the source if appropriate, or use typed purge. Extracted content is intentionally retained until an authorized decision.

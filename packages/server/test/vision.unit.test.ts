@@ -1,8 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createCanvas } from '@napi-rs/canvas';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { describe, expect, it, vi } from 'vitest';
 import { extractDocument } from '../src/extract/index.js';
+import { visionActivationSample } from '../src/vision/activation-sample.js';
 import { visionResponseSchema } from '../src/vision/contract.js';
 import { DeterministicFakeVisionProvider } from '../src/vision/fake.js';
 import { OllamaVisionProvider } from '../src/vision/ollama.js';
@@ -31,6 +32,19 @@ const request = (bytes = testImage()) => ({
 });
 
 describe('vision contract and preprocessing', () => {
+  it('keeps a deterministic PNG activation table embedded in the server', async () => {
+    const first = visionActivationSample();
+    const second = visionActivationSample();
+    expect(first.subarray(0, 8)).toEqual(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    );
+    expect(first.length).toBeGreaterThan(1_000);
+    expect(first).toEqual(second);
+    first.fill(0);
+    expect(visionActivationSample().subarray(0, 4)).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    await expect(loadImage(second)).resolves.toMatchObject({ width: 480, height: 270 });
+  });
+
   it('strictly rejects missing and hallucinated response fields', () => {
     expect(
       visionResponseSchema.safeParse({ kind: 'table', markdown: '| a |', alt: 'table' }).success,

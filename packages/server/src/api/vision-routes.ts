@@ -1,6 +1,4 @@
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
 import { z } from 'zod';
@@ -8,6 +6,7 @@ import { executeIdempotent, IdempotencyConflictError } from '../application/idem
 import type { AuthenticatedPrincipal, RequestAuthenticator } from './authentication.js';
 import { SiloScope } from '../identity/scope.js';
 import { activateOllamaVision, OllamaVisionProvider } from '../vision/ollama.js';
+import { visionActivationSample } from '../vision/activation-sample.js';
 import type { SecretVault } from '../identity/secrets.js';
 
 const idSchema = z.coerce.number().int().positive();
@@ -46,11 +45,6 @@ const idempotencyKey = (request: FastifyRequest): string => {
   if (key === undefined) throw new Error('idempotency_key_required');
   return key;
 };
-
-const activationImagePath = (): string =>
-  typeof __filename === 'string' && __filename.endsWith('.cjs')
-    ? join(__dirname, 'vendor', 'vision-table.png')
-    : resolve('fixtures/formats/images/table.png');
 
 export interface VisionRoutesOptions {
   readonly pool: Pool;
@@ -159,7 +153,7 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
           try {
             const activation = await activateOllamaVision(
               provider,
-              await readFile(activationImagePath()),
+              visionActivationSample(),
               controller.signal,
             );
             const elapsedMs = Math.max(0, Math.round(performance.now() - started));

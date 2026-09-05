@@ -22,6 +22,59 @@ import {
 } from './components.js';
 
 type Page = 'search' | 'documents' | 'ingest' | 'activity' | 'admin';
+type ColorScheme = 'light' | 'dark' | 'green' | 'blue' | 'red';
+
+const colorSchemes: ReadonlyArray<{
+  readonly id: ColorScheme;
+  readonly name: string;
+  readonly description: string;
+  readonly themeColor: string;
+}> = [
+  {
+    id: 'light',
+    name: 'Light',
+    description: 'Warm white panels, dark text, and subtle green accents.',
+    themeColor: '#f3f6f3',
+  },
+  {
+    id: 'dark',
+    name: 'Dark',
+    description: 'Neutral charcoal panels with crisp light text.',
+    themeColor: '#171b1d',
+  },
+  {
+    id: 'green',
+    name: 'Forest green',
+    description: 'The current dark-green look with white text and lighter green borders.',
+    themeColor: '#102019',
+  },
+  {
+    id: 'blue',
+    name: 'Midnight blue',
+    description: 'Deep navy panels with pale blue borders and accents.',
+    themeColor: '#101b2d',
+  },
+  {
+    id: 'red',
+    name: 'Deep red',
+    description: 'Dark burgundy panels with warm rose borders and accents.',
+    themeColor: '#271417',
+  },
+];
+
+const savedColorScheme = (key: string): ColorScheme => {
+  const value = localStorage.getItem(key);
+  if (
+    value === 'light' ||
+    value === 'dark' ||
+    value === 'green' ||
+    value === 'blue' ||
+    value === 'red'
+  ) {
+    return value;
+  }
+  return matchMedia('(prefers-color-scheme: dark)').matches ? 'green' : 'light';
+};
 
 const asText = (value: unknown, fallback = '—') =>
   typeof value === 'string' && value.length > 0 ? value : fallback;
@@ -35,7 +88,11 @@ const useLoad = (path: string | null, refresh = 0) => {
   const [data, setData] = useState<JsonRecord | null>(null);
   const [error, setError] = useState('');
   useEffect(() => {
-    if (path === null) return;
+    if (path === null) {
+      setData(null);
+      setError('');
+      return;
+    }
     let current = true;
     setError('');
     void api<JsonRecord>(path)
@@ -1776,6 +1833,53 @@ const VisionPanel = ({
   );
 };
 
+const AppearancePanel = ({
+  value,
+  select,
+}: {
+  readonly value: ColorScheme;
+  readonly select: (value: ColorScheme) => void;
+}) => (
+  <div class="admin-control-stack">
+    <section class="admin-control-card">
+      <h3>Choose your color scheme</h3>
+      <p>
+        This preference applies to your account in this browser and takes effect immediately. It
+        does not change another user's view.
+      </p>
+      <div class="theme-grid" role="group" aria-label="Available color schemes">
+        {colorSchemes.map((scheme) => (
+          <button
+            class={`theme-choice ${value === scheme.id ? 'selected' : ''}`}
+            data-scheme={scheme.id}
+            type="button"
+            aria-pressed={value === scheme.id}
+            onClick={() => select(scheme.id)}
+          >
+            <span class="theme-swatch" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span>
+              <b>{scheme.name}</b>
+              <small>{scheme.description}</small>
+            </span>
+            {value === scheme.id ? <span class="theme-selected">Selected</span> : null}
+          </button>
+        ))}
+      </div>
+    </section>
+  </div>
+);
+
+const appearanceSection = [
+  'appearance',
+  'Color schemes',
+  null,
+  'Choose a personal light, dark, green, blue, or red color scheme for this browser.',
+] as const;
+
 const adminSections = [
   [
     'silos',
@@ -1855,6 +1959,7 @@ const adminSections = [
     '/v1/admin/vision/status',
     'Configure the Ollama-compatible provider used to understand scans, diagrams, and embedded images.',
   ],
+  appearanceSection,
   [
     'api',
     'API contract',
@@ -1865,14 +1970,23 @@ const adminSections = [
 
 const AdminView = ({
   refreshWorkspaceSilos,
+  colorScheme,
+  setColorScheme,
+  serverAdmin,
 }: {
   readonly refreshWorkspaceSilos: () => Promise<void>;
+  readonly colorScheme: ColorScheme;
+  readonly setColorScheme: (value: ColorScheme) => void;
+  readonly serverAdmin: boolean;
 }) => {
-  const [section, setSection] = useState('silos');
+  const [section, setSection] = useState(serverAdmin ? 'silos' : 'appearance');
   const [refresh, setRefresh] = useState(0);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const selected = adminSections.find(([id]) => id === section) ?? adminSections[0];
+  const visibleSections = serverAdmin
+    ? adminSections
+    : adminSections.filter(([id]) => id === 'appearance');
+  const selected = visibleSections.find(([id]) => id === section) ?? appearanceSection;
   const loaded = useLoad(selected[2], refresh);
   const createUser = async (event: SubmitEvent) => {
     event.preventDefault();
@@ -1953,7 +2067,7 @@ const AdminView = ({
       />
       <div class="admin-layout">
         <nav class="admin-nav" aria-label="Administration sections">
-          {adminSections.map(([id, label]) => (
+          {visibleSections.map(([id, label]) => (
             <button
               class={section === id ? 'active' : ''}
               onClick={() => {
@@ -1973,9 +2087,11 @@ const AdminView = ({
               <h2>{selected[1]}</h2>
               <p>{selected[3]}</p>
             </div>
-            <button class="secondary" onClick={() => setRefresh((v) => v + 1)}>
-              Refresh
-            </button>
+            {section === 'appearance' ? null : (
+              <button class="secondary" onClick={() => setRefresh((v) => v + 1)}>
+                Refresh
+              </button>
+            )}
           </div>
           {message ? (
             <Notice kind="success">
@@ -2041,6 +2157,8 @@ const AdminView = ({
                 setError('');
               }
             };
+            if (section === 'appearance')
+              return <AppearancePanel value={colorScheme} select={setColorScheme} />;
             if (loaded.data === null) return <SkeletonRows />;
             if (section === 'silos')
               return (
@@ -2145,7 +2263,21 @@ export const Workspace = ({
   const [page, setPage] = useState<Page>(currentHash);
   const [menu, setMenu] = useState(false);
   const [workspaceSilos, setWorkspaceSilos] = useState<readonly Silo[]>(silos);
+  const colorSchemeKey = `noderag.color-scheme.${String(principal.principalId)}`;
+  const [colorScheme, setColorSchemeState] = useState<ColorScheme>(() =>
+    savedColorScheme(colorSchemeKey),
+  );
   useEffect(() => setWorkspaceSilos(silos), [silos]);
+  useEffect(() => {
+    localStorage.setItem(colorSchemeKey, colorScheme);
+    const themeColor = colorSchemes.find((scheme) => scheme.id === colorScheme)?.themeColor;
+    if (themeColor !== undefined) {
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColor);
+    }
+  }, [colorScheme, colorSchemeKey]);
+  const selectColorScheme = useCallback((value: ColorScheme) => {
+    setColorSchemeState(value);
+  }, []);
   const refreshWorkspaceSilos = useCallback(async () => {
     const response = await api<{ readonly items: readonly Silo[] }>('/v1/silos');
     setWorkspaceSilos(response.items);
@@ -2168,7 +2300,7 @@ export const Workspace = ({
     }
   };
   return (
-    <div class="app-shell">
+    <div class="app-shell" data-theme={colorScheme}>
       <a class="skip-link" href="#main-content">
         Skip to main content
       </a>
@@ -2239,7 +2371,12 @@ export const Workspace = ({
           ) : page === 'activity' ? (
             <ActivityView />
           ) : (
-            <AdminView refreshWorkspaceSilos={refreshWorkspaceSilos} />
+            <AdminView
+              refreshWorkspaceSilos={refreshWorkspaceSilos}
+              colorScheme={colorScheme}
+              setColorScheme={selectColorScheme}
+              serverAdmin={principal.serverAdmin}
+            />
           )}
         </main>
       </div>

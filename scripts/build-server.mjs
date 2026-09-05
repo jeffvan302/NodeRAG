@@ -42,10 +42,6 @@ await cp(
   resolve(root, 'packages/server/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'),
   resolve(output, 'vendor/pdf.worker.mjs'),
 );
-await cp(
-  resolve(root, 'fixtures/formats/images/table.png'),
-  resolve(output, 'vendor/vision-table.png'),
-);
 await mkdir(resolve(output, 'node_modules/@napi-rs'), { recursive: true });
 await cp(
   resolve(root, 'node_modules/.pnpm/@napi-rs+canvas@1.0.8/node_modules/@napi-rs/canvas'),

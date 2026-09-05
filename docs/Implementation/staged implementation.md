@@ -910,7 +910,9 @@ Turn images, tables, diagrams, charts, and unusable PDF pages into searchable Ma
 
 1. Define a versioned `VisionProvider` capability contract and one Ollama implementation.
 2. Implement `/api/tags` reachability/model discovery and `/api/chat` schema capability checks.
-3. Require the configured endpoint/model to pass a bundled table-image test before activation.
+3. Require the configured endpoint/model to pass a deterministic built-in table-image test before
+   activation. Generate and retain the PNG inside the server bundle; provider testing must never
+   depend on a repository fixture path or the process working directory.
 4. Default setup to `https://ollama.com/api/chat`, accept host-root, `/api`, and full `/api/chat`
    forms, and expose an optional masked API-key field that is encrypted only after activation.
    Keep self-hosted Ollama and authenticated reverse proxies supported.
@@ -1031,7 +1033,10 @@ Allow a nontechnical administrator to install, configure, ingest, search, troubl
     plain-language descriptions of every section and consequential setting.
 18. Require typed confirmation for document/silo purge and display exactly what will be destroyed.
 19. Use grapheme-aware display truncation and `dir="auto"`; never apply grapheme indexing to locator arithmetic.
-20. Add keyboard-first behavior, focus management, dark mode, responsive design, reduced-motion behavior, and WCAG-focused semantics.
+20. Add keyboard-first behavior, focus management, responsive design, reduced-motion behavior,
+    and WCAG-focused semantics. Provide five explicit per-user browser color schemes—Light, Dark,
+    Forest green, Midnight blue, and Deep red—and keep the NodeRag `N` visible in navigation and
+    the browser/site icon.
 21. Add Playwright coverage for setup, auth, search, upload, source-missing review, capability administration, jobs, and purge.
 22. Add automated accessibility checks and manual keyboard/screen-reader checklist.
 23. Prove the UI has no browser-only filesystem access or privileged endpoint unavailable to an
@@ -1045,7 +1050,7 @@ All intended user and administrator work is possible through the UI and public A
 
 ### Testbed implementation record (2026-09-04)
 
-The M09 implementation is complete in the WSL/Docker testbed. The shipped Preact UI provides readiness-aware setup/login/maintenance routing, durable first-run recovery, the complete operator workspace, and public-API-backed administration. A release-candidate usability review subsequently strengthened the administration surfaces with knowledge-space creation/editing, explained system settings, storage creation/editing with safe in-use path locking, editable vision credentials/concurrency, and dark-theme evaluation contrast. Migration `000007_operator_ui`, `platform/openapi.m09.json`, the current M14 OpenAPI, browser/accessibility suite, operator guide, checklist, proof, and five-job GitHub workflow are the closure evidence. Production model transfer and strict DSM storage/package behavior remain correctly assigned to M10 and final live-DSM certification.
+The M09 implementation is complete in the WSL/Docker testbed. The shipped Preact UI provides readiness-aware setup/login/maintenance routing, durable first-run recovery, the complete operator workspace, and public-API-backed administration. Release-candidate usability reviews subsequently strengthened the administration surfaces with knowledge-space creation/editing, explained system settings, storage creation/editing with safe in-use path locking, editable vision credentials/concurrency, readable evaluation cards, five per-user browser color schemes, and a consistent NodeRag browser/site icon. Migration `000007_operator_ui`, `platform/openapi.m09.json`, the current M14 OpenAPI, browser/accessibility suite, operator guide, checklist, proof, and five-job GitHub workflow are the closure evidence. Production model transfer and strict DSM storage/package behavior remain correctly assigned to M10 and final live-DSM certification.
 
 ---
 

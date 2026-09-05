@@ -13,6 +13,7 @@ spk/work/
 *.onnx
 *.pdf
 *.png
+*.svg
 *.spk
 *.xlsx
 pnpm-lock.yaml

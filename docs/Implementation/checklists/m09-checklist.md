@@ -52,6 +52,9 @@ Recorded: 2026-09-04
       other administration sections describe their purpose and expose their supported controls.
 - [x] Vision administration includes the encrypted-key replacement path and editable 1–16
       parallel-call limit.
+- [x] Color schemes expose Light, Dark, Forest green, Midnight blue, and Deep red choices and
+      persist the selection per signed-in principal in the current browser.
+- [x] The NodeRag `N` identity is present in navigation and as the browser/site icon.
 - [x] Storage paths are editable only while unused; referenced recovery/relocation locations are
       protected from path or purpose changes.
 - [x] Document purge requires `document <ID>` and silo purge requires the exact slug.
@@ -61,7 +64,7 @@ Recorded: 2026-09-04
 
 ## Accessibility, tests, and package
 
-- [x] Keyboard-first landmarks, focus, labels, dialog semantics, dark mode, responsive layout, and reduced motion are implemented.
+- [x] Keyboard-first landmarks, focus, labels, dialog semantics, five color schemes, responsive layout, and reduced motion are implemented.
 - [x] The separate M09 accessibility checklist is complete.
 - [x] Six Playwright journeys cover setup, refresh recovery, auth, all search modes, preview, upload, source-missing review, capabilities, jobs, and purge.
 - [x] Axe reports zero WCAG A/AA findings on login and authenticated search.

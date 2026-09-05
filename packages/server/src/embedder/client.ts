@@ -15,6 +15,8 @@ interface PendingRequest {
   readonly reject: (error: Error) => void;
 }
 
+const maximumTextsPerFrame = 16;
+
 export class FramedEmbedderClient implements Embedder {
   private socket: Socket | null = null;
   private connecting: Promise<Socket> | null = null;
@@ -78,19 +80,28 @@ export class FramedEmbedderClient implements Embedder {
   }
 
   async embed(texts: readonly string[], maxTokens: number, priority = 5, model?: EmbedderModel) {
-    const response = await this.request({
-      id: randomUUID(),
-      operation: 'embed',
-      priority,
-      texts: [...texts],
-      maxTokens,
-      model,
-    });
-    if (!response.ok) throw new Error(response.code);
+    if (texts.length === 0) throw new Error('EMBEDDER_EMPTY_BATCH');
+    const vectors: number[][] = [];
+    const tokenCounts: number[] = [];
+    let elapsedMilliseconds = 0;
+    for (let offset = 0; offset < texts.length; offset += maximumTextsPerFrame) {
+      const response = await this.request({
+        id: randomUUID(),
+        operation: 'embed',
+        priority,
+        texts: texts.slice(offset, offset + maximumTextsPerFrame),
+        maxTokens,
+        model,
+      });
+      if (!response.ok) throw new Error(response.code);
+      vectors.push(...response.vectors);
+      tokenCounts.push(...response.tokenCounts);
+      elapsedMilliseconds += response.elapsedMilliseconds;
+    }
     return {
-      vectors: response.vectors,
-      tokenCounts: response.tokenCounts,
-      elapsedMilliseconds: response.elapsedMilliseconds,
+      vectors,
+      tokenCounts,
+      elapsedMilliseconds,
     };
   }
 
@@ -99,15 +110,20 @@ export class FramedEmbedderClient implements Embedder {
     priority = 5,
     model?: EmbedderModel,
   ): Promise<readonly number[]> {
-    const response = await this.request({
-      id: randomUUID(),
-      operation: 'count',
-      priority,
-      texts: [...texts],
-      model,
-    });
-    if (!response.ok) throw new Error(response.code);
-    return response.tokenCounts;
+    if (texts.length === 0) throw new Error('EMBEDDER_EMPTY_BATCH');
+    const tokenCounts: number[] = [];
+    for (let offset = 0; offset < texts.length; offset += maximumTextsPerFrame) {
+      const response = await this.request({
+        id: randomUUID(),
+        operation: 'count',
+        priority,
+        texts: texts.slice(offset, offset + maximumTextsPerFrame),
+        model,
+      });
+      if (!response.ok) throw new Error(response.code);
+      tokenCounts.push(...response.tokenCounts);
+    }
+    return tokenCounts;
   }
 
   async close(): Promise<void> {

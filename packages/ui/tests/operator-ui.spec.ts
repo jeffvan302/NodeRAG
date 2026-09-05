@@ -52,7 +52,12 @@ const signIn = async (page: Page) => {
   await expect(page.getByRole('heading', { name: 'Ask your documents' })).toBeVisible();
 };
 
-test('completes protected setup and presents the one-time recovery code', async ({ page }) => {
+test('completes protected setup and presents a complete copyable recovery code', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const recoveryCode = 'recovery_0123456789abcdefghijklmnopqrstuvwxyzABCDEF';
   let configured = false;
   await page.route('**/ready', (route) =>
     json(route, { status: 'unavailable', state: 'unconfigured' }, 503),
@@ -80,11 +85,7 @@ test('completes protected setup and presents the one-time recovery code', async 
   await page.route('**/v1/setup/verify-token', (route) => json(route, { valid: true }));
   await page.route('**/v1/setup/configure', (route) => {
     configured = true;
-    return json(
-      route,
-      { principalId: 1, defaultSilo: { id: 1 }, recoveryCode: 'recovery_test-only-code' },
-      201,
-    );
+    return json(route, { principalId: 1, defaultSilo: { id: 1 }, recoveryCode }, 201);
   });
   await page.route('**/v1/auth/me', (route) =>
     json(route, { status: 401, code: 'authentication_required' }, 401),
@@ -97,7 +98,16 @@ test('completes protected setup and presents the one-time recovery code', async 
   await page.getByLabel(/^Password/).fill('A-long-test-password!');
   await page.getByLabel('Confirm password').fill('A-long-test-password!');
   await page.getByRole('button', { name: 'Create administrator' }).click();
-  await expect(page.getByText('recovery_test-only-code')).toBeVisible();
+  const recoveryField = page.getByLabel('Complete recovery code');
+  await expect(recoveryField).toBeVisible();
+  await expect(recoveryField).toHaveValue(recoveryCode);
+  await expect(page.getByText('Start of code')).toBeVisible();
+  await expect(page.getByText('End of code')).toBeVisible();
+  await page.getByRole('button', { name: 'Copy full recovery code' }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'The full recovery code is on your clipboard.' }),
+  ).toBeVisible();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(recoveryCode);
   await page.getByRole('button', { name: /I saved it/ }).click();
   await expect(page.getByRole('heading', { name: 'Sign in to NodeRag' })).toBeVisible();
 });

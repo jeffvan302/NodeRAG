@@ -405,14 +405,48 @@ select:hover {
   color: #72d5b4;
 }
 .recovery-code {
-  margin: 22px 0 12px;
+  display: block;
+  width: 100%;
+  min-height: 88px;
+  margin: 6px 0 8px;
   padding: 16px;
   border: 1px dashed #92afa5;
   border-radius: 11px;
   background: #f4f8f6;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.95rem;
+  line-height: 1.55;
   overflow-wrap: anywhere;
-  text-align: center;
+  resize: vertical;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.recovery-code-tools,
+.recovery-code-boundaries {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+.recovery-code-tools {
+  margin-top: 22px;
+}
+.recovery-code-tools button {
+  flex-shrink: 0;
+}
+.recovery-code-boundaries {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.recovery-code-hint {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
 }
 .login-story {
   background: #142c27;
@@ -1434,6 +1468,10 @@ progress {
   .setup-panel,
   .login-panel {
     padding: 16px;
+  }
+  .recovery-code-tools {
+    align-items: stretch;
+    flex-direction: column;
   }
   .modal-backdrop {
     padding: 10px;

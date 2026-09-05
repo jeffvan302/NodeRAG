@@ -48,6 +48,7 @@ export const SetupWizard = ({
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [recoveryCode, setRecoveryCode] = useState('');
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   const verify = async (event: SubmitEvent) => {
     event.preventDefault();
@@ -90,6 +91,15 @@ export const SetupWizard = ({
       setError(displayError(problem));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const copyRecoveryCode = async () => {
+    try {
+      await navigator.clipboard.writeText(recoveryCode);
+      setCopyStatus('copied');
+    } catch {
+      setCopyStatus('failed');
     }
   };
 
@@ -203,17 +213,39 @@ export const SetupWizard = ({
                 This code is shown once. Keep it in your password manager or another protected
                 place.
               </p>
-              <div class="recovery-code" dir="ltr">
-                {recoveryCode}
+              <div class="recovery-code-tools">
+                <label for="recovery-code-value">Complete recovery code</label>
+                <button class="secondary" type="button" onClick={() => void copyRecoveryCode()}>
+                  <Icon name={copyStatus === 'copied' ? 'check' : 'copy'} />
+                  {copyStatus === 'copied' ? 'Copied full code' : 'Copy full recovery code'}
+                </button>
               </div>
-              <button
-                class="secondary wide-button"
-                type="button"
-                onClick={() => void navigator.clipboard.writeText(recoveryCode)}
-              >
-                <Icon name="copy" />
-                Copy recovery code
-              </button>
+              <div class="recovery-code-boundaries" aria-hidden="true">
+                <span>Start of code ↓</span>
+                <span>↓ End of code</span>
+              </div>
+              <textarea
+                id="recovery-code-value"
+                class="recovery-code"
+                dir="ltr"
+                readOnly
+                rows={3}
+                spellcheck={false}
+                value={recoveryCode}
+                onFocus={(event) => event.currentTarget.select()}
+                aria-describedby="recovery-code-hint"
+              />
+              <p id="recovery-code-hint" class="recovery-code-hint">
+                Copy every character in the field. It contains only the code—no quotation marks or
+                surrounding spaces. Selecting the field selects the complete value.
+              </p>
+              {copyStatus === 'copied' ? (
+                <Notice kind="success">The full recovery code is on your clipboard.</Notice>
+              ) : copyStatus === 'failed' ? (
+                <Notice kind="danger">
+                  Clipboard access failed. Select the recovery-code field and press Ctrl+C.
+                </Notice>
+              ) : null}
               <Notice kind="warning">
                 Anyone with this code may be able to recover administrator access. Do not store it
                 with the NodeRag data folder.

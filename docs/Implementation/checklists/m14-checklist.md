@@ -1,5 +1,26 @@
 # M14 Immutable Testbed Release-Candidate Checklist
 
+## Current disposition
+
+The otherwise-green candidate at commit `851e1ebec2fa714916e177038ae466ed69b038ee`
+(GitHub Actions run `33934085268`, artifact SHA-256
+`1199458284be797469a1c2ae82d8a104fc49856e3e076a2892cf1c3b93b99595`) was invalidated during
+live first-run testing. Setup step 6 sent 20 calibration samples through a framed protocol limited
+to 16 items, which produced an internal error. The recovery-code screen also made the boundaries
+of the complete one-time code unclear.
+
+The client now splits embedding and token-count work into protocol-safe frames and has a real
+20-item framed-process regression test. The setup UI now exposes the entire recovery code in a
+selectable read-only field with explicit start/end markers, a `Copy full recovery code` control,
+and clipboard confirmation. Local quality, 90 unit tests, 51 PostgreSQL integration tests, and 6
+browser tests pass.
+
+The invalidated soak ran from `2026-09-05T01:17:54.952Z` through
+`2026-09-05T02:51:22.076Z`, collecting 93 clean runtime samples, but it is non-certifying because
+the candidate was defective. None of the release-closure boxes below may be checked from that run.
+A replacement commit must pass the authoritative workflow, its exact downloaded artifact must pass
+qualification, and a fresh 86,400-second soak must complete before release closure.
+
 - [ ] Candidate version is `1.0.0-rc.1`; SPK version is `1.0.0-1` with beta marker.
 - [ ] Node 22 remains supported; official source/date/EOL are recorded.
 - [ ] Lockfile, migrations/head, OpenAPI, routes, settings defaults, parser revisions, model,

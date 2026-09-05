@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "milestone": "M14",
   "candidate": "1.0.0-rc.1",
-  "recordedAt": "2026-09-05T00:42:01Z",
+  "recordedAt": "2026-09-05T03:01:08Z",
   "implementationBaseCommit": "3d71e4476e190a6545ce0f7826ddced17f73e8f2",
   "candidateCommit": null,
   "proofClosureCommit": null,
@@ -29,7 +29,7 @@
     "localQuality": {
       "status": "passed",
       "unitFiles": 28,
-      "unitTests": 89,
+      "unitTests": 90,
       "dependencyModules": 119,
       "dependencyEdges": 195,
       "sbomRuntimePackages": 150
@@ -65,7 +65,20 @@
   "soak": {
     "minimumSeconds": 86400,
     "evidence": null,
-    "passed": false
+    "passed": false,
+    "abortedRuns": [
+      {
+        "candidateCommit": "851e1ebec2fa714916e177038ae466ed69b038ee",
+        "workflowRunId": 33934085268,
+        "artifactSha256": "1199458284be797469a1c2ae82d8a104fc49856e3e076a2892cf1c3b93b99595",
+        "startedAt": "2026-09-05T01:17:54.952Z",
+        "lastSampleAt": "2026-09-05T02:51:22.076Z",
+        "observedDurationSeconds": 5607,
+        "samples": 93,
+        "runtimeFailures": 0,
+        "disposition": "Aborted and excluded from certification after live first-run setup exposed a release-blocking calibration batching defect. A fresh CI artifact and full 86,400-second soak are required after the fix."
+      }
+    ]
   },
   "workflowRuns": [
     {
@@ -80,6 +93,20 @@
       ],
       "failedJob": "production-package",
       "disposition": "Package built twice identically and the exact lifecycle passed; the subsequent host-local runtime checksum comparison was invalid and was replaced with sidecar and authoritative-artifact verification."
+    },
+    {
+      "runId": 33934085268,
+      "commit": "851e1ebec2fa714916e177038ae466ed69b038ee",
+      "status": "passed",
+      "passedJobs": [
+        "freeze-and-quality",
+        "postgres-integration",
+        "browser-e2e",
+        "evaluation-and-recovery",
+        "production-package"
+      ],
+      "artifactSha256": "1199458284be797469a1c2ae82d8a104fc49856e3e076a2892cf1c3b93b99595",
+      "disposition": "Authoritative workflow and artifact passed, but the candidate was invalidated before certification when live first-run setup found calibration requests exceeding the embedder frame limit and recovery-code presentation made complete capture ambiguous."
     }
   ],
   "liveEvidence": {},
@@ -89,6 +116,12 @@
       "scope": "m14-ci-release-gate",
       "cause": "The CI workflow compared a clean native-Linux database runtime archive with a checksum captured from the WSL/QEMU build environment.",
       "resolution": "Verify the generated runtime sidecar and inner manifest, require two identical SPK builds in the pinned authoritative CI environment, and record the downloaded CI artifact checksum in this proof."
+    },
+    {
+      "at": "2026-09-05T02:51:22Z",
+      "scope": "m14-live-first-run-setup",
+      "cause": "Step 6 submitted 20 calibration samples in one embedder frame while the shared protocol accepts at most 16, causing the framed embedder process to reject the request and the API to return an internal error. The one-time recovery code was also difficult to delimit and copy reliably in the setup UI.",
+      "resolution": "Chunk embedding and token-count requests into protocol-safe frames while preserving result order; add a real framed 20-item regression test; and present the complete recovery code in a selectable read-only field with explicit start/end markers, an adjacent full-code copy control, clipboard feedback, and browser coverage. Local quality, 90 unit tests, 51 PostgreSQL integration tests, and 6 browser tests pass. The affected candidate and its 93-sample soak were invalidated; replacement CI qualification and a fresh full soak remain pending."
     }
   ],
   "gate": "in-progress",

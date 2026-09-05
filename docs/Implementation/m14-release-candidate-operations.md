@@ -62,6 +62,12 @@ The exact SPK runs as UID/GID 1000 with a read-only container root, no Linux cap
 `no-new-privileges`, fresh package data, and the bundled private PostgreSQL runtime. Evidence is
 written under ignored `docker-testbed/artifacts/m14/`.
 
+If live qualification exposes any release-blocking defect outside the soak workload, stop the soak
+and retain its evidence as an aborted, non-certifying run. Even a healthy partial run cannot be
+continued across a source fix. Regenerate the freeze, pass the authoritative workflow, download and
+verify its exact replacement artifact, discard the prior disposable soak volume, and start a fresh
+86,400-second run.
+
 Fail immediately on health degradation, cross-silo results, locator mismatch, terminal job failure,
 stale lease, backup failure, source schedule failure, search/MCP/gateway drift, process restart
 failure, unobserved log rotation, memory above 1.5 GiB per service, or package state above 2 GiB in

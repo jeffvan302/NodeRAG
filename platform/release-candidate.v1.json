@@ -21,7 +21,8 @@
     "toolchain": "dsm-7.2-x64",
     "spksrcCommit": "1f638f9f331d881b2fd5cb45bb24071e9f723400",
     "builderImage": "ghcr.io/synocommunity/spksrc@sha256:31b66390e2357d5ab0be8c2e521dbc658a44afdfd50eb2e10346e5539f4e9811",
-    "expectedArchiveSha256": "207ca3be6a670f8865fc244da618a0cb41743848ee441159e412b6feab2ceca1"
+    "archiveIntegrity": "generated-sha256-sidecar-and-inner-file-manifest",
+    "releaseChecksumAuthority": "m14-ci-artifact-and-proof"
   },
   "migrationHead": "000011_recovery_hardening",
   "openApi": "platform/openapi.m14.json",

@@ -8,6 +8,13 @@ and a path/digest aggregate. Run `pnpm release:freeze:verify` in every clean bui
 change requires regeneration, complete regression, a fresh SPK, a new soak, and a new RC number if
 the prior candidate was distributed.
 
+The PostgreSQL runtime archive is integrity-checked against its generated SHA-256 sidecar and its
+inner per-file `SHA256SUMS` manifest. The release proof records the SHA-256 of the exact SPK uploaded
+by the authoritative M14 CI run. Do not use a runtime-archive checksum produced on a different host
+as a release gate: native Linux and WSL/QEMU cross-compilation are separate build environments even
+when their sources and toolchains are pinned. The release invariant is two identical SPK builds in
+the authoritative pinned CI environment followed by checksum verification of the uploaded artifact.
+
 ## Build and quick qualification
 
 From clean Linux/WSL with Docker:

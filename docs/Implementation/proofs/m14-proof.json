@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "milestone": "M14",
   "candidate": "1.0.0-rc.1",
-  "recordedAt": "2026-09-05T00:10:05Z",
+  "recordedAt": "2026-09-05T00:42:01Z",
   "implementationBaseCommit": "3d71e4476e190a6545ce0f7826ddced17f73e8f2",
   "candidateCommit": null,
   "proofClosureCommit": null,
@@ -20,8 +20,9 @@
   },
   "artifact": {
     "name": "noderag-1.0.0-rc.1-x86_64.spk",
-    "sha256": "9a77dc37740d8bdb7a1c9886b755a01669b45315fcc82c838a06b1d91030ceeb",
-    "repeatBuildDeterministic": true,
+    "sha256": null,
+    "localValidationSha256": "9a77dc37740d8bdb7a1c9886b755a01669b45315fcc82c838a06b1d91030ceeb",
+    "repeatBuildDeterministic": null,
     "taggedCandidateHealthVersion": null
   },
   "tests": {
@@ -66,9 +67,30 @@
     "evidence": null,
     "passed": false
   },
-  "workflowRuns": [],
+  "workflowRuns": [
+    {
+      "runId": 33932195331,
+      "commit": "6e3d9ec7c9bc898d70d41bd84a1d61449a3de93e",
+      "status": "failed",
+      "passedJobs": [
+        "freeze-and-quality",
+        "postgres-integration",
+        "browser-e2e",
+        "evaluation-and-recovery"
+      ],
+      "failedJob": "production-package",
+      "disposition": "Package built twice identically and the exact lifecycle passed; the subsequent host-local runtime checksum comparison was invalid and was replaced with sidecar and authoritative-artifact verification."
+    }
+  ],
   "liveEvidence": {},
-  "failures": [],
+  "failures": [
+    {
+      "at": "2026-09-05T00:42:01Z",
+      "scope": "m14-ci-release-gate",
+      "cause": "The CI workflow compared a clean native-Linux database runtime archive with a checksum captured from the WSL/QEMU build environment.",
+      "resolution": "Verify the generated runtime sidecar and inner manifest, require two identical SPK builds in the pinned authoritative CI environment, and record the downloaded CI artifact checksum in this proof."
+    }
+  ],
   "gate": "in-progress",
   "certification": "not-complete",
   "releaseAuthorized": false,

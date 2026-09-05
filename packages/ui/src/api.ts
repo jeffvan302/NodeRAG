@@ -118,6 +118,8 @@ export const displayError = (error: unknown): string => {
       mutation_not_ready: 'NodeRag is not ready to make changes yet.',
       read_not_ready: 'Search is temporarily unavailable while NodeRag starts.',
       storage_probe_failed: 'NodeRag could not write to that folder.',
+      storage_location_in_use:
+        'That path or purpose is already tied to recovery work. Add a new storage location instead.',
       service_not_operational: 'Finish the first-time setup before signing in.',
     };
     return friendly[error.detail.code] ?? error.message;

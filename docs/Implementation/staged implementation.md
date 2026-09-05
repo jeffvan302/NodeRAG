@@ -52,32 +52,32 @@ Do not modify the two planning documents merely to hide a contradiction. Record 
 
 ### 2.1 Locked implementation decisions
 
-| Area                 | Authoritative v1 decision                                                                                                                                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Platform             | DSM 7.2+, x86_64, minimum 8 GB physical RAM. ARM/aarch64 is excluded.                                                                                                                                                     |
-| Runtime              | Begin with Synology `Node.js_v22`; re-evaluate before release because Node 22 reaches planned upstream EOL on 2027-04-30. A release after EOL requires a validated supported Synology runtime or maintained bundled Node. |
-| Database             | PostgreSQL 17 and pgvector bundled inside the SPK. Unix socket only by default.                                                                                                                                           |
-| Silos                | Silos are access-control and partition boundaries only. They do not own chunk, model, CPU, vision, search-language, or storage settings.                                                                                  |
-| Capabilities         | Independent `read`, `upload`, and `delete` capabilities per principal and silo. None implies another.                                                                                                                     |
-| Administration       | `server_admin` is required for silo lifecycle, principals, grants, settings, storage, gateways, builds, backup/restore, and upgrades.                                                                                     |
-| API keys             | API keys use the same silo grants as users and default to `search_only`, which blocks document downloads, full Markdown, and mutations regardless of other grants.                                                        |
-| Originals            | Every ingest creates a package-managed original named by document ID. There is no reference-in-place mode and no original-file deduplication in v1.                                                                       |
-| Canonical Markdown   | Stored as a package-managed file named by document ID. PostgreSQL stores hashes, boundaries, states, and locators, not full page Markdown.                                                                                |
-| Missing watched file | Retain the managed original and searchable index, set `source_state=missing`, and require review. An unavailable source root must never mark all children missing.                                                        |
-| Explicit delete      | Always purges the managed original, Markdown, pages, images, chunks, vectors, jobs that exist only for it, and cache entries whose reference count reaches zero.                                                          |
-| Character offsets    | UTF-16 code units into canonical Markdown; always populated.                                                                                                                                                              |
-| Byte offsets         | UTF-8 bytes into canonical Markdown; always populated.                                                                                                                                                                    |
-| Original matching    | `offsets_match_original` only indicates whether canonical Markdown offsets also address the original bytes.                                                                                                               |
-| Page locators        | Locator object always exists. Page fields are nullable for TXT and Markdown.                                                                                                                                              |
-| Chunking             | System-wide build profile. Defaults: target 2,000 UTF-16 units, overlap 300, token guard 1,024, snap window 15%, heading prefix enabled.                                                                                  |
-| Keyword language     | PostgreSQL `simple` configuration initially, for mixed-language safety.                                                                                                                                                   |
-| Search default       | Vector/Meaning initially. Hybrid is promoted only by measured evaluation.                                                                                                                                                 |
-| Embedding            | Qwen3-Embedding-0.6B ONNX, 1,024 dimensions, last-token pooling, L2 normalization, instructed queries, unprefixed documents.                                                                                              |
-| Vision               | System-wide provider configuration and global content-hash cache. Direct Ollama Cloud is the setup default with an encrypted bearer API key and explicit off-network warning; self-hosted Ollama and authenticated reverse proxies remain supported. |
-| Audit privacy        | Do not store raw search text. Store a normalized-query hash and operational metadata. Default retention: 90 days.                                                                                                         |
-| Distribution         | Private manual SPK upload. No package repository, SynoCommunity submission, or auto-update in v1.                                                                                                                         |
-| Git workflow         | Commit bounded, passing changes directly to `main`. Do not use milestone branches or pull requests. Do not force-push or rewrite shared history.                                                                          |
-| Test sequence        | Complete M0–M14 in `docker-testbed`; run one final live DSM certification against the immutable M14 candidate before tagging v1.0.0.                                                                                      |
+| Area                 | Authoritative v1 decision                                                                                                                                                                                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Platform             | DSM 7.2+, x86_64, minimum 8 GB physical RAM. ARM/aarch64 is excluded.                                                                                                                                                                                                                    |
+| Runtime              | Begin with Synology `Node.js_v22`; re-evaluate before release because Node 22 reaches planned upstream EOL on 2027-04-30. A release after EOL requires a validated supported Synology runtime or maintained bundled Node.                                                                |
+| Database             | PostgreSQL 17 and pgvector bundled inside the SPK. Unix socket only by default.                                                                                                                                                                                                          |
+| Silos                | Silos are access-control and partition boundaries only. They do not own chunk, model, CPU, vision, search-language, or storage settings.                                                                                                                                                 |
+| Capabilities         | Independent `read`, `upload`, and `delete` capabilities per principal and silo. None implies another.                                                                                                                                                                                    |
+| Administration       | `server_admin` is required for silo lifecycle, principals, grants, settings, storage, gateways, builds, backup/restore, and upgrades.                                                                                                                                                    |
+| API keys             | API keys use the same silo grants as users and default to `search_only`, which blocks document downloads, full Markdown, and mutations regardless of other grants.                                                                                                                       |
+| Originals            | Every ingest creates a package-managed original named by document ID. There is no reference-in-place mode and no original-file deduplication in v1.                                                                                                                                      |
+| Canonical Markdown   | Stored as a package-managed file named by document ID. PostgreSQL stores hashes, boundaries, states, and locators, not full page Markdown.                                                                                                                                               |
+| Missing watched file | Retain the managed original and searchable index, set `source_state=missing`, and require review. An unavailable source root must never mark all children missing.                                                                                                                       |
+| Explicit delete      | Always purges the managed original, Markdown, pages, images, chunks, vectors, jobs that exist only for it, and cache entries whose reference count reaches zero.                                                                                                                         |
+| Character offsets    | UTF-16 code units into canonical Markdown; always populated.                                                                                                                                                                                                                             |
+| Byte offsets         | UTF-8 bytes into canonical Markdown; always populated.                                                                                                                                                                                                                                   |
+| Original matching    | `offsets_match_original` only indicates whether canonical Markdown offsets also address the original bytes.                                                                                                                                                                              |
+| Page locators        | Locator object always exists. Page fields are nullable for TXT and Markdown.                                                                                                                                                                                                             |
+| Chunking             | System-wide build profile. Defaults: target 2,000 UTF-16 units, overlap 300, token guard 1,024, snap window 15%, heading prefix enabled.                                                                                                                                                 |
+| Keyword language     | PostgreSQL `simple` configuration initially, for mixed-language safety.                                                                                                                                                                                                                  |
+| Search default       | Vector/Meaning initially. Hybrid is promoted only by measured evaluation.                                                                                                                                                                                                                |
+| Embedding            | Qwen3-Embedding-0.6B ONNX, 1,024 dimensions, last-token pooling, L2 normalization, instructed queries, unprefixed documents.                                                                                                                                                             |
+| Vision               | System-wide provider configuration and global content-hash cache. Direct Ollama Cloud is the setup default with an encrypted bearer API key, editable 1–16 parallel-call limit, and explicit off-network warning; self-hosted Ollama and authenticated reverse proxies remain supported. |
+| Audit privacy        | Do not store raw search text. Store a normalized-query hash and operational metadata. Default retention: 90 days.                                                                                                                                                                        |
+| Distribution         | Private manual SPK upload. No package repository, SynoCommunity submission, or auto-update in v1.                                                                                                                                                                                        |
+| Git workflow         | Commit bounded, passing changes directly to `main`. Do not use milestone branches or pull requests. Do not force-push or rewrite shared history.                                                                                                                                         |
+| Test sequence        | Complete M0–M14 in `docker-testbed`; run one final live DSM certification against the immutable M14 candidate before tagging v1.0.0.                                                                                                                                                     |
 
 ### 2.2 Source-file behavior
 
@@ -423,7 +423,7 @@ GET                   /v1/admin/health
 GET/PUT               /v1/admin/settings
 GET/POST               /v1/admin/models...
 GET/POST/PATCH         /v1/admin/builds...
-GET/POST               /v1/admin/storage...
+GET/POST/PATCH         /v1/admin/storage...
 GET/POST               /v1/admin/backups...
 GET/POST               /v1/admin/restores...
 GET/POST               /v1/admin/evaluation...
@@ -1013,8 +1013,10 @@ Allow a nontechnical administrator to install, configure, ingest, search, troubl
 4. Build storage selection with path probe results, capacity estimate, warnings, and safe defaults.
 5. Build model download/manual-upload flow with checksum and air-gapped instructions.
 6. Build embedding calibration using approximately twenty representative chunks and show measured characters/second plus projected ingest time.
-7. Build Ollama configuration/test showing reachability, model, validated sample Markdown, and elapsed time.
-8. Build source mappings only after the package user can read the selected paths.
+7. Build Ollama configuration/test showing reachability, model, optional encrypted API key,
+   editable provider parallelism, validated sample Markdown, and elapsed time.
+8. Build source mappings only after the package user can read the selected paths. Label them as
+   read-only input/watch folders and explain that they are not NodeRag's managed storage.
 9. Stream setup progress from durable events and recover after page refresh.
 10. Implement search with one query box, Meaning/Keyword/Both labels, and visible silo-selection chips.
 11. Display passages, heading breadcrumbs, document metadata, exact/qualified locators, grouped same-document results, and page-less percentage location.
@@ -1023,13 +1025,19 @@ Allow a nontechnical administrator to install, configure, ingest, search, troubl
 14. Build the document browser with ingest state, page basis, warnings, image status, source-missing review, reindex, and purge.
 15. Build ingest/source pages with schedules, live queue, ETA, attempts, failures, pause/resume/cancel/retry.
 16. Build independent read/upload/delete capability management.
-17. Build users, API keys, gateways, audit, settings, model, builds, storage, backup/restore, evaluation, and health pages.
+17. Build users, API keys, gateways, audit, settings, model, builds, storage, backup/restore,
+    evaluation, and health pages. Administration cannot be a JSON viewer: expose the safe create,
+    edit, test, grant, retry, and destructive-confirmation controls supported by each API, with
+    plain-language descriptions of every section and consequential setting.
 18. Require typed confirmation for document/silo purge and display exactly what will be destroyed.
 19. Use grapheme-aware display truncation and `dir="auto"`; never apply grapheme indexing to locator arithmetic.
 20. Add keyboard-first behavior, focus management, dark mode, responsive design, reduced-motion behavior, and WCAG-focused semantics.
 21. Add Playwright coverage for setup, auth, search, upload, source-missing review, capability administration, jobs, and purge.
 22. Add automated accessibility checks and manual keyboard/screen-reader checklist.
-23. Prove the UI has no private data path or privileged endpoint unavailable to an equivalent API client.
+23. Prove the UI has no browser-only filesystem access or privileged endpoint unavailable to an
+    equivalent API client. A configured managed-storage path may be returned only by the
+    server-administrator storage endpoint so that an administrator can maintain it; ordinary
+    retrieval, health, and list responses must not expose it.
 
 ### Exit gate
 
@@ -1037,7 +1045,7 @@ All intended user and administrator work is possible through the UI and public A
 
 ### Testbed implementation record (2026-09-04)
 
-The M09 implementation is complete in the WSL/Docker testbed. The shipped Preact UI provides readiness-aware setup/login/maintenance routing, durable first-run recovery, the complete operator workspace, and public-API-backed administration. Migration `000007_operator_ui`, `platform/openapi.m09.json`, the M09 browser/accessibility suite, operator guide, checklist, proof, and five-job GitHub workflow are the closure evidence. Production model transfer and strict DSM storage/package behavior remain correctly assigned to M10 and final live-DSM certification.
+The M09 implementation is complete in the WSL/Docker testbed. The shipped Preact UI provides readiness-aware setup/login/maintenance routing, durable first-run recovery, the complete operator workspace, and public-API-backed administration. A release-candidate usability review subsequently strengthened the administration surfaces with knowledge-space creation/editing, explained system settings, storage creation/editing with safe in-use path locking, editable vision credentials/concurrency, and dark-theme evaluation contrast. Migration `000007_operator_ui`, `platform/openapi.m09.json`, the current M14 OpenAPI, browser/accessibility suite, operator guide, checklist, proof, and five-job GitHub workflow are the closure evidence. Production model transfer and strict DSM storage/package behavior remain correctly assigned to M10 and final live-DSM certification.
 
 ---
 

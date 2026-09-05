@@ -5,7 +5,7 @@
   "artifactName": "noderag-1.0.0-rc.1-x86_64.spk",
   "migrationHead": "000011_recovery_hardening",
   "inputCount": 42,
-  "aggregateSha256": "9d73d35f5cdfc6c2bf11323dd8750cb103e0a4da5b040c040dab3303d87c00ad",
+  "aggregateSha256": "b8375d7296d0697c9d0f5a353b8bde1d4d44666964b17eaa994dc7e8eb4e33fd",
   "inputs": [
     {
       "path": "LICENSE-POLICY.md",
@@ -159,8 +159,8 @@
     },
     {
       "path": "platform/openapi.m14.json",
-      "bytes": 168349,
-      "sha256": "729b918a4a79d5f8db616b7bbec14a53389c93372180f70c24a5990321c7016d"
+      "bytes": 170445,
+      "sha256": "b4a46d207c5fbb008b511c6825504172633ede4d05e15e56f289bd10973ed6ec"
     },
     {
       "path": "platform/parser-revisions.v1.json",
@@ -169,8 +169,8 @@
     },
     {
       "path": "platform/route-authorization.v1.json",
-      "bytes": 22044,
-      "sha256": "980781d79cc4de13ff9a801f8410585b468991b15ba48427ee3345d790918446"
+      "bytes": 22271,
+      "sha256": "0f3e9d7c80916fb86ad2833c244702340dc49a2ec4d891a3b77cc215d4d519ab"
     },
     {
       "path": "platform/sbom.spdx.json",

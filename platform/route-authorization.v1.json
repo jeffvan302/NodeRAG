@@ -780,6 +780,15 @@
       "searchOnlyAllowed": false
     },
     {
+      "method": "PATCH",
+      "path": "/v1/admin/storage/:id",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
       "method": "POST",
       "path": "/v1/admin/storage/probe",
       "scope": "server_admin",

@@ -27,6 +27,7 @@ Recorded: 2026-09-04
 - [x] Embedding calibration uses 20 representative chunks and reports characters/second and projected time.
 - [x] Ollama activation reports reachability, exact model/revision, validated sample Markdown, elapsed time, and token persistence status.
 - [x] Source mappings are accepted only through the API's declared-root and package-user path validation.
+- [x] Input folders are clearly identified as read-only ingestion sources, not managed storage.
 
 ## Search, preview, and documents
 
@@ -47,9 +48,15 @@ Recorded: 2026-09-04
 - [x] Source scheduling and live durable queue are visible.
 - [x] Job attempts/progress/failures and pause/resume/cancel/retry controls are present.
 - [x] Independent read/upload/delete capability grant and revoke controls are present.
-- [x] Users, one-time API keys, gateways, audit, settings, models, builds, storage, backup/restore, evaluation, vision, health, and OpenAPI have UI surfaces.
+- [x] Knowledge spaces, system settings, storage, and vision have explained create/edit/test forms;
+      other administration sections describe their purpose and expose their supported controls.
+- [x] Vision administration includes the encrypted-key replacement path and editable 1–16
+      parallel-call limit.
+- [x] Storage paths are editable only while unused; referenced recovery/relocation locations are
+      protected from path or purpose changes.
 - [x] Document purge requires `document <ID>` and silo purge requires the exact slug.
-- [x] UI code contains no direct database, private managed-path read, filesystem, or privileged browser-only operation.
+- [x] UI code contains no direct database/filesystem or privileged browser-only operation; managed
+      paths are returned only through the server-administrator storage contract.
 - [x] Runtime route inventory and generated OpenAPI include every UI-used endpoint.
 
 ## Accessibility, tests, and package
@@ -58,6 +65,8 @@ Recorded: 2026-09-04
 - [x] The separate M09 accessibility checklist is complete.
 - [x] Six Playwright journeys cover setup, refresh recovery, auth, all search modes, preview, upload, source-missing review, capabilities, jobs, and purge.
 - [x] Axe reports zero WCAG A/AA findings on login and authenticated search.
+- [x] Dark-mode evaluation cards have explicit readable foreground/background colors and the
+      administration journey has zero automated WCAG A/AA findings.
 - [x] Seven forward-only migration checksums verify with head `000007_operator_ui`.
 - [x] TypeScript, lint, formatting, dependency boundaries, OpenAPI drift, licenses, and secret scanning pass.
 - [x] All 22 unit files and 61 unit tests pass.

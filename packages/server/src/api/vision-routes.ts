@@ -72,6 +72,7 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
                 ollama_model AS model, ollama_model_revision AS "modelRevision",
                 ollama_parallel AS "maximumParallel", ollama_timeout_ms AS "timeoutMs",
                 ollama_max_attempts AS "maximumAttempts", max_image_px AS "maximumImageDimension",
+                (ollama_secret_id IS NOT NULL) AS "credentialConfigured",
                 vision_activated_at AS "activatedAt",
                 vision_sample_elapsed_ms AS "sampleElapsedMs"
          FROM noderag.settings WHERE id = 1`,

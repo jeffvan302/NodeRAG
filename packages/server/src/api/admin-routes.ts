@@ -147,6 +147,10 @@ const storageSchema = z
     enabled: z.boolean().default(true),
   })
   .strict();
+const storagePatchSchema = storageSchema
+  .partial()
+  .strict()
+  .refine((value) => Object.keys(value).length > 0);
 const storageProbeSchema = z.object({ managedPath: z.string().min(1).max(4096) }).strict();
 const modelDownloadSchema = z
   .object({
@@ -333,6 +337,26 @@ const calibrationSamples = Array.from({ length: 20 }, (_, index) =>
   ),
 );
 
+const storageProbeOptions = () => {
+  const splitRoots = (name: string): readonly string[] =>
+    (process.env[name] ?? '')
+      .split(process.platform === 'win32' ? ';' : ':')
+      .map((value) => value.trim())
+      .filter(Boolean);
+  return {
+    policy:
+      process.env['NODERAG_STORAGE_POLICY'] === 'dsm' ? ('dsm' as const) : ('testbed' as const),
+    projectedBytes: BigInt(process.env['NODERAG_STORAGE_PROJECTED_BYTES'] ?? '0'),
+    rebuildReserveBytes: BigInt(
+      process.env['NODERAG_STORAGE_REBUILD_RESERVE_BYTES'] ?? String(10 * 1024 ** 3),
+    ),
+    encryptedRoots: splitRoots('NODERAG_ENCRYPTED_ROOTS'),
+    requireEncrypted: process.env['NODERAG_REQUIRE_ENCRYPTED_STORAGE'] === '1',
+    syncRoots: splitRoots('NODERAG_SYNC_ROOTS'),
+    indexingRoots: splitRoots('NODERAG_INDEXING_ROOTS'),
+  };
+};
+
 const idempotencyKey = (request: FastifyRequest): string => {
   const value = request.headers['idempotency-key']?.toString();
   if (value === undefined) throw new Error('idempotency_key_required');
@@ -388,6 +412,7 @@ const mutationFailure = (
     ],
     ['evaluation_run_not_acceptable', { status: 409, code: 'evaluation_run_not_acceptable' }],
     ['build_not_mutable', { status: 409, code: 'build_not_mutable' }],
+    ['storage_location_in_use', { status: 409, code: 'storage_location_in_use' }],
     ['setup_progress_regression', { status: 409, code: 'setup_progress_regression' }],
     ['server-admin-required', { status: 403, code: 'server_admin_required' }],
   ]).get(message);
@@ -1491,7 +1516,9 @@ export const registerAdminRoutes = (
     if (principal === null || principal === 'csrf')
       return sendProblem(reply, 401, 'server_admin_required', request.id);
     const rows = await options.pool.query(
-      `SELECT id,name,purpose,enabled,created_at AS "createdAt" FROM noderag.storage_location ORDER BY id`,
+      `SELECT id,name,managed_path AS "managedPath",purpose,enabled,
+              created_at AS "createdAt"
+       FROM noderag.storage_location ORDER BY id`,
     );
     return reply.send({ items: rows.rows });
   });
@@ -1502,24 +1529,7 @@ export const registerAdminRoutes = (
     const body = storageProbeSchema.safeParse(request.body);
     if (!body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
     try {
-      const splitRoots = (name: string): readonly string[] =>
-        (process.env[name] ?? '')
-          .split(process.platform === 'win32' ? ';' : ':')
-          .map((value) => value.trim())
-          .filter(Boolean);
-      return reply.send(
-        await probeStorage(body.data.managedPath, {
-          policy: process.env['NODERAG_STORAGE_POLICY'] === 'dsm' ? 'dsm' : 'testbed',
-          projectedBytes: BigInt(process.env['NODERAG_STORAGE_PROJECTED_BYTES'] ?? '0'),
-          rebuildReserveBytes: BigInt(
-            process.env['NODERAG_STORAGE_REBUILD_RESERVE_BYTES'] ?? String(10 * 1024 ** 3),
-          ),
-          encryptedRoots: splitRoots('NODERAG_ENCRYPTED_ROOTS'),
-          requireEncrypted: process.env['NODERAG_REQUIRE_ENCRYPTED_STORAGE'] === '1',
-          syncRoots: splitRoots('NODERAG_SYNC_ROOTS'),
-          indexingRoots: splitRoots('NODERAG_INDEXING_ROOTS'),
-        }),
-      );
+      return reply.send(await probeStorage(body.data.managedPath, storageProbeOptions()));
     } catch (error) {
       const code = error instanceof Error ? error.message : 'storage_probe_failed';
       if (code === 'storage_path_must_be_absolute') {
@@ -1547,7 +1557,10 @@ export const registerAdminRoutes = (
         body.data,
         async (database) => {
           const row = await database.query(
-            `INSERT INTO noderag.storage_location(name,managed_path,purpose,enabled,created_by) VALUES($1,$2,$3,$4,$5) RETURNING id,name,purpose,enabled,created_at AS "createdAt"`,
+            `INSERT INTO noderag.storage_location(name,managed_path,purpose,enabled,created_by)
+             VALUES($1,$2,$3,$4,$5)
+             RETURNING id,name,managed_path AS "managedPath",purpose,enabled,
+                       created_at AS "createdAt"`,
             [
               body.data.name,
               body.data.managedPath,
@@ -1560,6 +1573,97 @@ export const registerAdminRoutes = (
         },
       );
       return reply.code(result.response.status).send(result.response.body);
+    } catch (error) {
+      return mutationFailure(reply, request, error);
+    }
+  });
+  app.patch('/v1/admin/storage/:id', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const id = smallIdSchema.safeParse((request.params as { id?: unknown }).id);
+    const body = storagePatchSchema.safeParse(request.body);
+    if (!id.success || !body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    if (body.data.managedPath !== undefined) {
+      const current = await options.pool.query<{ managed_path: string; in_use: boolean }>(
+        `SELECT location.managed_path,
+                EXISTS(
+                  SELECT 1 FROM noderag.backup_operation WHERE destination_id=location.id
+                  UNION ALL
+                  SELECT 1 FROM noderag.backup_schedule WHERE destination_id=location.id
+                  UNION ALL
+                  SELECT 1 FROM noderag.storage_relocation_operation
+                  WHERE source_location_id=location.id OR destination_location_id=location.id
+                ) AS in_use
+         FROM noderag.storage_location location WHERE location.id=$1`,
+        [id.data],
+      );
+      if (current.rows[0] !== undefined && current.rows[0].managed_path !== body.data.managedPath) {
+        if (current.rows[0].in_use) {
+          return sendProblem(reply, 409, 'storage_location_in_use', request.id);
+        }
+        try {
+          await probeStorage(body.data.managedPath, storageProbeOptions());
+        } catch (error) {
+          request.log.warn(
+            { errorName: error instanceof Error ? error.name : 'unknown' },
+            'storage update probe failed',
+          );
+          return sendProblem(reply, 400, 'storage_probe_failed', request.id);
+        }
+      }
+    }
+    try {
+      const result = await mutate(
+        request,
+        principal,
+        options,
+        `admin-storage-update:${String(id.data)}`,
+        body.data,
+        async (database) => {
+          const current = await database.query<{ managed_path: string; purpose: string }>(
+            `SELECT managed_path,purpose FROM noderag.storage_location WHERE id=$1 FOR UPDATE`,
+            [id.data],
+          );
+          const existing = current.rows[0];
+          if (existing === undefined) throw new Error('not_found');
+          const pathOrPurposeChanged =
+            (body.data.managedPath !== undefined &&
+              body.data.managedPath !== existing.managed_path) ||
+            (body.data.purpose !== undefined && body.data.purpose !== existing.purpose);
+          if (pathOrPurposeChanged) {
+            const references = await database.query<{ in_use: boolean }>(
+              `SELECT EXISTS(
+                 SELECT 1 FROM noderag.backup_operation WHERE destination_id=$1
+                 UNION ALL
+                 SELECT 1 FROM noderag.backup_schedule WHERE destination_id=$1
+                 UNION ALL
+                 SELECT 1 FROM noderag.storage_relocation_operation
+                 WHERE source_location_id=$1 OR destination_location_id=$1
+               ) AS in_use`,
+              [id.data],
+            );
+            if (references.rows[0]?.in_use === true) throw new Error('storage_location_in_use');
+          }
+          const updated = await database.query(
+            `UPDATE noderag.storage_location
+             SET name=COALESCE($2,name),managed_path=COALESCE($3,managed_path),
+                 purpose=COALESCE($4,purpose),enabled=COALESCE($5,enabled)
+             WHERE id=$1
+             RETURNING id,name,managed_path AS "managedPath",purpose,enabled,
+                       created_at AS "createdAt"`,
+            [
+              id.data,
+              body.data.name ?? null,
+              body.data.managedPath ?? null,
+              body.data.purpose ?? null,
+              body.data.enabled ?? null,
+            ],
+          );
+          return { status: 200, body: updated.rows[0] };
+        },
+      );
+      return reply.send(result.response.body);
     } catch (error) {
       return mutationFailure(reply, request, error);
     }

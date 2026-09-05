@@ -283,6 +283,15 @@ describe.sequential('M07 vision and bad-PDF recovery', () => {
       await expect(secretVault.reveal(pool, 'ollama', 'bearer-token')).resolves.toBe(
         'synthetic-token',
       );
+      const status = await app.inject({
+        method: 'GET',
+        url: '/v1/admin/vision/status',
+        headers: { cookie },
+      });
+      expect(status.statusCode, status.body).toBe(200);
+      expect(status.json()).toMatchObject({
+        settings: { credentialConfigured: true, maximumParallel: 2 },
+      });
     } finally {
       vi.unstubAllGlobals();
     }

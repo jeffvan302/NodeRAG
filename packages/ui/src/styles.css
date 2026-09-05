@@ -1197,6 +1197,100 @@ progress {
 .inline-form .field {
   margin: 0;
 }
+.admin-control-stack {
+  display: grid;
+  gap: 24px;
+}
+.admin-control-card,
+.editable-record {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--ink);
+}
+.admin-control-card > p,
+.editable-record-heading p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+.admin-control-card h3,
+.editable-record-heading h3 {
+  margin-bottom: 6px;
+}
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+.admin-form-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.admin-form-grid .field {
+  margin: 0;
+}
+.admin-form-grid > button {
+  justify-self: start;
+}
+.editable-record-list {
+  display: grid;
+  gap: 12px;
+}
+.editable-record-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.editable-record-heading > div {
+  display: grid;
+  gap: 4px;
+}
+.editable-record-heading small {
+  color: var(--muted);
+}
+.setting-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+.setting-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--soft);
+}
+.setting-toggle input {
+  width: auto;
+  min-height: auto;
+  margin-top: 3px;
+}
+.setting-toggle span {
+  display: grid;
+  gap: 4px;
+}
+.setting-toggle small {
+  color: var(--muted);
+  font-weight: 500;
+  line-height: 1.4;
+}
+.compact-toggle {
+  align-self: end;
+  min-height: 69px;
+}
+.admin-settings-form > button,
+.admin-control-card > button {
+  margin-top: 18px;
+}
+.vision-metrics {
+  margin-bottom: 0;
+}
 .evaluation-console {
   display: grid;
   gap: 20px;
@@ -1205,7 +1299,8 @@ progress {
   padding: 20px;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: #fff;
+  background: var(--panel);
+  color: var(--ink);
 }
 .evaluation-card h3 {
   margin: 0 0 6px;
@@ -1300,7 +1395,10 @@ progress {
   .modal,
   .metric-grid article,
   .admin-nav,
-  .admin-content {
+  .admin-content,
+  .admin-control-card,
+  .editable-record,
+  .evaluation-card {
     background: #192d25;
     color: var(--ink);
   }
@@ -1427,6 +1525,9 @@ progress {
   .inline-form {
     grid-template-columns: 1fr 1fr;
   }
+  .admin-form-grid.three {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 @media (max-width: 600px) {
   .field-grid,
@@ -1434,7 +1535,10 @@ progress {
   .search-intro,
   .metric-grid,
   .filter-grid,
-  .inline-form {
+  .inline-form,
+  .admin-form-grid,
+  .admin-form-grid.three,
+  .setting-toggle-grid {
     grid-template-columns: 1fr;
   }
   .evaluation-form {
@@ -1454,7 +1558,8 @@ progress {
     margin-left: 0;
   }
   .result-group > header,
-  .compact-list > div {
+  .compact-list > div,
+  .editable-record-heading {
     align-items: flex-start;
     flex-direction: column;
   }

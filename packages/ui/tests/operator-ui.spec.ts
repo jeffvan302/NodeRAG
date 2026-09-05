@@ -326,6 +326,12 @@ test('uploads, exposes durable job controls, and lists capability grants', async
   await page.route('**/v1/admin/grants/2/1/upload', (route) => json(route, { enabled: true }));
   await signIn(page);
   await page.getByRole('button', { name: 'Ingest' }).click();
+  await expect(page.getByRole('heading', { name: 'Connect an input folder' })).toBeVisible();
+  await expect(
+    page.getByText(
+      "It is not NodeRag's managed storage, and NodeRag does not modify the source files.",
+    ),
+  ).toBeVisible();
   await page
     .getByLabel('Choose file')
     .setInputFiles({ name: 'notes.md', mimeType: 'text/markdown', buffer: Buffer.from('# Notes') });
@@ -340,6 +346,178 @@ test('uploads, exposes durable job controls, and lists capability grants', async
   await page.getByLabel('Capability').selectOption('upload');
   await page.getByRole('button', { name: 'Grant capability' }).click();
   await expect(page.getByText('Capability granted.')).toBeVisible();
+});
+
+test('administrators can configure knowledge spaces, settings, storage, and vision in dark mode', async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await operational(page);
+  const silos: Record<string, unknown>[] = [
+    {
+      id: 1,
+      slug: 'default',
+      displayName: 'My knowledge',
+      description: 'Initial library',
+      document_count: 2,
+      principal_count: 1,
+    },
+  ];
+  const storage: Record<string, unknown>[] = [
+    {
+      id: 4,
+      name: 'Primary documents',
+      managedPath: '/data/noderag',
+      purpose: 'documents',
+      enabled: true,
+    },
+  ];
+  let settingsSaved: Record<string, unknown> | null = null;
+  let storageSaved: Record<string, unknown> | null = null;
+  let visionSaved: Record<string, unknown> | null = null;
+  await page.route('**/v1/silos', (route) =>
+    json(route, {
+      items: silos.map((item) => ({
+        id: item['id'],
+        slug: item['slug'],
+        displayName: item['displayName'],
+      })),
+    }),
+  );
+  await page.route('**/v1/admin/silos**', (route) => {
+    const request = route.request();
+    if (request.method() === 'POST') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      silos.push({ id: 2, ...body, document_count: 0, principal_count: 1 });
+      return json(route, { id: 2, ...body }, 201);
+    }
+    if (request.method() === 'PATCH') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      const existing = silos[0];
+      if (existing !== undefined) Object.assign(existing, body);
+      return json(route, { id: 1, slug: 'default', ...body });
+    }
+    return json(route, { items: silos });
+  });
+  await page.route('**/v1/admin/settings', (route) => {
+    if (route.request().method() === 'PUT') {
+      settingsSaved = route.request().postDataJSON() as Record<string, unknown>;
+      return json(route, settingsSaved);
+    }
+    return json(route, {
+      targetChars: 2000,
+      overlapChars: 300,
+      maxTokens: 512,
+      snapWindow: 0.15,
+      headingPrefix: true,
+      embedThreads: 2,
+      ingestThreads: 2,
+      throttleWhenBusy: true,
+      defaultMode: 'hybrid',
+      efSearch: 80,
+      auditRetentionDays: 365,
+      updatedAt: '2030-01-01T00:00:00Z',
+    });
+  });
+  await page.route('**/v1/admin/storage**', (route) => {
+    const request = route.request();
+    if (new URL(request.url()).pathname.endsWith('/probe')) {
+      return json(route, {
+        writable: true,
+        fsyncVerified: true,
+        availableBytes: String(50 * 1024 ** 3),
+      });
+    }
+    if (request.method() === 'PATCH') {
+      storageSaved = request.postDataJSON() as Record<string, unknown>;
+      const existing = storage[0];
+      if (existing !== undefined) Object.assign(existing, storageSaved);
+      return json(route, { id: 4, ...(existing ?? {}) });
+    }
+    return json(route, { items: storage });
+  });
+  await page.route('**/v1/admin/vision/status', (route) =>
+    json(route, {
+      settings: {
+        enabled: true,
+        baseUrl: 'https://ollama.com/api/chat',
+        model: 'qwen2.5vl:7b',
+        maximumParallel: 2,
+        timeoutMs: 120000,
+        maximumAttempts: 3,
+        maximumImageDimension: 2048,
+        credentialConfigured: true,
+        activatedAt: '2030-01-01T00:00:00Z',
+      },
+      counts: { pending: 3, analysed: 7, failed: 0, skipped: 1 },
+      estimate: { projectedCalls: 3 },
+      warnings: [],
+    }),
+  );
+  await page.route('**/v1/admin/vision/test', (route) => {
+    visionSaved = route.request().postDataJSON() as Record<string, unknown>;
+    return json(route, { elapsedMs: 48, bearerTokenPersisted: true });
+  });
+  await page.route('**/v1/admin/evaluation', (route) =>
+    json(route, { cases: [], runs: [], baselines: [], alerts: [] }),
+  );
+
+  await signIn(page);
+  await page.getByRole('button', { name: 'Administration' }).click();
+  await expect(page.getByText('Create isolated document libraries')).toBeVisible();
+  const addSpace = page.locator('.admin-control-card').filter({ hasText: 'Add a knowledge space' });
+  await addSpace.getByLabel('Name').fill('Engineering');
+  await addSpace.getByLabel('Slug').fill('engineering');
+  await addSpace.getByLabel('Description').fill('Technical reference material');
+  await addSpace.getByRole('button', { name: 'Add knowledge space' }).click();
+  await expect(page.getByText('Knowledge space created.')).toBeVisible();
+  await expect(page.getByText('Engineering', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: /^Settings/ }).click();
+  await expect(page.getByText('Tune chunking, worker concurrency')).toBeVisible();
+  await page.getByLabel('Ingest workers').fill('4');
+  await page.getByRole('button', { name: 'Save system settings' }).click();
+  await expect.poll(() => settingsSaved).toMatchObject({ ingestThreads: 4, defaultMode: 'hybrid' });
+
+  await page.getByRole('button', { name: /^Storage/ }).click();
+  await expect(page.getByText('different from the read-only input folders')).toBeVisible();
+  const storageRecord = page.locator('.editable-record').filter({ hasText: 'Primary documents' });
+  await storageRecord.getByLabel('Name').fill('Fast document storage');
+  await storageRecord.getByRole('button', { name: 'Verify and save' }).click();
+  await expect
+    .poll(() => storageSaved)
+    .toMatchObject({
+      name: 'Fast document storage',
+      managedPath: '/data/noderag',
+      enabled: true,
+    });
+
+  await page.getByRole('button', { name: /Image understanding/ }).click();
+  await expect(page.getByLabel('Ollama API key')).toHaveAttribute('type', 'password');
+  await page.getByLabel('Parallel vision calls').fill('6');
+  await page.getByLabel('Ollama API key').fill('replacement-secret');
+  await page.getByRole('button', { name: 'Test and save vision settings' }).click();
+  await expect
+    .poll(() => visionSaved)
+    .toMatchObject({
+      maximumParallel: 6,
+      bearerToken: 'replacement-secret',
+    });
+
+  await page.getByRole('button', { name: /^Evaluation/ }).click();
+  await expect(page.getByRole('heading', { name: 'Queue a pinned comparison' })).toBeVisible();
+  const colors = await page
+    .locator('.evaluation-card')
+    .first()
+    .evaluate((element) => ({
+      background: getComputedStyle(element).backgroundColor,
+      foreground: getComputedStyle(element).color,
+    }));
+  expect(colors).toEqual({ background: 'rgb(25, 45, 37)', foreground: 'rgb(229, 239, 235)' });
+  const scan = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(scan.violations).toEqual([]);
 });
 
 test('login and search surfaces have no automatically detectable WCAG A/AA violations', async ({

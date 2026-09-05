@@ -3339,6 +3339,55 @@
         }
       }
     },
+    "/v1/admin/storage/{id}": {
+      "patch": {
+        "operationId": "patch_v1_admin_storage_id",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
     "/v1/admin/storage/probe": {
       "post": {
         "operationId": "post_v1_admin_storage_probe",

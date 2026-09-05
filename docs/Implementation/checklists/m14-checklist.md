@@ -29,14 +29,25 @@ authoritative jobs and the exact-SPK lifecycle. Its new soak collected 4 clean s
 release-input defect: the browser had no Ollama Cloud API-key field, and a full `/api/chat` address
 would be expanded to `/api/chat/api/chat`. That run is also aborted and non-certifying.
 
-The next candidate must expose a masked API-key field backed by the encrypted vault, use
-`https://ollama.com/api/chat` as the setup default, accept host-root, `/api`, and full chat endpoint
-forms without path duplication, warn before images leave the local network, pass the complete
-regression suite and authoritative workflow, and start another fresh 86,400-second soak.
+The API-key replacement candidate (`9e7936d25b8d11d40abc991eed93891dd7516404`, workflow
+`33941658595`, artifact SHA-256
+`848b0ebb930d24d7f08cf5c3b4d1bcb67bbce864af1ee707df7563284a38f3f3`) passed all five jobs and
+the exact-SPK lifecycle. Its soak collected 3 clean samples from `2026-09-05T03:27:34.755Z`
+through `2026-09-05T03:29:54.492Z`. Live administration review then found that knowledge spaces,
+system settings, storage, and vision were effectively read-only JSON/list views, the requested
+vision parallel-call count had no form control, administration sections lacked explanations,
+evaluation cards were white-on-white in dark mode, and Ingest did not explain whether a connected
+folder was an input source or managed storage. That run is also aborted and non-certifying; its
+preserved evidence SHA-256 is
+`2dcbe82ac69316cf0436fcbe58ace660e843efc326f2c7fe86d11212cb9c50f2`.
 
-The local corrected-source gate currently passes type checking, linting, formatting, 91 unit tests,
-51 PostgreSQL integration tests, and all 7 browser journeys. Authoritative CI artifact identity and
-the replacement soak are still pending.
+The current correction adds API-backed knowledge-space creation/editing, explained system-setting
+forms, storage probe/create/edit controls with path/purpose locking after recovery references,
+complete vision provider controls including encrypted-key replacement and 1–16 parallel calls,
+dark-theme evaluation contrast, and explicit input-folder versus managed-storage guidance. The
+complete local quality gate, 91 unit tests, 51 PostgreSQL integration tests, and all 8 browser
+journeys pass. Authoritative CI artifact identity, exact-SPK qualification, and a fresh
+86,400-second soak remain pending.
 
 - [ ] Candidate version is `1.0.0-rc.1`; SPK version is `1.0.0-1` with beta marker.
 - [ ] Node 22 remains supported; official source/date/EOL are recorded.

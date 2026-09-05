@@ -678,8 +678,11 @@ const IngestView = ({ silos }: { readonly silos: readonly Silo[] }) => {
           </form>
         </section>
         <section class="panel">
-          <h2>Connect a folder</h2>
-          <p>The folder must already be shared with the NodeRag service account.</p>
+          <h2>Connect an input folder</h2>
+          <p>
+            This is a source folder that NodeRag reads and watches for new or changed files. It is
+            not NodeRag's managed storage, and NodeRag does not modify the source files.
+          </p>
           <form onSubmit={addSource}>
             <Field label="Knowledge space">
               <select name="siloId">
@@ -688,7 +691,10 @@ const IngestView = ({ silos }: { readonly silos: readonly Silo[] }) => {
                 ))}
               </select>
             </Field>
-            <Field label="Folder path">
+            <Field
+              label="Source folder path"
+              hint="The folder must already be shared with the NodeRag service account. Each supported file is copied into protected managed storage before processing."
+            >
               <input name="uri" placeholder="/data/handbooks" required />
             </Field>
             <div class="field-grid">
@@ -763,7 +769,7 @@ const IngestView = ({ silos }: { readonly silos: readonly Silo[] }) => {
         )}
       </section>
       <section class="panel">
-        <h2>Connected sources</h2>
+        <h2>Connected input folders</h2>
         {sources.data === null ? (
           <SkeletonRows />
         ) : list(sources.data['items']).length === 0 ? (
@@ -1116,24 +1122,752 @@ const EvaluationPanel = ({
   );
 };
 
+type AdminReport = (message: string, error?: boolean) => void;
+
+const KnowledgeSpacesPanel = ({
+  items,
+  refresh,
+  refreshWorkspaceSilos,
+  purge,
+  report,
+}: {
+  readonly items: readonly JsonRecord[];
+  readonly refresh: () => void;
+  readonly refreshWorkspaceSilos: () => Promise<void>;
+  readonly purge: (item: JsonRecord) => Promise<void>;
+  readonly report: AdminReport;
+}) => {
+  const create = async (event: SubmitEvent) => {
+    event.preventDefault();
+    const formElement = event.currentTarget as HTMLFormElement;
+    const form = new FormData(formElement);
+    try {
+      await postJson(
+        '/v1/admin/silos',
+        {
+          slug: String(form.get('slug')),
+          displayName: String(form.get('displayName')),
+          description: String(form.get('description') ?? ''),
+        },
+        { idempotent: true },
+      );
+      formElement.reset();
+      await refreshWorkspaceSilos();
+      report('Knowledge space created. You can now grant access or ingest documents into it.');
+      refresh();
+    } catch (reason) {
+      report(displayError(reason), true);
+    }
+  };
+  const update = async (event: SubmitEvent, item: JsonRecord) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget as HTMLFormElement);
+    try {
+      await postJson(
+        `/v1/admin/silos/${String(item['id'])}`,
+        {
+          displayName: String(form.get('displayName')),
+          description: String(form.get('description') ?? ''),
+        },
+        { method: 'PATCH', idempotent: true },
+      );
+      await refreshWorkspaceSilos();
+      report('Knowledge space details saved.');
+      refresh();
+    } catch (reason) {
+      report(displayError(reason), true);
+    }
+  };
+  return (
+    <div class="admin-control-stack">
+      <section class="admin-control-card">
+        <h3>Add a knowledge space</h3>
+        <p>
+          A knowledge space is an isolated library. Its documents, search results, and access grants
+          stay separate from every other space.
+        </p>
+        <form class="admin-form-grid" onSubmit={create}>
+          <Field label="Name" hint="The friendly name people see in Search and Ingest.">
+            <input name="displayName" maxLength={120} required />
+          </Field>
+          <Field
+            label="Slug"
+            hint="Permanent lowercase identifier, such as company-policies. It cannot be edited later."
+          >
+            <input name="slug" pattern="[a-z][a-z0-9-]{1,62}" required />
+          </Field>
+          <Field label="Description" hint="Explain what belongs in this library.">
+            <textarea name="description" maxLength={2000} rows={3} />
+          </Field>
+          <button class="primary">Add knowledge space</button>
+        </form>
+      </section>
+      <section>
+        <h3>Existing knowledge spaces</h3>
+        {items.length === 0 ? (
+          <EmptyState title="No knowledge spaces" detail="Add the first isolated library above." />
+        ) : (
+          <div class="editable-record-list">
+            {items.map((item) => {
+              const name = asText(item['displayName'], asText(item['display_name'], 'Untitled'));
+              return (
+                <article class="editable-record" key={String(item['id'])}>
+                  <div class="editable-record-heading">
+                    <div>
+                      <b>{name}</b>
+                      <small>
+                        {asText(item['slug'])} · {String(item['document_count'] ?? 0)} documents ·{' '}
+                        {String(item['principal_count'] ?? 0)} assigned principals
+                      </small>
+                    </div>
+                    <StatusPill value="isolated" />
+                  </div>
+                  <form class="admin-form-grid" onSubmit={(event) => void update(event, item)}>
+                    <Field label="Name">
+                      <input name="displayName" defaultValue={name} maxLength={120} required />
+                    </Field>
+                    <Field label="Description">
+                      <textarea
+                        name="description"
+                        defaultValue={asText(item['description'], '')}
+                        maxLength={2000}
+                        rows={2}
+                      />
+                    </Field>
+                    <div class="button-row compact-buttons">
+                      <button class="secondary">Save changes</button>
+                      <button class="danger-button" type="button" onClick={() => void purge(item)}>
+                        Permanently purge
+                      </button>
+                    </div>
+                  </form>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+};
+
+const SettingsPanel = ({
+  data,
+  refresh,
+  report,
+}: {
+  readonly data: JsonRecord;
+  readonly refresh: () => void;
+  readonly report: AdminReport;
+}) => {
+  const save = async (event: SubmitEvent) => {
+    event.preventDefault();
+    const formElement = event.currentTarget as HTMLFormElement;
+    const form = new FormData(formElement);
+    try {
+      await postJson(
+        '/v1/admin/settings',
+        {
+          targetChars: Number(form.get('targetChars')),
+          overlapChars: Number(form.get('overlapChars')),
+          maxTokens: Number(form.get('maxTokens')),
+          snapWindow: Number(form.get('snapWindow')),
+          headingPrefix: form.get('headingPrefix') === 'on',
+          embedThreads: Number(form.get('embedThreads')),
+          ingestThreads: Number(form.get('ingestThreads')),
+          throttleWhenBusy: form.get('throttleWhenBusy') === 'on',
+          defaultMode: String(form.get('defaultMode')),
+          efSearch: Number(form.get('efSearch')),
+          auditRetentionDays: Number(form.get('auditRetentionDays')),
+        },
+        { method: 'PUT', idempotent: true },
+      );
+      report(
+        'System settings saved. Chunking changes apply when documents are newly ingested or rebuilt.',
+      );
+      refresh();
+    } catch (reason) {
+      report(displayError(reason), true);
+    }
+  };
+  return (
+    <form
+      class="admin-control-card admin-settings-form"
+      key={asText(data['updatedAt'], 'settings')}
+      onSubmit={save}
+    >
+      <h3>Indexing and runtime defaults</h3>
+      <p>
+        These defaults control how documents are divided, how much work runs concurrently, and how
+        search and audit history behave. Existing chunks are unchanged until a rebuild.
+      </p>
+      <div class="admin-form-grid three">
+        <Field label="Target characters" hint="Preferred chunk size. Allowed: 200–8,000.">
+          <input
+            name="targetChars"
+            type="number"
+            min="200"
+            max="8000"
+            defaultValue={asNumber(data['targetChars'])}
+            required
+          />
+        </Field>
+        <Field
+          label="Overlap characters"
+          hint="Context repeated between chunks; no more than half the target size."
+        >
+          <input
+            name="overlapChars"
+            type="number"
+            min="0"
+            max="4000"
+            defaultValue={asNumber(data['overlapChars'])}
+            required
+          />
+        </Field>
+        <Field label="Maximum tokens" hint="Hard token limit for each embedding input.">
+          <input
+            name="maxTokens"
+            type="number"
+            min="128"
+            max="2048"
+            defaultValue={asNumber(data['maxTokens'])}
+            required
+          />
+        </Field>
+        <Field
+          label="Snap window"
+          hint="How far a boundary may move to preserve structure (0–0.5)."
+        >
+          <input
+            name="snapWindow"
+            type="number"
+            min="0"
+            max="0.5"
+            step="0.01"
+            defaultValue={asNumber(data['snapWindow'])}
+            required
+          />
+        </Field>
+        <Field label="Embedding workers" hint="Parallel embedding requests. Allowed: 1–32.">
+          <input
+            name="embedThreads"
+            type="number"
+            min="1"
+            max="32"
+            defaultValue={asNumber(data['embedThreads'])}
+            required
+          />
+        </Field>
+        <Field label="Ingest workers" hint="Documents processed concurrently. Allowed: 1–16.">
+          <input
+            name="ingestThreads"
+            type="number"
+            min="1"
+            max="16"
+            defaultValue={asNumber(data['ingestThreads'])}
+            required
+          />
+        </Field>
+        <Field label="Default search" hint="Initial search mode shown to users.">
+          <select name="defaultMode">
+            <option value="vector" selected={data['defaultMode'] === 'vector'}>
+              Meaning
+            </option>
+            <option value="keyword" selected={data['defaultMode'] === 'keyword'}>
+              Keyword
+            </option>
+            <option value="hybrid" selected={data['defaultMode'] === 'hybrid'}>
+              Both
+            </option>
+          </select>
+        </Field>
+        <Field
+          label="Vector search breadth"
+          hint="Higher values may improve recall but use more CPU."
+        >
+          <input
+            name="efSearch"
+            type="number"
+            min="1"
+            max="2000"
+            defaultValue={asNumber(data['efSearch'])}
+            required
+          />
+        </Field>
+        <Field
+          label="Audit retention (days)"
+          hint="How long administrative and access events remain."
+        >
+          <input
+            name="auditRetentionDays"
+            type="number"
+            min="1"
+            max="3650"
+            defaultValue={asNumber(data['auditRetentionDays'])}
+            required
+          />
+        </Field>
+      </div>
+      <div class="setting-toggle-grid">
+        <label class="setting-toggle">
+          <input
+            name="headingPrefix"
+            type="checkbox"
+            defaultChecked={data['headingPrefix'] === true}
+          />
+          <span>
+            <b>Include headings in embeddings</b>
+            <small>Improves context for structured documents but uses more tokens.</small>
+          </span>
+        </label>
+        <label class="setting-toggle">
+          <input
+            name="throttleWhenBusy"
+            type="checkbox"
+            defaultChecked={data['throttleWhenBusy'] === true}
+          />
+          <span>
+            <b>Protect interactive searches under load</b>
+            <small>Slows background ingest when the system is busy.</small>
+          </span>
+        </label>
+      </div>
+      <button class="primary">Save system settings</button>
+    </form>
+  );
+};
+
+const StoragePanel = ({
+  items,
+  refresh,
+  report,
+}: {
+  readonly items: readonly JsonRecord[];
+  readonly refresh: () => void;
+  readonly report: AdminReport;
+}) => {
+  const probe = async (managedPath: string) =>
+    postJson<JsonRecord>('/v1/admin/storage/probe', { managedPath });
+  const create = async (event: SubmitEvent) => {
+    event.preventDefault();
+    const formElement = event.currentTarget as HTMLFormElement;
+    const form = new FormData(formElement);
+    const managedPath = String(form.get('managedPath'));
+    try {
+      const result = await probe(managedPath);
+      await postJson(
+        '/v1/admin/storage',
+        {
+          name: String(form.get('name')),
+          managedPath,
+          purpose: String(form.get('purpose')),
+          enabled: form.get('enabled') === 'on',
+        },
+        { idempotent: true },
+      );
+      formElement.reset();
+      report(
+        `Storage location added. ${formatBytes(result['availableBytes'])} is currently available.`,
+      );
+      refresh();
+    } catch (reason) {
+      report(displayError(reason), true);
+    }
+  };
+  const update = async (event: SubmitEvent, item: JsonRecord) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget as HTMLFormElement);
+    const managedPath = String(form.get('managedPath'));
+    try {
+      const pathChanged = managedPath !== asText(item['managedPath'], '');
+      if (pathChanged) await probe(managedPath);
+      await postJson(
+        `/v1/admin/storage/${String(item['id'])}`,
+        {
+          name: String(form.get('name')),
+          managedPath,
+          purpose: String(form.get('purpose')),
+          enabled: form.get('enabled') === 'on',
+        },
+        { method: 'PATCH', idempotent: true },
+      );
+      report(
+        pathChanged
+          ? 'Storage location saved and its new path probe passed.'
+          : 'Storage location saved.',
+      );
+      refresh();
+    } catch (reason) {
+      report(displayError(reason), true);
+    }
+  };
+  return (
+    <div class="admin-control-stack">
+      <Notice kind="info">
+        These are NodeRag-managed destinations for protected document copies, backups, or temporary
+        work. They are different from the read-only input folders connected on the Ingest page.
+      </Notice>
+      <section class="admin-control-card">
+        <h3>Add a storage location</h3>
+        <p>
+          NodeRag verifies write access, durable writes, filesystem support, and free capacity
+          first.
+        </p>
+        <form class="admin-form-grid" onSubmit={create}>
+          <Field label="Name" hint="A recognizable administrative label.">
+            <input name="name" maxLength={120} required />
+          </Field>
+          <Field label="Managed path" hint="An absolute path available to the NodeRag service.">
+            <input name="managedPath" maxLength={4096} placeholder="/data/noderag" required />
+          </Field>
+          <Field label="Purpose">
+            <select name="purpose">
+              <option value="documents">Managed document copies</option>
+              <option value="backup">Encrypted backups</option>
+              <option value="temporary">Temporary work</option>
+            </select>
+          </Field>
+          <label class="setting-toggle compact-toggle">
+            <input name="enabled" type="checkbox" defaultChecked />
+            <span>
+              <b>Enabled</b>
+              <small>Allow new work to use this location.</small>
+            </span>
+          </label>
+          <button class="primary">Verify and add</button>
+        </form>
+      </section>
+      <section>
+        <h3>Configured storage</h3>
+        {items.length === 0 ? (
+          <EmptyState
+            title="No storage locations"
+            detail="Add and verify a managed destination above."
+          />
+        ) : (
+          <div class="editable-record-list">
+            {items.map((item) => (
+              <article class="editable-record" key={String(item['id'])}>
+                <div class="editable-record-heading">
+                  <div>
+                    <b>{asText(item['name'])}</b>
+                    <small>Location #{String(item['id'])}</small>
+                  </div>
+                  <StatusPill value={item['enabled'] === true ? 'enabled' : 'disabled'} />
+                </div>
+                <form class="admin-form-grid" onSubmit={(event) => void update(event, item)}>
+                  <Field label="Name">
+                    <input
+                      name="name"
+                      defaultValue={asText(item['name'], '')}
+                      maxLength={120}
+                      required
+                    />
+                  </Field>
+                  <Field
+                    label="Managed path"
+                    hint="A path or purpose cannot change after backups, schedules, or relocations refer to it; add a new location instead."
+                  >
+                    <input
+                      name="managedPath"
+                      defaultValue={asText(item['managedPath'], '')}
+                      maxLength={4096}
+                      required
+                    />
+                  </Field>
+                  <Field label="Purpose">
+                    <select name="purpose">
+                      <option value="documents" selected={item['purpose'] === 'documents'}>
+                        Managed document copies
+                      </option>
+                      <option value="backup" selected={item['purpose'] === 'backup'}>
+                        Encrypted backups
+                      </option>
+                      <option value="temporary" selected={item['purpose'] === 'temporary'}>
+                        Temporary work
+                      </option>
+                    </select>
+                  </Field>
+                  <label class="setting-toggle compact-toggle">
+                    <input
+                      name="enabled"
+                      type="checkbox"
+                      defaultChecked={item['enabled'] === true}
+                    />
+                    <span>
+                      <b>Enabled</b>
+                      <small>Disable to stop assigning new work.</small>
+                    </span>
+                  </label>
+                  <button class="secondary">Verify and save</button>
+                </form>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+};
+
+const VisionPanel = ({
+  data,
+  refresh,
+  report,
+}: {
+  readonly data: JsonRecord;
+  readonly refresh: () => void;
+  readonly report: AdminReport;
+}) => {
+  const settings =
+    typeof data['settings'] === 'object' && data['settings'] !== null
+      ? (data['settings'] as JsonRecord)
+      : {};
+  const counts =
+    typeof data['counts'] === 'object' && data['counts'] !== null
+      ? (data['counts'] as JsonRecord)
+      : {};
+  const estimate =
+    typeof data['estimate'] === 'object' && data['estimate'] !== null
+      ? (data['estimate'] as JsonRecord)
+      : {};
+  const save = async (event: SubmitEvent) => {
+    event.preventDefault();
+    const formElement = event.currentTarget as HTMLFormElement;
+    const form = new FormData(formElement);
+    const bearerToken = String(form.get('bearerToken') ?? '').trim();
+    try {
+      const result = await postJson<JsonRecord>(
+        '/v1/admin/vision/test',
+        {
+          baseUrl: String(form.get('baseUrl')),
+          model: String(form.get('model')),
+          ...(bearerToken === '' ? {} : { bearerToken }),
+          maximumParallel: Number(form.get('maximumParallel')),
+          timeoutMs: Number(form.get('timeoutMs')),
+          maximumAttempts: Number(form.get('maximumAttempts')),
+          maximumImageDimension: Number(form.get('maximumImageDimension')),
+        },
+        { idempotent: true },
+      );
+      report(`Vision connection tested and saved in ${String(result['elapsedMs'] ?? 0)} ms.`);
+      formElement.reset();
+      refresh();
+    } catch (reason) {
+      report(displayError(reason), true);
+    }
+  };
+  return (
+    <div class="admin-control-stack">
+      <Notice kind="warning">
+        When this address is outside your local network, document images are sent to that provider
+        for analysis. Use only a provider and account approved for the documents you ingest.
+      </Notice>
+      <div class="metric-grid vision-metrics">
+        <article>
+          <span>Pending images</span>
+          <strong>{asNumber(counts['pending'])}</strong>
+          <small>waiting for analysis</small>
+        </article>
+        <article>
+          <span>Analysed</span>
+          <strong>{asNumber(counts['analysed'])}</strong>
+          <small>cached results available</small>
+        </article>
+        <article>
+          <span>Failed</span>
+          <strong>{asNumber(counts['failed'])}</strong>
+          <small>eligible for retry</small>
+        </article>
+        <article>
+          <span>Projected calls</span>
+          <strong>{asNumber(estimate['projectedCalls'])}</strong>
+          <small>for the current pending set</small>
+        </article>
+      </div>
+      <form
+        class="admin-control-card"
+        key={asText(settings['activatedAt'], 'vision-settings')}
+        onSubmit={save}
+      >
+        <div class="editable-record-heading">
+          <div>
+            <h3>Ollama-compatible image understanding</h3>
+            <p>Saving performs a live model and structured-response test before activation.</p>
+          </div>
+          <StatusPill value={settings['enabled'] === true ? 'enabled' : 'disabled'} />
+        </div>
+        <div class="admin-form-grid three">
+          <Field
+            label="Ollama address"
+            hint="A host root, /api root, or complete /api/chat URL is accepted."
+          >
+            <input
+              name="baseUrl"
+              type="url"
+              defaultValue={asText(settings['baseUrl'], 'https://ollama.com/api/chat')}
+              required
+            />
+          </Field>
+          <Field label="Vision model" hint="The exact model name exposed by the provider.">
+            <input name="model" defaultValue={asText(settings['model'], 'qwen2.5vl:7b')} required />
+          </Field>
+          <Field
+            label="Ollama API key"
+            hint={
+              settings['credentialConfigured'] === true
+                ? 'A protected key is saved. Leave this blank to keep it, or enter a replacement.'
+                : 'Optional for local Ollama; required for Ollama Cloud. It is encrypted at rest.'
+            }
+          >
+            <input name="bearerToken" type="password" autoComplete="off" />
+          </Field>
+          <Field
+            label="Parallel vision calls"
+            hint="Maximum simultaneous cloud or local calls. Match your provider limit (1–16)."
+          >
+            <input
+              name="maximumParallel"
+              type="number"
+              min="1"
+              max="16"
+              defaultValue={asNumber(settings['maximumParallel']) || 2}
+              required
+            />
+          </Field>
+          <Field label="Call timeout (ms)" hint="Time allowed for one provider call.">
+            <input
+              name="timeoutMs"
+              type="number"
+              min="1000"
+              max="600000"
+              defaultValue={asNumber(settings['timeoutMs']) || 120000}
+              required
+            />
+          </Field>
+          <Field label="Maximum attempts" hint="Retries for a transient image-analysis failure.">
+            <input
+              name="maximumAttempts"
+              type="number"
+              min="1"
+              max="10"
+              defaultValue={asNumber(settings['maximumAttempts']) || 3}
+              required
+            />
+          </Field>
+          <Field
+            label="Maximum image dimension"
+            hint="Larger images are scaled down to this many pixels on their longest edge."
+          >
+            <input
+              name="maximumImageDimension"
+              type="number"
+              min="256"
+              max="8192"
+              defaultValue={asNumber(settings['maximumImageDimension']) || 2048}
+              required
+            />
+          </Field>
+        </div>
+        <button class="primary">Test and save vision settings</button>
+      </form>
+    </div>
+  );
+};
+
 const adminSections = [
-  ['silos', 'Knowledge spaces', '/v1/admin/silos'],
-  ['principals', 'Users', '/v1/admin/principals'],
-  ['grants', 'Capabilities', '/v1/admin/grants'],
-  ['gateways', 'Gateways', '/v1/admin/gateways'],
-  ['audit', 'Audit', '/v1/admin/audit'],
-  ['settings', 'Settings', '/v1/admin/settings'],
-  ['models', 'Models', '/v1/admin/models'],
-  ['builds', 'Builds', '/v1/admin/builds'],
-  ['storage', 'Storage', '/v1/admin/storage'],
-  ['backups', 'Backups', '/v1/admin/backups'],
-  ['restores', 'Restore', '/v1/admin/restores'],
-  ['evaluation', 'Evaluation', '/v1/admin/evaluation'],
-  ['vision', 'Image understanding', '/v1/admin/vision/status'],
-  ['api', 'API contract', '/v1/openapi.json'],
+  [
+    'silos',
+    'Knowledge spaces',
+    '/v1/admin/silos',
+    'Create isolated document libraries, rename them, explain their purpose, or permanently purge one.',
+  ],
+  [
+    'principals',
+    'Users',
+    '/v1/admin/principals',
+    'Create people and search-only API keys, then review their account state.',
+  ],
+  [
+    'grants',
+    'Capabilities',
+    '/v1/admin/grants',
+    'Control who can read, upload to, or delete from each knowledge space.',
+  ],
+  [
+    'gateways',
+    'Gateways',
+    '/v1/admin/gateways',
+    'Review narrowed network listeners that expose only explicitly assigned knowledge spaces.',
+  ],
+  [
+    'audit',
+    'Audit',
+    '/v1/admin/audit',
+    'Review security and administrative activity without storing raw search text.',
+  ],
+  [
+    'settings',
+    'Settings',
+    '/v1/admin/settings',
+    'Tune chunking, worker concurrency, search behavior, and audit retention.',
+  ],
+  [
+    'models',
+    'Models',
+    '/v1/admin/models',
+    'Review registered embedding models and the immutable revisions used to build indexes.',
+  ],
+  [
+    'builds',
+    'Builds',
+    '/v1/admin/builds',
+    'Track index rebuilds, checkpoints, validation, and activation state.',
+  ],
+  [
+    'storage',
+    'Storage',
+    '/v1/admin/storage',
+    'Add and manage NodeRag-owned destinations for document copies, backups, and temporary work.',
+  ],
+  [
+    'backups',
+    'Backups',
+    '/v1/admin/backups',
+    'Review encrypted recovery archives and their verification status.',
+  ],
+  [
+    'restores',
+    'Restore',
+    '/v1/admin/restores',
+    'Review staged restore operations before any recovered data is activated.',
+  ],
+  [
+    'evaluation',
+    'Evaluation',
+    '/v1/admin/evaluation',
+    'Curate known-answer tests, compare search modes, and protect approved quality baselines.',
+  ],
+  [
+    'vision',
+    'Image understanding',
+    '/v1/admin/vision/status',
+    'Configure the Ollama-compatible provider used to understand scans, diagrams, and embedded images.',
+  ],
+  [
+    'api',
+    'API contract',
+    '/v1/openapi.json',
+    'Inspect the machine-readable contract for administrators and external integrations.',
+  ],
 ] as const;
 
-const AdminView = () => {
+const AdminView = ({
+  refreshWorkspaceSilos,
+}: {
+  readonly refreshWorkspaceSilos: () => Promise<void>;
+}) => {
   const [section, setSection] = useState('silos');
   const [refresh, setRefresh] = useState(0);
   const [message, setMessage] = useState('');
@@ -1202,6 +1936,8 @@ const AdminView = () => {
         body: JSON.stringify({ confirmSlug: slug }),
         idempotent: true,
       });
+      await refreshWorkspaceSilos();
+      setMessage('Knowledge space permanently purged.');
       setRefresh((v) => v + 1);
     } catch (reason) {
       setError(displayError(reason));
@@ -1235,7 +1971,7 @@ const AdminView = () => {
           <div class="section-heading">
             <div>
               <h2>{selected[1]}</h2>
-              <p>{selected[2]}</p>
+              <p>{selected[3]}</p>
             </div>
             <button class="secondary" onClick={() => setRefresh((v) => v + 1)}>
               Refresh
@@ -1295,64 +2031,97 @@ const AdminView = () => {
               <button class="secondary">Create search-only key</button>
             </form>
           ) : null}
-          {section === 'evaluation' && loaded.data !== null ? (
-            <EvaluationPanel
-              data={loaded.data}
-              refresh={() => setRefresh((value) => value + 1)}
-              report={(value, failed = false) => {
-                if (failed) {
-                  setError(value);
-                  setMessage('');
-                } else {
-                  setMessage(value);
-                  setError('');
-                }
-              }}
-            />
-          ) : null}
-          {loaded.data === null ? (
-            <SkeletonRows />
-          ) : section === 'evaluation' ? null : items.length > 0 ? (
-            <div class="record-list">
-              {items.map((item) => (
-                <article>
-                  <div>
-                    <b>
-                      {asText(
-                        item['displayName'],
-                        asText(
-                          item['username'],
-                          asText(
-                            item['name'],
-                            asText(item['action'], `Record ${String(item['id'] ?? '')}`),
-                          ),
-                        ),
-                      )}
-                    </b>
-                    <small>
-                      {Object.entries(item)
-                        .slice(0, 6)
-                        .map(
-                          ([key, value]) =>
-                            `${key}: ${typeof value === 'object' ? JSON.stringify(value) : String(value ?? '—')}`,
-                        )
-                        .join(' · ')}
-                    </small>
-                  </div>
-                  {section === 'silos' ? (
-                    <button class="danger-button" onClick={() => void purgeSilo(item)}>
-                      Purge
-                    </button>
-                  ) : null}
-                </article>
-              ))}
-            </div>
-          ) : (
-            <pre class="json-summary">{JSON.stringify(loaded.data, null, 2)}</pre>
-          )}
+          {(() => {
+            const report: AdminReport = (value, failed = false) => {
+              if (failed) {
+                setError(value);
+                setMessage('');
+              } else {
+                setMessage(value);
+                setError('');
+              }
+            };
+            if (loaded.data === null) return <SkeletonRows />;
+            if (section === 'silos')
+              return (
+                <KnowledgeSpacesPanel
+                  items={items}
+                  refresh={() => setRefresh((value) => value + 1)}
+                  refreshWorkspaceSilos={refreshWorkspaceSilos}
+                  purge={purgeSilo}
+                  report={report}
+                />
+              );
+            if (section === 'settings')
+              return (
+                <SettingsPanel
+                  data={loaded.data}
+                  refresh={() => setRefresh((value) => value + 1)}
+                  report={report}
+                />
+              );
+            if (section === 'storage')
+              return (
+                <StoragePanel
+                  items={items}
+                  refresh={() => setRefresh((value) => value + 1)}
+                  report={report}
+                />
+              );
+            if (section === 'vision')
+              return (
+                <VisionPanel
+                  data={loaded.data}
+                  refresh={() => setRefresh((value) => value + 1)}
+                  report={report}
+                />
+              );
+            if (section === 'evaluation')
+              return (
+                <EvaluationPanel
+                  data={loaded.data}
+                  refresh={() => setRefresh((value) => value + 1)}
+                  report={report}
+                />
+              );
+            if (items.length > 0)
+              return (
+                <div class="record-list">
+                  {items.map((item) => (
+                    <article>
+                      <div>
+                        <b>
+                          {asText(
+                            item['displayName'],
+                            asText(
+                              item['username'],
+                              asText(
+                                item['name'],
+                                asText(item['action'], `Record ${String(item['id'] ?? '')}`),
+                              ),
+                            ),
+                          )}
+                        </b>
+                        <small>
+                          {Object.entries(item)
+                            .slice(0, 6)
+                            .map(
+                              ([key, value]) =>
+                                `${key}: ${typeof value === 'object' ? JSON.stringify(value) : String(value ?? '—')}`,
+                            )
+                            .join(' · ')}
+                        </small>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              );
+            return <pre class="json-summary">{JSON.stringify(loaded.data, null, 2)}</pre>;
+          })()}
           <p class="security-footnote">
             <Icon name="check" />
-            No private file path or hidden browser-only operation is used by this screen.
+            Sensitive actions remain administrator-only and use the documented API. Storage paths
+            are shown only on this administrator screen.
           </p>
         </section>
       </div>
@@ -1375,6 +2144,12 @@ export const Workspace = ({
       : 'search') as Page;
   const [page, setPage] = useState<Page>(currentHash);
   const [menu, setMenu] = useState(false);
+  const [workspaceSilos, setWorkspaceSilos] = useState<readonly Silo[]>(silos);
+  useEffect(() => setWorkspaceSilos(silos), [silos]);
+  const refreshWorkspaceSilos = useCallback(async () => {
+    const response = await api<{ readonly items: readonly Silo[] }>('/v1/silos');
+    setWorkspaceSilos(response.items);
+  }, []);
   useEffect(() => {
     const handler = () => setPage(currentHash());
     addEventListener('hashchange', handler);
@@ -1456,15 +2231,15 @@ export const Workspace = ({
         </header>
         <main id="main-content">
           {page === 'search' ? (
-            <SearchView silos={silos} />
+            <SearchView silos={workspaceSilos} />
           ) : page === 'documents' ? (
-            <DocumentsView silos={silos} />
+            <DocumentsView silos={workspaceSilos} />
           ) : page === 'ingest' ? (
-            <IngestView silos={silos} />
+            <IngestView silos={workspaceSilos} />
           ) : page === 'activity' ? (
             <ActivityView />
           ) : (
-            <AdminView />
+            <AdminView refreshWorkspaceSilos={refreshWorkspaceSilos} />
           )}
         </main>
       </div>

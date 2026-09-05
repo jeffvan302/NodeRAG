@@ -1196,6 +1196,29 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
     });
     expect(storage.statusCode, storage.body).toBe(201);
     const storageId = storage.json<{ id: number }>().id;
+    const updatedStoragePath = join(root, 'm08-test-backup-updated');
+    const storageUpdate = await mutate('PATCH', `/v1/admin/storage/${String(storageId)}`, {
+      name: 'm08-test-backup-updated',
+      managedPath: updatedStoragePath,
+      enabled: true,
+    });
+    expect(storageUpdate.statusCode, storageUpdate.body).toBe(200);
+    expect(storageUpdate.json()).toMatchObject({
+      id: storageId,
+      name: 'm08-test-backup-updated',
+      managedPath: updatedStoragePath,
+      purpose: 'backup',
+      enabled: true,
+    });
+    const storageList = await app.inject({
+      method: 'GET',
+      url: '/v1/admin/storage',
+      headers: { cookie },
+    });
+    expect(storageList.statusCode, storageList.body).toBe(200);
+    expect(storageList.json<{ items: Record<string, unknown>[] }>().items).toContainEqual(
+      expect.objectContaining({ id: storageId, managedPath: updatedStoragePath }),
+    );
     const backup = await mutate('POST', '/v1/admin/backups', {
       destinationId: storageId,
       product: 'full',
@@ -1203,6 +1226,11 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
       includeModels: false,
     });
     expect(backup.statusCode, backup.body).toBe(202);
+    const unsafeStorageMove = await mutate('PATCH', `/v1/admin/storage/${String(storageId)}`, {
+      managedPath: join(root, 'would-orphan-backup'),
+    });
+    expect(unsafeStorageMove.statusCode, unsafeStorageMove.body).toBe(409);
+    expect(unsafeStorageMove.json()).toMatchObject({ code: 'storage_location_in_use' });
     const backupId = Number(backup.json<{ id: number | string }>().id);
     await pool.query(
       `UPDATE noderag.backup_operation

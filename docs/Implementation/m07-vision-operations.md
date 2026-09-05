@@ -41,6 +41,12 @@ The response reports the discovered model revision, validated sample, elapsed ti
 
 Set `NODERAG_OLLAMA_NUM_PARALLEL` to the provider's actual process-wide capacity when it is lower than the saved NodeRag value. NodeRag uses the lower value and coordinates worker processes with PostgreSQL advisory slots.
 
+The administrator screen exposes the same activation contract as an explained form. It shows the
+current provider and queue status; permits editing the address, model, `maximumParallel` (1–16),
+timeout, attempts, and image-size cap; and accepts an optional replacement API key in a masked
+field. A blank key keeps the existing encrypted credential. The status response reports only
+whether a vault credential is configured and never returns its plaintext.
+
 ## Failure and recovery behavior
 
 Text extraction is independent from provider availability. On a provider error, NodeRag writes an explicit pending placeholder, commits any available text, records the image as `pending_vision`, and schedules a durable vision job. Automatic retries use bounded exponential backoff. Exhaustion leaves the document `awaiting_vision`; it does not convert an otherwise usable document into a generic failure.

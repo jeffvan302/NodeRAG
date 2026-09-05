@@ -83,6 +83,9 @@ describe('Ollama vision provider', () => {
         options: { temperature: 0, num_ctx: 8192 },
       });
       expect(body.format).toMatchObject({ type: 'object', additionalProperties: false });
+      expect(String((body.messages as Array<{ content: string }>)[0]?.content)).toContain(
+        'JSON Schema',
+      );
       return Response.json({
         message: {
           role: 'assistant',
@@ -109,6 +112,57 @@ describe('Ollama vision provider', () => {
       provider: 'ollama',
       cached: false,
     });
+  });
+
+  it('accepts the full Ollama Cloud chat endpoint and authenticates every request', async () => {
+    const urls: string[] = [];
+    const cloudFetch = vi.fn<typeof fetch>(async (input, init) => {
+      const url = String(input);
+      urls.push(url);
+      expect(new Headers(init?.headers).get('authorization')).toBe('Bearer test-cloud-key');
+      if (url.endsWith('/api/tags')) {
+        return Response.json({ models: [{ name: 'qwen3-vl', digest: 'sha256:cloud-model' }] });
+      }
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      expect(body).not.toHaveProperty('format');
+      expect(String((body.messages as Array<{ content: string }>)[0]?.content)).toContain(
+        'JSON Schema',
+      );
+      return Response.json({
+        message: {
+          role: 'assistant',
+          content: JSON.stringify({
+            kind: 'table',
+            markdown: '| Cloud | Ready |',
+            alt: 'Cloud table',
+            confidence: 0.9,
+          }),
+        },
+      });
+    });
+    const provider = new OllamaVisionProvider(
+      {
+        baseUrl: 'https://ollama.com/api/chat',
+        model: 'qwen3-vl',
+        bearerToken: 'test-cloud-key',
+      },
+      cloudFetch,
+    );
+
+    await expect(provider.assertModelAvailable()).resolves.toMatchObject({ name: 'qwen3-vl' });
+    await expect(
+      provider.analyse({
+        bytes: testImage(),
+        mediaType: 'image/png',
+        sourceKind: 'document-image',
+        pageNumber: null,
+        imageId: 'cloud-fixture',
+        prompt: 'Transcribe this table.',
+        schema: { type: 'object' },
+        signal: new AbortController().signal,
+      }),
+    ).resolves.toMatchObject({ kind: 'table', markdown: '| Cloud | Ready |' });
+    expect(urls).toEqual(['https://ollama.com/api/tags', 'https://ollama.com/api/chat']);
   });
 
   it('classifies missing models and malformed output without accepting it', async () => {

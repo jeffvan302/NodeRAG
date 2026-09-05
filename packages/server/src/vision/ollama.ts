@@ -46,15 +46,40 @@ export interface OllamaModel {
   readonly digest: string | null;
 }
 
-const normalizedBaseUrl = (value: string): URL => {
+interface OllamaEndpoints {
+  readonly chat: URL;
+  readonly models: URL;
+  readonly isCloud: boolean;
+}
+
+const ollamaEndpoints = (value: string): OllamaEndpoints => {
   const url = new URL(value);
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     throw new Error('ollama-base-url-protocol');
   }
-  url.pathname = `${url.pathname.replace(/\/+$/u, '')}/`;
   url.search = '';
   url.hash = '';
-  return url;
+  const pathname = url.pathname.replace(/\/+$/u, '');
+  let chat: URL;
+  let models: URL;
+  if (pathname.endsWith('/api/chat')) {
+    chat = new URL(url);
+    chat.pathname = pathname;
+    const apiBase = new URL(url);
+    apiBase.pathname = `${pathname.slice(0, -'/chat'.length)}/`;
+    models = new URL('tags', apiBase);
+  } else if (pathname.endsWith('/api')) {
+    const apiBase = new URL(url);
+    apiBase.pathname = `${pathname}/`;
+    chat = new URL('chat', apiBase);
+    models = new URL('tags', apiBase);
+  } else {
+    const hostBase = new URL(url);
+    hostBase.pathname = `${pathname}/`;
+    chat = new URL('api/chat', hostBase);
+    models = new URL('api/tags', hostBase);
+  }
+  return { chat, models, isCloud: url.hostname.toLowerCase() === 'ollama.com' };
 };
 
 const authorizationHeaders = (token: string | undefined): Readonly<Record<string, string>> =>
@@ -73,14 +98,19 @@ export class OllamaVisionProvider implements VisionProvider {
   readonly contractVersion = VISION_PROVIDER_CONTRACT_VERSION;
   readonly model: string;
   readonly modelRevision: string;
-  private readonly baseUrl: URL;
+  private readonly chatUrl: URL;
+  private readonly modelsUrl: URL;
+  private readonly isCloud: boolean;
   private readonly token: string | undefined;
   private readonly keepAlive: string;
   private readonly contextWindow: number;
   private readonly request: typeof fetch;
 
   constructor(config: OllamaVisionConfig, request: typeof fetch = fetch) {
-    this.baseUrl = normalizedBaseUrl(config.baseUrl);
+    const endpoints = ollamaEndpoints(config.baseUrl);
+    this.chatUrl = endpoints.chat;
+    this.modelsUrl = endpoints.models;
+    this.isCloud = endpoints.isCloud;
     this.token = config.bearerToken;
     this.model = config.model;
     this.modelRevision = config.modelRevision ?? config.model;
@@ -90,8 +120,8 @@ export class OllamaVisionProvider implements VisionProvider {
   }
 
   securityWarning(): string | null {
-    if (this.baseUrl.protocol !== 'http:') return null;
-    const host = this.baseUrl.hostname.toLowerCase();
+    if (this.chatUrl.protocol !== 'http:') return null;
+    const host = this.chatUrl.hostname.toLowerCase();
     return host === 'localhost' || host === '127.0.0.1' || host === '::1'
       ? null
       : 'ollama-plaintext-non-loopback';
@@ -100,7 +130,7 @@ export class OllamaVisionProvider implements VisionProvider {
   async models(signal?: AbortSignal): Promise<readonly OllamaModel[]> {
     let response: Response;
     try {
-      response = await this.request(new URL('api/tags', this.baseUrl), {
+      response = await this.request(this.modelsUrl, {
         headers: authorizationHeaders(this.token),
         ...(signal === undefined ? {} : { signal }),
       });
@@ -138,7 +168,8 @@ export class OllamaVisionProvider implements VisionProvider {
   async analyse(input: VisionProviderRequest): Promise<ValidatedVisionResponse> {
     let response: Response;
     try {
-      response = await this.request(new URL('api/chat', this.baseUrl), {
+      const schemaPrompt = `${input.prompt}\n\nReturn only valid JSON matching this JSON Schema exactly:\n${JSON.stringify(input.schema)}`;
+      response = await this.request(this.chatUrl, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -149,14 +180,14 @@ export class OllamaVisionProvider implements VisionProvider {
           messages: [
             {
               role: 'user',
-              content: input.prompt,
+              content: schemaPrompt,
               images: [Buffer.from(input.bytes).toString('base64')],
             },
           ],
           stream: false,
           keep_alive: this.keepAlive,
           options: { temperature: 0, num_ctx: this.contextWindow },
-          format: input.schema,
+          ...(this.isCloud ? {} : { format: input.schema }),
         }),
         signal: input.signal,
       });

@@ -21,6 +21,23 @@ the candidate was defective. None of the release-closure boxes below may be chec
 A replacement commit must pass the authoritative workflow, its exact downloaded artifact must pass
 qualification, and a fresh 86,400-second soak must complete before release closure.
 
+That replacement (`52a8286207126940f6bf0501ae881f8dc7fbd33c`, workflow
+`33940757425`, artifact SHA-256
+`c8431e0c161be386346a8036bf9a8b878f26d56eb21275c46eab41fd1cb48b21`) passed all five
+authoritative jobs and the exact-SPK lifecycle. Its new soak collected 4 clean samples from
+`2026-09-05T03:09:44.260Z` through `2026-09-05T03:13:04.684Z` before setup review found another
+release-input defect: the browser had no Ollama Cloud API-key field, and a full `/api/chat` address
+would be expanded to `/api/chat/api/chat`. That run is also aborted and non-certifying.
+
+The next candidate must expose a masked API-key field backed by the encrypted vault, use
+`https://ollama.com/api/chat` as the setup default, accept host-root, `/api`, and full chat endpoint
+forms without path duplication, warn before images leave the local network, pass the complete
+regression suite and authoritative workflow, and start another fresh 86,400-second soak.
+
+The local corrected-source gate currently passes type checking, linting, formatting, 91 unit tests,
+51 PostgreSQL integration tests, and all 7 browser journeys. Authoritative CI artifact identity and
+the replacement soak are still pending.
+
 - [ ] Candidate version is `1.0.0-rc.1`; SPK version is `1.0.0-1` with beta marker.
 - [ ] Node 22 remains supported; official source/date/EOL are recorded.
 - [ ] Lockfile, migrations/head, OpenAPI, routes, settings defaults, parser revisions, model,

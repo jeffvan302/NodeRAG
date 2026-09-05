@@ -11,7 +11,11 @@ NodeRag now provides a complete local control surface for first-time setup, retr
 5. Choose the document storage directory. NodeRag requires an absolute path, creates it if necessary, performs an exclusive write/fsync/remove probe, reads filesystem capacity, and warns below 10 GiB free. DSM-specific `/volumeN`, filesystem, encrypted-share, and indexing-service policies are intentionally finalized in M10 and certified on DSM at the final milestone.
 6. Keep the included checksum-pinned Qwen3 model or perform the air-gapped browser checksum preflight. The preflight reads the file locally and never sends it. Resumable model download and atomic server-side manual import are M10 production-package work.
 7. Run embedding calibration. The server embeds twenty fixed representative passages with the active model and reports measured characters/second plus projected minutes per million characters. Calibration passages contain no user document content and are not retained.
-8. Optionally configure Ollama. NodeRag checks reachability, confirms the exact model/revision, validates a sample image-to-Markdown response, reports elapsed time, and stores a supplied bearer token only through the encrypted secret vault.
+8. Optionally configure Ollama. The default address is `https://ollama.com/api/chat`; direct cloud
+   use requires an Ollama API key and sends image content outside the local network. The form also
+   accepts an `/api` base or self-hosted address. NodeRag checks reachability, confirms the exact
+   model/revision, validates a sample image-to-Markdown response, reports elapsed time, and stores a
+   supplied API key only through the encrypted secret vault.
 9. Add a source folder only after the path has been shared with the package account. The API resolves the path against configured source roots and rejects traversal, inaccessible roots, and undeclared locations.
 10. Each post-login setup step is persisted in `noderag.setup_state`; sanitized events are appended to `noderag.setup_event`. `/v1/setup/events` returns SSE status and durable progress frames, so a refresh resumes the recorded step.
 
@@ -73,7 +77,9 @@ The two SPK hashes must match. The M09 workflow repeats quality, browser E2E/acc
 - **Setup key missing or expired:** restart NodeRag so the expired protected file and verifier rotate together, then use the new key.
 - **Storage probe failed:** use an absolute writable path shared with the service account; confirm capacity and ownership outside the browser.
 - **Calibration failed:** check active-model availability and embedder health before changing concurrency.
-- **Ollama test failed:** verify its URL is reachable from the NodeRag container/package namespace, the model is installed, and any bearer token is correct.
+- **Ollama test failed:** verify its URL is reachable from the NodeRag container/package namespace,
+  the model is available to the account/server, and the API key is correct. Ollama Cloud must use
+  HTTPS and a bearer API key; a self-hosted endpoint may be unauthenticated.
 - **CSRF/session error:** sign in again; do not copy cookies or CSRF values between browsers.
 - **Source rejected:** add the path to the package's declared source roots and verify the package user can traverse and read it.
 - **Missing original:** record review, restore the source if appropriate, or use typed purge. Extracted content is intentionally retained until an authorized decision.

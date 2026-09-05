@@ -73,7 +73,7 @@ Do not modify the two planning documents merely to hide a contradiction. Record 
 | Keyword language     | PostgreSQL `simple` configuration initially, for mixed-language safety.                                                                                                                                                   |
 | Search default       | Vector/Meaning initially. Hybrid is promoted only by measured evaluation.                                                                                                                                                 |
 | Embedding            | Qwen3-Embedding-0.6B ONNX, 1,024 dimensions, last-token pooling, L2 normalization, instructed queries, unprefixed documents.                                                                                              |
-| Vision               | System-wide provider configuration and global content-hash cache. Self-hosted Ollama or an authenticated reverse proxy is the v1-supported path.                                                                          |
+| Vision               | System-wide provider configuration and global content-hash cache. Direct Ollama Cloud is the setup default with an encrypted bearer API key and explicit off-network warning; self-hosted Ollama and authenticated reverse proxies remain supported. |
 | Audit privacy        | Do not store raw search text. Store a normalized-query hash and operational metadata. Default retention: 90 days.                                                                                                         |
 | Distribution         | Private manual SPK upload. No package repository, SynoCommunity submission, or auto-update in v1.                                                                                                                         |
 | Git workflow         | Commit bounded, passing changes directly to `main`. Do not use milestone branches or pull requests. Do not force-push or rewrite shared history.                                                                          |
@@ -911,9 +911,13 @@ Turn images, tables, diagrams, charts, and unusable PDF pages into searchable Ma
 1. Define a versioned `VisionProvider` capability contract and one Ollama implementation.
 2. Implement `/api/tags` reachability/model discovery and `/api/chat` schema capability checks.
 3. Require the configured endpoint/model to pass a bundled table-image test before activation.
-4. Treat self-hosted Ollama and authenticated reverse proxies as supported. Keep Cloud endpoints disabled unless the same live structured-output test passes.
+4. Default setup to `https://ollama.com/api/chat`, accept host-root, `/api`, and full `/api/chat`
+   forms, and expose an optional masked API-key field that is encrypted only after activation.
+   Keep self-hosted Ollama and authenticated reverse proxies supported.
 5. Define and version the response schema: `kind`, `markdown`, `alt`, and bounded `confidence`.
 6. Use a transcription-only prompt, temperature 0, configured context, and model keep-alive.
+   Include the exact JSON schema in the prompt; on canonical Ollama Cloud omit its unsupported
+   native `format` field but retain strict local response validation.
 7. Validate every response with Zod. Invalid output is not accepted as extraction.
 8. Downscale to the configured maximum dimension while retaining a digest of the original bytes.
 9. Skip images under 64×64, extreme aspect ratios above 20:1, and near-uniform low-entropy artifacts.

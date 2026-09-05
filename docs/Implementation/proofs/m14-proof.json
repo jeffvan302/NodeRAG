@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "milestone": "M14",
   "candidate": "1.0.0-rc.1",
-  "recordedAt": "2026-09-05T03:01:08Z",
+  "recordedAt": "2026-09-05T03:16:01Z",
   "implementationBaseCommit": "3d71e4476e190a6545ce0f7826ddced17f73e8f2",
   "candidateCommit": null,
   "proofClosureCommit": null,
@@ -29,13 +29,13 @@
     "localQuality": {
       "status": "passed",
       "unitFiles": 28,
-      "unitTests": 90,
+      "unitTests": 91,
       "dependencyModules": 119,
       "dependencyEdges": 195,
       "sbomRuntimePackages": 150
     },
     "postgresIntegration": { "status": "passed", "files": 10, "tests": 51 },
-    "browserE2e": { "status": "passed", "tests": 6 },
+    "browserE2e": { "status": "passed", "tests": 7 },
     "evaluation": {
       "status": "passed",
       "frozenCases": 60,
@@ -77,6 +77,17 @@
         "samples": 93,
         "runtimeFailures": 0,
         "disposition": "Aborted and excluded from certification after live first-run setup exposed a release-blocking calibration batching defect. A fresh CI artifact and full 86,400-second soak are required after the fix."
+      },
+      {
+        "candidateCommit": "52a8286207126940f6bf0501ae881f8dc7fbd33c",
+        "workflowRunId": 33940757425,
+        "artifactSha256": "c8431e0c161be386346a8036bf9a8b878f26d56eb21275c46eab41fd1cb48b21",
+        "startedAt": "2026-09-05T03:09:44.260Z",
+        "lastSampleAt": "2026-09-05T03:13:04.684Z",
+        "observedDurationSeconds": 200,
+        "samples": 4,
+        "runtimeFailures": 0,
+        "disposition": "Aborted and excluded from certification after setup review found that Ollama Cloud credentials could not be entered and a full /api/chat address would be duplicated by the client. A fresh CI artifact and full 86,400-second soak are required after the fix."
       }
     ]
   },
@@ -107,6 +118,20 @@
       ],
       "artifactSha256": "1199458284be797469a1c2ae82d8a104fc49856e3e076a2892cf1c3b93b99595",
       "disposition": "Authoritative workflow and artifact passed, but the candidate was invalidated before certification when live first-run setup found calibration requests exceeding the embedder frame limit and recovery-code presentation made complete capture ambiguous."
+    },
+    {
+      "runId": 33940757425,
+      "commit": "52a8286207126940f6bf0501ae881f8dc7fbd33c",
+      "status": "passed",
+      "passedJobs": [
+        "freeze-and-quality",
+        "postgres-integration",
+        "browser-e2e",
+        "evaluation-and-recovery",
+        "production-package"
+      ],
+      "artifactSha256": "c8431e0c161be386346a8036bf9a8b878f26d56eb21275c46eab41fd1cb48b21",
+      "disposition": "Authoritative workflow, independently verified artifact checksum, and exact-SPK lifecycle passed. The candidate was invalidated after setup review found no Ollama Cloud API-key input and incorrect handling of a full /api/chat address."
     }
   ],
   "liveEvidence": {},
@@ -122,6 +147,12 @@
       "scope": "m14-live-first-run-setup",
       "cause": "Step 6 submitted 20 calibration samples in one embedder frame while the shared protocol accepts at most 16, causing the framed embedder process to reject the request and the API to return an internal error. The one-time recovery code was also difficult to delimit and copy reliably in the setup UI.",
       "resolution": "Chunk embedding and token-count requests into protocol-safe frames while preserving result order; add a real framed 20-item regression test; and present the complete recovery code in a selectable read-only field with explicit start/end markers, an adjacent full-code copy control, clipboard feedback, and browser coverage. Local quality, 90 unit tests, 51 PostgreSQL integration tests, and 6 browser tests pass. The affected candidate and its 93-sample soak were invalidated; replacement CI qualification and a fresh full soak remain pending."
+    },
+    {
+      "at": "2026-09-05T03:13:04Z",
+      "scope": "m14-ollama-cloud-setup",
+      "cause": "The first-run vision form did not expose the bearer API key already supported by the backend secret vault, defaulted to a Docker-host address instead of Ollama Cloud, and the client treated every configured address as a host root, so entering https://ollama.com/api/chat would request /api/chat/api/chat.",
+      "resolution": "Add a masked optional Ollama API-key field that is submitted only when populated and encrypted only after activation succeeds; default the form to https://ollama.com/api/chat with an explicit off-network/provider-cost warning; accept host-root, /api, and full /api/chat address forms; authenticate both model discovery and chat; and use prompt-carried schema plus strict local validation for canonical Ollama Cloud because its native format enforcement is currently unavailable. Local quality, 91 unit tests, 51 PostgreSQL integration tests, and 7 browser tests pass. The affected candidate and its 4-sample soak were invalidated; replacement CI qualification and a fresh full soak remain pending."
     }
   ],
   "gate": "in-progress",

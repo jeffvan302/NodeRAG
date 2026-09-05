@@ -144,6 +144,59 @@ test('recovers the durable first-run stage after a browser refresh', async ({ pa
   await expect(page.getByRole('heading', { name: 'Measure this machine' })).toBeVisible();
 });
 
+test('configures Ollama Cloud with a protected API key and full chat endpoint', async ({
+  page,
+}) => {
+  let submitted: Record<string, unknown> | null = null;
+  await page.route('**/ready', (route) =>
+    json(route, { service: 'noderag', status: 'ok', state: 'operational' }),
+  );
+  await page.route('**/v1/setup/status', (route) =>
+    json(route, {
+      state: 'operational',
+      tokenIssued: false,
+      tokenExpiresAt: null,
+      step: 'vision',
+      progress: 70,
+    }),
+  );
+  await page.route('**/v1/setup/events', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      body: 'event: setup-status\ndata: {"state":"operational","tokenIssued":false,"tokenExpiresAt":null,"step":"vision","progress":70}\n\n',
+    }),
+  );
+  await page.route('**/v1/auth/me', (route) =>
+    json(route, { principalId: 1, username: 'admin', serverAdmin: true, searchOnly: false }),
+  );
+  await page.route('**/v1/silos', (route) =>
+    json(route, { items: [{ id: 1, slug: 'default', displayName: 'My knowledge' }] }),
+  );
+  await page.route('**/v1/admin/vision/test', (route) => {
+    submitted = route.request().postDataJSON() as Record<string, unknown>;
+    return json(route, { elapsedMs: 42, bearerTokenPersisted: true });
+  });
+
+  await page.goto('/');
+  await expect(
+    page.getByRole('heading', { name: 'Connect optional image understanding' }),
+  ).toBeVisible();
+  await expect(page.getByLabel('Ollama address')).toHaveValue('https://ollama.com/api/chat');
+  await expect(page.getByLabel('Ollama API key')).toHaveAttribute('type', 'password');
+  await page.getByLabel('Ollama API key').fill('ollama-test-cloud-key');
+  await page.getByRole('button', { name: 'Test connection' }).click();
+
+  await expect(page.getByText('The API key was encrypted and saved.')).toBeVisible();
+  await expect
+    .poll(() => submitted)
+    .toMatchObject({
+      baseUrl: 'https://ollama.com/api/chat',
+      model: 'qwen2.5vl:7b',
+      bearerToken: 'ollama-test-cloud-key',
+    });
+});
+
 test('signs in, searches all modes, and opens source context', async ({ page }) => {
   await operational(page);
   await page.route('**/v1/search', (route) =>

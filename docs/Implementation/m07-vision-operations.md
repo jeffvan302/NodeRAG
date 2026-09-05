@@ -4,10 +4,19 @@ NodeRag keeps vision disabled in practice until the system-wide endpoint and mod
 
 ## Supported endpoint patterns
 
+- The setup default is the full Ollama Cloud chat endpoint, `https://ollama.com/api/chat`.
+  Direct cloud access requires an Ollama API key sent as a bearer token and sends sample and
+  document images outside the local network. Provider charges may apply.
+- The address field accepts a host root, an `/api` base, or the full `/api/chat` endpoint. NodeRag
+  derives the sibling `/api/tags` discovery endpoint without duplicating path segments.
 - A self-hosted Ollama endpoint can be used without a token.
-- An authenticated reverse proxy can use a bearer token. A token submitted to the activation API is encrypted with the NodeRag secret root; the plaintext is never returned.
+- Ollama Cloud and authenticated reverse proxies can use a bearer token. A token submitted to the
+  activation API is encrypted with the NodeRag secret root; the plaintext is never returned.
 - A runtime-managed token may instead be supplied with `NODERAG_OLLAMA_BEARER_TOKEN_FILE`. `NODERAG_OLLAMA_BEARER_TOKEN` is also accepted for controlled test environments.
-- A cloud endpoint is not assumed to support structured output. It is usable only if the same live table-image activation succeeds.
+- Ollama Cloud currently does not enforce the native API's `format` schema. For the canonical
+  cloud host, NodeRag puts the exact schema in the prompt, omits the unsupported `format` field,
+  and still rejects any response that fails strict local schema validation. The provider is usable
+  only if the live table-image activation succeeds.
 - HTTPS is expected for non-loopback routes. Plain HTTP outside localhost produces `ollama-plaintext-non-loopback`.
 
 The package service already supplies `NODERAG_SECRET_ROOT`. A standalone deployment defaults it to `<data-root>/secrets/root.key`. The file is created with private permissions and must be retained with the database; losing it makes encrypted provider credentials unreadable.
@@ -18,7 +27,7 @@ The package service already supplies `NODERAG_SECRET_ROOT`. A standalone deploym
 
 ```json
 {
-  "baseUrl": "https://ollama.example.internal/",
+  "baseUrl": "https://ollama.com/api/chat",
   "model": "vision-model:latest",
   "bearerToken": "optional-secret",
   "maximumParallel": 2,

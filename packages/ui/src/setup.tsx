@@ -414,12 +414,14 @@ export const FirstRun = ({
   const vision = async (event: SubmitEvent) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget as HTMLFormElement);
+    const bearerToken = String(form.get('bearerToken') ?? '').trim();
     await run(() =>
       postJson<JsonRecord>(
         '/v1/admin/vision/test',
         {
           baseUrl: String(form.get('baseUrl')),
           model: String(form.get('model')),
+          ...(bearerToken === '' ? {} : { bearerToken }),
           maximumParallel: 2,
           timeoutMs: 120000,
           maximumAttempts: 3,
@@ -579,21 +581,42 @@ export const FirstRun = ({
               If Ollama is available, test it with a sample image. You can skip this and configure
               it later.
             </p>
+            <Notice kind="warning">
+              The default connects directly to Ollama Cloud. Sample and document images sent for
+              analysis leave your local network and may be subject to provider usage charges.
+            </Notice>
             <form onSubmit={vision}>
-              <Field label="Ollama address">
+              <Field
+                label="Ollama address"
+                hint="Use the full cloud chat endpoint, an /api base URL, or a self-hosted Ollama address."
+              >
                 <input
                   name="baseUrl"
                   type="url"
-                  defaultValue="http://host.docker.internal:11434"
+                  defaultValue="https://ollama.com/api/chat"
                   required
                 />
               </Field>
               <Field label="Vision model">
                 <input name="model" defaultValue="qwen2.5vl:7b" required />
               </Field>
+              <Field
+                label="Ollama API key"
+                hint="Required for Ollama Cloud; optional for a self-hosted server. It is encrypted after a successful connection test and is never displayed again."
+              >
+                <input
+                  name="bearerToken"
+                  type="password"
+                  autoComplete="off"
+                  placeholder="Enter your Ollama API key"
+                />
+              </Field>
               {result ? (
                 <Notice kind="success">
                   Connection succeeded in {String(result['elapsedMs'])} ms.
+                  {result['bearerTokenPersisted'] === true
+                    ? ' The API key was encrypted and saved.'
+                    : ''}
                 </Notice>
               ) : null}
               {error ? <Notice kind="danger">{error}</Notice> : null}

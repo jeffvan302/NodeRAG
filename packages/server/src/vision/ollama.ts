@@ -85,6 +85,14 @@ const ollamaEndpoints = (value: string): OllamaEndpoints => {
 const authorizationHeaders = (token: string | undefined): Readonly<Record<string, string>> =>
   token === undefined || token.length === 0 ? {} : { authorization: `Bearer ${token}` };
 
+const unwrapJsonContent = (value: string): string => {
+  const trimmed = value.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/iu);
+  if (fenced?.[1] !== undefined) return fenced[1].trim();
+  const missingOpeningFence = trimmed.match(/^json\s+([\s\S]*?)\s*```$/iu);
+  return missingOpeningFence?.[1]?.trim() ?? trimmed;
+};
+
 const providerHttpError = (status: number): VisionProviderError => {
   if (status === 404) return new VisionProviderError('vision-model-missing', 'permanent');
   if (status === 408 || status === 425 || status === 429 || status >= 500) {
@@ -168,7 +176,7 @@ export class OllamaVisionProvider implements VisionProvider {
   async analyse(input: VisionProviderRequest): Promise<ValidatedVisionResponse> {
     let response: Response;
     try {
-      const schemaPrompt = `${input.prompt}\n\nReturn only valid JSON matching this JSON Schema exactly:\n${JSON.stringify(input.schema)}`;
+      const schemaPrompt = `${input.prompt}\n\nReturn exactly one valid JSON object matching this JSON Schema. Do not add a Markdown fence, language label, commentary, or reasoning. The first character must be { and the last character must be }.\n${JSON.stringify(input.schema)}`;
       response = await this.request(this.chatUrl, {
         method: 'POST',
         headers: {
@@ -185,6 +193,7 @@ export class OllamaVisionProvider implements VisionProvider {
             },
           ],
           stream: false,
+          think: false,
           keep_alive: this.keepAlive,
           options: { temperature: 0, num_ctx: this.contextWindow },
           ...(this.isCloud ? {} : { format: input.schema }),
@@ -210,7 +219,7 @@ export class OllamaVisionProvider implements VisionProvider {
     }
     let content: unknown;
     try {
-      content = JSON.parse(chat.data.message.content);
+      content = JSON.parse(unwrapJsonContent(chat.data.message.content));
     } catch (error) {
       throw new VisionProviderError('vision-content-malformed', 'transient', { cause: error });
     }

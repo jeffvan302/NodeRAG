@@ -61,6 +61,23 @@ PNG, adds the NodeRag `N` favicon, and adds five per-user browser color schemes.
 quality gate, 92 unit tests, 51 PostgreSQL integration tests, and all 9 browser journeys pass.
 Authoritative CI evidence, a new exact artifact, and a fresh 86,400-second soak remain required.
 
+That follow-up was committed as `5be6209ad57163da9cd34bcaa5eb7f6440b2d2ad`. GitHub M14 run
+`33944715067` did not execute any step because GitHub reported an account payment/spending-limit
+block; it is infrastructure evidence, not a code-test result. Live Ollama Cloud activation with
+`minimax-m3:cloud` then found that the service can return a valid JSON object with a stray `json`
+prefix and closing Markdown fence. NodeRag correctly classified that non-JSON envelope as
+`vision-content-malformed`, but it prevented activation even though the image had been read
+correctly. No artifact or soak was started from this commit.
+
+The current correction strengthens the no-fence prompt, disables optional thinking, and accepts
+only a bare JSON object or narrowly defined JSON-fence envelopes before applying the unchanged
+strict response schema. The opt-in real-provider suite now uses the same built-in activation image
+as production. A credential-redacted live run against `minimax-m3:cloud` revision `9ce5291d9c0e`
+passed table activation and produced 696 searchable scanned-PDF characters. The complete local
+quality gate with 92 unit tests, all 51 PostgreSQL integration tests, and the existing 9 browser
+journeys pass. Restored GitHub Actions billing, authoritative CI, exact-artifact qualification, and
+a fresh soak remain required.
+
 - [ ] Candidate version is `1.0.0-rc.1`; SPK version is `1.0.0-1` with beta marker.
 - [ ] Node 22 remains supported; official source/date/EOL are recorded.
 - [ ] Lockfile, migrations/head, OpenAPI, routes, settings defaults, parser revisions, model,

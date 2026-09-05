@@ -139,18 +139,20 @@ describe('Ollama vision provider', () => {
       }
       const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       expect(body).not.toHaveProperty('format');
+      expect(body).toMatchObject({ think: false, stream: false });
+      const message = (body.messages as Array<{ content: string; images: string[] }>)[0];
+      expect(message?.content).toContain('The first character must be {');
+      expect(Buffer.from(message?.images[0] ?? '', 'base64').subarray(0, 4)).toEqual(
+        Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+      );
       expect(String((body.messages as Array<{ content: string }>)[0]?.content)).toContain(
         'JSON Schema',
       );
       return Response.json({
         message: {
           role: 'assistant',
-          content: JSON.stringify({
-            kind: 'table',
-            markdown: '| Cloud | Ready |',
-            alt: 'Cloud table',
-            confidence: 0.9,
-          }),
+          content:
+            'json\n{"kind":"table","markdown":"| Cloud | Ready |","alt":"Cloud table","confidence":0.9}\n```',
         },
       });
     });

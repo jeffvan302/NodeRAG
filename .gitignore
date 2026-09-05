@@ -11,6 +11,7 @@ backups/
 generated-vectors/
 runtime-data/
 uploads/
+keys/
 *.log
 test-results/
 playwright-report/

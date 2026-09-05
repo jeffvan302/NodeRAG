@@ -15,14 +15,20 @@ those same bytes to the mocked provider.
   document images outside the local network. Provider charges may apply.
 - The address field accepts a host root, an `/api` base, or the full `/api/chat` endpoint. NodeRag
   derives the sibling `/api/tags` discovery endpoint without duplicating path segments.
+- NodeRag uses Ollama's native REST image shape: the user message contains an `images` array whose
+  items are the raw PNG bytes encoded as base64, without a `data:image/...` prefix. Ollama's separate
+  OpenAI-compatible `/v1/chat/completions` endpoint instead uses `content` parts with an
+  `image_url` data URL; that is not the contract selected by an `/api/chat` address.
 - A self-hosted Ollama endpoint can be used without a token.
 - Ollama Cloud and authenticated reverse proxies can use a bearer token. A token submitted to the
   activation API is encrypted with the NodeRag secret root; the plaintext is never returned.
 - A runtime-managed token may instead be supplied with `NODERAG_OLLAMA_BEARER_TOKEN_FILE`. `NODERAG_OLLAMA_BEARER_TOKEN` is also accepted for controlled test environments.
 - Ollama Cloud currently does not enforce the native API's `format` schema. For the canonical
   cloud host, NodeRag puts the exact schema in the prompt, omits the unsupported `format` field,
-  and still rejects any response that fails strict local schema validation. The provider is usable
-  only if the live table-image activation succeeds.
+  disables optional thinking, and still rejects any response that fails strict local schema
+  validation. The parser accepts a single JSON object either bare or inside the narrow JSON-fence
+  forms emitted by Ollama Cloud; explanatory prose and invalid objects remain rejected. The
+  provider is usable only if the live table-image activation succeeds.
 - HTTPS is expected for non-loopback routes. Plain HTTP outside localhost produces `ollama-plaintext-non-loopback`.
 
 The package service already supplies `NODERAG_SECRET_ROOT`. A standalone deployment defaults it to `<data-root>/secrets/root.key`. The file is created with private permissions and must be retained with the database; losing it makes encrypted provider credentials unreadable.

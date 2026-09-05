@@ -5,6 +5,7 @@ import {
   activateOllamaVision,
   OllamaVisionProvider,
 } from '../packages/server/src/vision/ollama.js';
+import { visionActivationSample } from '../packages/server/src/vision/activation-sample.js';
 import { VisionProcessor } from '../packages/server/src/vision/service.js';
 
 const baseUrl = process.env['NODERAG_M07_OLLAMA_URL'];
@@ -23,7 +24,7 @@ const timeout = setTimeout(() => controller.abort(), 180_000);
 try {
   const activation = await activateOllamaVision(
     provider,
-    await readFile(resolve('fixtures/formats/images/table.png')),
+    visionActivationSample(),
     controller.signal,
   );
   const extracted = await extractDocument(

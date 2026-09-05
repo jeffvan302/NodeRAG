@@ -14,7 +14,7 @@ import {
   releaseMaintenance,
   waitForMutationDrain,
 } from '../src/recovery/maintenance.js';
-import { loadBackupClassification } from '../src/recovery/policy.js';
+import { assertClassifiedSchema, loadBackupClassification } from '../src/recovery/policy.js';
 import { processOneScheduledBackup } from '../src/recovery/schedule.js';
 import {
   RecoveryRuntime,
@@ -171,6 +171,52 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
     await container.stop();
     await targetContainer.stop();
     await rm(root, { recursive: true, force: true });
+  });
+
+  it('classifies only rebuild relations owned by the recorded build state', async () => {
+    await pool.query(`INSERT INTO noderag.silo (id,slug,display_name)
+                      VALUES (90,'classification-proof','Classification proof')`);
+    await pool.query(
+      `INSERT INTO noderag.build
+       (id,state,target_chars,overlap_chars,max_tokens,snap_window,heading_prefix,
+          rules_version,model_manifest_id,query_prefix,reason,profile_digest,model_digest,
+          dimensions,activation_kind)
+       SELECT 90,'superseded',2000,300,1024,0.150,true,1,id,query_prefix,
+              'recovery classification proof',repeat('a',64),manifest_digest,dimensions,
+              'same_model'
+       FROM noderag.model_manifest WHERE active`,
+    );
+    await pool.query(
+      `CREATE TABLE noderag.chunk_rollback_b90_s90 (LIKE noderag.chunk INCLUDING ALL)`,
+    );
+    await pool.query(
+      `INSERT INTO noderag.silo_build_state
+         (silo_id,build_id,state,rollback_table)
+       VALUES (90,90,'rollback','chunk_rollback_b90_s90')`,
+    );
+    const policy = await loadBackupClassification();
+    await expect(assertClassifiedSchema(pool, policy)).resolves.toBeUndefined();
+
+    await pool.query(
+      `CREATE TABLE noderag.chunk_rollback_b91_s91 (LIKE noderag.chunk INCLUDING ALL)`,
+    );
+    await expect(assertClassifiedSchema(pool, policy)).rejects.toThrow(
+      'unclassified-database-tables:chunk_rollback_b91_s91',
+    );
+    await pool.query(
+      `UPDATE noderag.silo_build_state
+       SET rollback_table='chunk_rollback_b91_s91'
+       WHERE silo_id=90 AND build_id=90`,
+    );
+    await expect(assertClassifiedSchema(pool, policy)).rejects.toThrow(
+      'unclassified-database-tables:chunk_rollback_b90_s90,chunk_rollback_b91_s91',
+    );
+
+    await pool.query('DROP TABLE noderag.chunk_rollback_b91_s91');
+    await pool.query('DELETE FROM noderag.silo_build_state WHERE silo_id=90 AND build_id=90');
+    await pool.query('DROP TABLE noderag.chunk_rollback_b90_s90');
+    await pool.query('DELETE FROM noderag.build WHERE id=90');
+    await pool.query('DELETE FROM noderag.silo WHERE id=90');
   });
 
   it('backs up classified database/files and restores only after independent verification', async () => {

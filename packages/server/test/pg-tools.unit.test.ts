@@ -30,6 +30,12 @@ describe('PostgreSQL recovery tools', () => {
       expect(invocation.environment['PGSSLMODE']).toBe('require');
     }
     expect(pgDumpInvocation(connection).arguments).toContain('--no-owner');
+    expect(pgDumpInvocation(connection).arguments).toEqual(
+      expect.arrayContaining([
+        '--exclude-table=noderag.chunk_stage_b*_s*',
+        '--exclude-table=noderag.chunk_rollback_b*_s*',
+      ]),
+    );
     expect(pgRestoreInvocation(connection).arguments).toContain('--single-transaction');
   });
 });

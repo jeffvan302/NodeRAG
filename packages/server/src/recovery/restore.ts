@@ -276,6 +276,31 @@ export const resetInstallationLocalState = async (database: Pick<Pool, 'query'>)
   );
   await database.query('UPDATE noderag.source SET schedule_enabled = false, next_crawl_at = NULL');
   await database.query('UPDATE noderag.backup_schedule SET enabled = false, next_run_at = NULL');
+  await database.query(
+    `UPDATE noderag.silo_build_state
+     SET state=CASE
+           WHEN state='rollback' THEN 'cancelled'
+           WHEN state IN ('failed','cancelled') THEN state
+           ELSE 'failed'
+         END,
+         staging_table=NULL,rollback_table=NULL,last_error='restore-review-required',updated_at=now()
+     WHERE state<>'active'`,
+  );
+  await database.query(
+    `UPDATE noderag.build SET state='failed'
+     WHERE state='building'
+       AND NOT EXISTS(SELECT 1 FROM noderag.silo_build_state state
+                      WHERE state.build_id=build.id AND state.state='active')`,
+  );
+  await database.query(
+    `UPDATE noderag.build_activation_history
+     SET state='cleaned',cleaned_at=COALESCE(cleaned_at,now())
+     WHERE state IN ('rollback_available','cleanup_authorized')`,
+  );
+  await database.query(
+    `UPDATE noderag.build_cleanup SET state='failed'
+     WHERE state IN ('authorized','running','paused')`,
+  );
 };
 
 const failRestore = async (pool: Pool, operationId: number, error: unknown): Promise<void> => {

@@ -8,7 +8,7 @@ work_root="${repository_root}/spk/work/m02"
 outer_root="${work_root}/outer"
 payload_root="${work_root}/payload"
 artifact_root="${repository_root}/spk/artifacts"
-artifact="${artifact_root}/noderag-0.2.0-1-x86_64.spk"
+artifact="${artifact_root}/noderag-1.0.0-rc.1-x86_64-thin.spk"
 
 case "${work_root}" in
   "${repository_root}/spk/work/"*) ;;
@@ -52,7 +52,9 @@ cp -- "${repository_root}/platform/openapi.m09.json" "${payload_root}/platform/o
 cp -- "${repository_root}/platform/openapi.m10.json" "${payload_root}/platform/openapi.m10.json"
 cp -- "${repository_root}/platform/openapi.m11.json" "${payload_root}/platform/openapi.m11.json"
 cp -- "${repository_root}/platform/openapi.m12.json" "${payload_root}/platform/openapi.m12.json"
-cp -- "${repository_root}/platform/openapi.m13.json" "${payload_root}/platform/openapi.m13.json"
+cp -- "${repository_root}/platform/openapi.m14.json" "${payload_root}/platform/openapi.m14.json"
+cp -- "${repository_root}/platform/release-candidate.v1.json" "${payload_root}/platform/"
+cp -- "${repository_root}/platform/release-freeze.v1.json" "${payload_root}/platform/"
 cp -- "${repository_root}/platform/backup-data-classification.v1.json" "${payload_root}/platform/backup-data-classification.v1.json"
 cp -- "${repository_root}/platform/backup-manifest.v1.schema.json" "${payload_root}/platform/backup-manifest.v1.schema.json"
 cp -- "${repository_root}/platform/backup-sidecar.v1.schema.json" "${payload_root}/platform/backup-sidecar.v1.schema.json"

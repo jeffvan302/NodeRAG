@@ -1,6 +1,6 @@
 {
   "name": "noderag",
-  "version": "0.2.0",
+  "version": "1.0.0-rc.1",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.25.0",
@@ -18,6 +18,8 @@
     "evaluation:m12:real": "bash docker-testbed/scripts/verify-m12.sh --real",
     "recovery:m13": "bash docker-testbed/scripts/verify-m13.sh --docker",
     "recovery:m13:matrix": "node scripts/verify-m13-matrix.mjs",
+    "release:freeze": "node scripts/generate-release-freeze.mjs",
+    "release:freeze:verify": "node scripts/generate-release-freeze.mjs --check",
     "format": "prettier --write .dependency-cruiser.cjs adapters packages platform scripts README.md SECURITY.md LICENSE-POLICY.md THIRD-PARTY.md package.json pnpm-workspace.yaml tsconfig.base.json eslint.config.mjs vitest.config.ts",
     "format:check": "prettier --check .dependency-cruiser.cjs adapters packages platform scripts README.md SECURITY.md LICENSE-POLICY.md THIRD-PARTY.md package.json pnpm-workspace.yaml tsconfig.base.json eslint.config.mjs vitest.config.ts",
     "fixtures:m06": "node scripts/generate-m06-fixtures.mjs",

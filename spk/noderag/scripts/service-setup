@@ -176,6 +176,7 @@ noderag_status() {
 noderag_start() {
   noderag_status && return 0
   noderag_stop
+  CDPATH= cd -- "${SYNOPKG_PKGDEST}"
   mkdir -p "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log"
   chmod 700 "${SYNOPKG_PKGVAR}" "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log"
   umask 077
@@ -205,13 +206,14 @@ noderag_start() {
   NODERAG_MIGRATION_MANIFEST="${SYNOPKG_PKGDEST}/platform/migration-checksums.v1.json" \
   NODERAG_MIGRATIONS_DIRECTORY="${SYNOPKG_PKGDEST}/migrations" \
   NODERAG_ROUTE_AUTHORIZATION="${SYNOPKG_PKGDEST}/platform/route-authorization.v1.json" \
-  NODERAG_OPENAPI="${SYNOPKG_PKGDEST}/platform/openapi.m11.json" \
+  NODERAG_OPENAPI="${SYNOPKG_PKGDEST}/platform/openapi.m14.json" \
   NODERAG_SECRET_ROOT="${SYNOPKG_PKGVAR}/secrets/root.key" \
   NODERAG_SETUP_TOKEN_FILE="${SYNOPKG_PKGVAR}/secrets/setup.token" \
   NODERAG_DATA_ROOT="${SYNOPKG_PKGVAR}/data" \
   NODERAG_LOG_ROOT="${SYNOPKG_PKGVAR}/log" \
   NODERAG_MODEL_ROOT="${NODERAG_MODEL_ROOT}" \
   NODERAG_MODEL_IMPORT_ROOTS="${NODERAG_MODEL_IMPORT_ROOTS:-/volume1/NodeRag}" \
+  NODERAG_PG_DUMP="${NODERAG_PG_ROOT}/bin/pg_dump" \
   NODERAG_STORAGE_POLICY="${NODERAG_STORAGE_POLICY:-dsm}" \
   NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
     "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/server.cjs" >>"${NODERAG_LOG_FILE}" 2>&1 &
@@ -223,6 +225,7 @@ noderag_start() {
   NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
   NODERAG_MIGRATION_MANIFEST="${SYNOPKG_PKGDEST}/platform/migration-checksums.v1.json" \
   NODERAG_MIGRATIONS_DIRECTORY="${SYNOPKG_PKGDEST}/migrations" \
+  NODERAG_PG_DUMP="${NODERAG_PG_ROOT}/bin/pg_dump" \
     noderag_run_worker "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/worker.cjs" \
     >>"${NODERAG_WORKER_LOG_FILE}" 2>&1 &
   printf '%s\n' "$!" >"${NODERAG_WORKER_PID_FILE}"

@@ -52,8 +52,9 @@ export const assertClassifiedSchema = async (
   pool: Pool,
   policy: BackupClassificationPolicy,
 ): Promise<void> => {
-  const rows = await pool.query<{ table_name: string; column_name: string }>(
-    `SELECT column_record.table_name,column_record.column_name
+  const [rows, rebuildRelations] = await Promise.all([
+    pool.query<{ table_name: string; column_name: string }>(
+      `SELECT column_record.table_name,column_record.column_name
      FROM information_schema.columns column_record
      JOIN pg_namespace namespace_record
        ON namespace_record.nspname=column_record.table_schema
@@ -64,7 +65,24 @@ export const assertClassifiedSchema = async (
        AND relation.relkind IN ('r','p')
        AND NOT relation.relispartition
      ORDER BY column_record.table_name,column_record.ordinal_position`,
-  );
+    ),
+    pool.query<{
+      table_name: string;
+      relation_kind: 'stage' | 'rollback';
+      build_id: string;
+      silo_id: string;
+    }>(
+      `SELECT staging_table AS table_name,'stage' AS relation_kind,
+              build_id::text,silo_id::text
+       FROM noderag.silo_build_state
+       WHERE staging_table IS NOT NULL
+       UNION
+       SELECT rollback_table AS table_name,'rollback' AS relation_kind,
+              build_id::text,silo_id::text
+       FROM noderag.silo_build_state
+       WHERE rollback_table IS NOT NULL`,
+    ),
+  ]);
   const database = new Map<string, Set<string>>();
   for (const row of rows.rows) {
     const columns = database.get(row.table_name) ?? new Set<string>();
@@ -72,7 +90,17 @@ export const assertClassifiedSchema = async (
     database.set(row.table_name, columns);
   }
   const declared = new Map(policy.tables.map((entry) => [entry.table, entry] as const));
-  const unknown = [...database.keys()].filter((table) => !declared.has(table)).sort();
+  const controlledRebuildRelations = new Set(
+    rebuildRelations.rows
+      .filter(
+        ({ table_name: table, relation_kind: kind, build_id: buildId, silo_id: siloId }) =>
+          table === `chunk_${kind}_b${buildId}_s${siloId}`,
+      )
+      .map(({ table_name: table }) => table),
+  );
+  const unknown = [...database.keys()]
+    .filter((table) => !declared.has(table) && !controlledRebuildRelations.has(table))
+    .sort();
   const absent = [...declared.keys()].filter((table) => !database.has(table)).sort();
   if (unknown.length > 0) throw new Error(`unclassified-database-tables:${unknown.join(',')}`);
   if (absent.length > 0) throw new Error(`classification-tables-missing:${absent.join(',')}`);

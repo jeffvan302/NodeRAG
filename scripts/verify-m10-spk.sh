@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd -- "${script_dir}/.." && pwd)"
-artifact="${1:-${repository_root}/spk/artifacts/noderag-0.2.0-1-x86_64-production.spk}"
+artifact="${1:-${repository_root}/spk/artifacts/noderag-1.0.0-rc.1-x86_64.spk}"
 verify_root="${repository_root}/spk/work/m10-verify"
 [[ -f "${artifact}" ]] || { echo "M10 SPK candidate not found." >&2; exit 66; }
 case "${verify_root}" in "${repository_root}/spk/work/"*) ;; *) exit 65;; esac
@@ -26,6 +26,7 @@ for member in bin/server.cjs bin/worker.cjs bin/embedder.cjs ui/index.html \
   migrations/000008_package_lifecycle.sql migrations/000009_zero_downtime_rebuilds.sql \
   migrations/000010_evaluation_baselines.sql migrations/000011_recovery_hardening.sql \
   platform/openapi.m10.json platform/openapi.m11.json platform/openapi.m12.json platform/openapi.m13.json \
+  platform/openapi.m14.json platform/release-candidate.v1.json platform/release-freeze.v1.json \
   platform/backup-data-classification.v1.json platform/backup-manifest.v1.schema.json platform/backup-sidecar.v1.schema.json \
   platform/migration-checksums.v1.json platform/route-authorization.v1.json platform/sbom.spdx.json \
   runtime/postgresql-runtime.tar.gz runtime/postgresql-runtime.tar.gz.sha256 \
@@ -38,12 +39,15 @@ done
 grep -q '^arch="x86_64"$' "${verify_root}/outer/INFO"
 grep -q '^os_min_ver="7\.2-' "${verify_root}/outer/INFO"
 grep -q '^install_dep_packages="Node.js_v22"$' "${verify_root}/outer/INFO"
+grep -q '^version="1.0.0-1"$' "${verify_root}/outer/INFO"
+grep -q '^beta="yes"$' "${verify_root}/outer/INFO"
 grep -q '"run-as": "package"' "${verify_root}/outer/conf/privilege"
 grep -q '"username": "sc-noderag"' "${verify_root}/outer/conf/privilege"
 grep -q '127.0.0.1:8787' "${verify_root}/outer/conf/resource"
 grep -q 'wizard_delete_data' "${verify_root}/outer/WIZARD_UIFILES/uninstall_uifile"
 grep -q "listen_addresses = ''" "${verify_root}/outer/scripts/service-setup"
 grep -q 'unix_socket_permissions = 0700' "${verify_root}/outer/scripts/service-setup"
+grep -q 'NODERAG_PG_DUMP' "${verify_root}/outer/scripts/service-setup"
 ! grep -R -E '(npm install|pnpm install|apt-get|apk add|yarn add)' "${verify_root}/outer/scripts"
 ! find "${verify_root}/payload" -type d \( -name test -o -name tests -o -name src \) -print -quit | grep -q .
 find "${verify_root}/outer/scripts" -type f -print0 | xargs -0 -n1 sh -n

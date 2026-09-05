@@ -766,7 +766,10 @@ describe.sequential('M03 identity and authorization foundation', () => {
       headers: { cookie },
     });
     expect(openApi.statusCode).toBe(200);
-    expect(openApi.json()).toMatchObject({ openapi: '3.1.1', info: { version: '0.2.0' } });
+    expect(openApi.json()).toMatchObject({
+      openapi: '3.1.1',
+      info: { version: '1.0.0-rc.1' },
+    });
     const rejectedOrigin = await app.inject({
       method: 'PATCH',
       url: '/v1/auth/password',

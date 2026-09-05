@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "1.0.0-rc.1",
+  "spkPackageVersion": "1.0.0-1",
+  "artifactName": "noderag-1.0.0-rc.1-x86_64.spk",
+  "migrationHead": "000011_recovery_hardening",
+  "inputCount": 42,
+  "aggregateSha256": "9d73d35f5cdfc6c2bf11323dd8750cb103e0a4da5b040c040dab3303d87c00ad",
+  "inputs": [
+    {
+      "path": "LICENSE-POLICY.md",
+      "bytes": 736,
+      "sha256": "bd04039df7e69f71a23b7419ca3719a77c43b7dbf8e87823c48ab9f4a7a37051"
+    },
+    {
+      "path": "THIRD-PARTY.md",
+      "bytes": 23489,
+      "sha256": "c4275157e43574b0a57ed23b2c767f3b9595cb6f28b35f1ff8d8c71a82adf75b"
+    },
+    {
+      "path": "docker-testbed/m01/model-manifest.json",
+      "bytes": 3389,
+      "sha256": "24a79ef804fbd256f4e7258be67025f2cb6138479b90199456885db85298c0e2"
+    },
+    {
+      "path": "docs/Implementation/release/1.0.0-rc.1-release-notes.md",
+      "bytes": 3230,
+      "sha256": "44d91ed3fcd07344d1b9d11751d312af53f63c9657ece28a7c3d768c8826809c"
+    },
+    {
+      "path": "package.json",
+      "bytes": 4236,
+      "sha256": "f7c63312581345cf40bc04cefa725222108d1953a12b5e578ee23a6ff0bbe089"
+    },
+    {
+      "path": "packages/server/migrations/000001_foundation.sql",
+      "bytes": 581,
+      "sha256": "e9a9aa52c0c2462daad199c44414d27d93fcc515d60abd32b1eced9f157caa39"
+    },
+    {
+      "path": "packages/server/migrations/000002_identity_foundation.sql",
+      "bytes": 20998,
+      "sha256": "ce6c98fea8603e0823544255408f4d5bd4a50ee360430f55e2ffc92327753cc3"
+    },
+    {
+      "path": "packages/server/migrations/000003_markdown_slice.sql",
+      "bytes": 1149,
+      "sha256": "abcf51a9108f16d6b1547abdfd0c7f45dfbc425c46b9d26e966a6dc550051dd0"
+    },
+    {
+      "path": "packages/server/migrations/000004_durable_ingestion.sql",
+      "bytes": 5344,
+      "sha256": "17bb57292f7291f009e18ed32e6fd49906d82b684f5d3ef12efa3e963c2eb30c"
+    },
+    {
+      "path": "packages/server/migrations/000005_vision_recovery.sql",
+      "bytes": 3699,
+      "sha256": "eee5929738120f38c319c35205c3ac12547b3300dbe331fab07f0d8020e0ba70"
+    },
+    {
+      "path": "packages/server/migrations/000006_retrieval_interfaces.sql",
+      "bytes": 3508,
+      "sha256": "2723b13e5dedf774ae3da96b1ea2386edf2e610e946b010c55bb7a20229d5d2e"
+    },
+    {
+      "path": "packages/server/migrations/000007_operator_ui.sql",
+      "bytes": 1166,
+      "sha256": "2f221d17bd8ef7c2e0abcead5752e30e3ff57d24cc7fadcf9bee8bce39cc6bd8"
+    },
+    {
+      "path": "packages/server/migrations/000008_package_lifecycle.sql",
+      "bytes": 1834,
+      "sha256": "d10bc999506272fbf8ca8342964db5036a1b44964f29a755d9383c5206f3df81"
+    },
+    {
+      "path": "packages/server/migrations/000009_zero_downtime_rebuilds.sql",
+      "bytes": 10937,
+      "sha256": "03bd94112fd134580d3115a2464983c775ea0e38d6af227d65ead13ba59de767"
+    },
+    {
+      "path": "packages/server/migrations/000010_evaluation_baselines.sql",
+      "bytes": 4871,
+      "sha256": "d424b0b0c7fb91a1a40b425ebe57a53cb9b7b77a4756c3a95602b2a9630a93b0"
+    },
+    {
+      "path": "packages/server/migrations/000011_recovery_hardening.sql",
+      "bytes": 7288,
+      "sha256": "989221319bbd3a50af4894510f54f8be3b4f5abe43ea7580dbe2a1e3aced2f76"
+    },
+    {
+      "path": "packages/server/src/extract/assembly.ts",
+      "bytes": 1469,
+      "sha256": "875b7203d9928da40576a9176015b98108e3f8113291cbacb11e20b1686f65d4"
+    },
+    {
+      "path": "packages/server/src/extract/contract.ts",
+      "bytes": 4307,
+      "sha256": "fc0190bd44611916c41ff667e0814103179f9dd648ae89c6b9ca585c13ecc99e"
+    },
+    {
+      "path": "packages/server/src/extract/docx.ts",
+      "bytes": 14201,
+      "sha256": "af0229c5d1bf3fb843e47283fb8b6b2f80fd3b9710a0a8aa4372d9e69a6c1cfa"
+    },
+    {
+      "path": "packages/server/src/extract/index.ts",
+      "bytes": 1024,
+      "sha256": "fb6b1e8b4a8905c73c9735926739aed7cf0672d9f2e2ef94d24f3c6ef45b4dba"
+    },
+    {
+      "path": "packages/server/src/extract/office-archive.ts",
+      "bytes": 2239,
+      "sha256": "41803a1c2624e64c70a60fab7abc7fa677e1d2306a05b11bc151fed9a102a193"
+    },
+    {
+      "path": "packages/server/src/extract/pdf.ts",
+      "bytes": 12890,
+      "sha256": "4a2356ee5e325d26be563a963df5aa717225d86ee5d82f3b41d8287ecaab4562"
+    },
+    {
+      "path": "packages/server/src/extract/text.ts",
+      "bytes": 5133,
+      "sha256": "dcb957a681f6ef5ddefd7f857ca4462f44ba541732fefde2472153d8637cfc07"
+    },
+    {
+      "path": "packages/server/src/extract/xlsx.ts",
+      "bytes": 19773,
+      "sha256": "b40359e10de02824f721aff7d58865ed97ab78d825ced82afedfd9370260a458"
+    },
+    {
+      "path": "packages/server/src/store/jobs.ts",
+      "bytes": 17207,
+      "sha256": "901dd8b744840344f23bc1c31b983f1668b2541dc96fa0fa9b5a7e0479b6ccdd"
+    },
+    {
+      "path": "platform/backup-data-classification.v1.json",
+      "bytes": 8529,
+      "sha256": "5e80a584c59b5c183a2f9ea4109dcad3f396a0ad4c6c00faa256d8b93b2f1f45"
+    },
+    {
+      "path": "platform/backup-manifest.v1.schema.json",
+      "bytes": 1406,
+      "sha256": "173d95285f3bcf34f6ff8ceb11d9d86d767a987eb0299cd908c123b6a591b17c"
+    },
+    {
+      "path": "platform/backup-sidecar.v1.schema.json",
+      "bytes": 1959,
+      "sha256": "3de6cbdd018ca9ab3265f3a0c4adf56a3af62302d407d94e9aeb9da083ab460d"
+    },
+    {
+      "path": "platform/m13-fault-security-matrix.json",
+      "bytes": 5900,
+      "sha256": "9c2bbc4af0f6ece68bddc9438193c2c989f930d66bd202f2a4ad02ad21f7ce72"
+    },
+    {
+      "path": "platform/migration-checksums.v1.json",
+      "bytes": 2709,
+      "sha256": "a9ef31dc4b9f9b8f988c70332dc728d23eaa513db1e138da2bd6a77722b85738"
+    },
+    {
+      "path": "platform/openapi.m14.json",
+      "bytes": 168349,
+      "sha256": "729b918a4a79d5f8db616b7bbec14a53389c93372180f70c24a5990321c7016d"
+    },
+    {
+      "path": "platform/parser-revisions.v1.json",
+      "bytes": 594,
+      "sha256": "061cb531058afb94428f8a2b3cdd6defa07720a68ad71b0da11736217d7e5504"
+    },
+    {
+      "path": "platform/route-authorization.v1.json",
+      "bytes": 22044,
+      "sha256": "980781d79cc4de13ff9a801f8410585b468991b15ba48427ee3345d790918446"
+    },
+    {
+      "path": "platform/sbom.spdx.json",
+      "bytes": 116830,
+      "sha256": "31f3286ece2b80bebec3495674154088aa3b0c2002d9b32f72aa94e3beea2914"
+    },
+    {
+      "path": "platform/settings-defaults.v1.json",
+      "bytes": 596,
+      "sha256": "63977cdf7baa86c462cef04bdcbc7422c641fee8b6d325d43ae68c5c891eab84"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "bytes": 177812,
+      "sha256": "650d397622523a38cc29d0c2b8ebffbb04b5b65f351e76b26cbac6114fa42ea7"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "bytes": 273,
+      "sha256": "46a37e3b404d5b92898d19971a9b5e09cc671801fe65ad0e24e0ec26ea50d827"
+    },
+    {
+      "path": "scripts/build-m10-spk.sh",
+      "bytes": 3842,
+      "sha256": "47c1b0561035c5d90fed37445467a97d55922e8ea37300ab3aee0669a27295bc"
+    },
+    {
+      "path": "scripts/verify-m10-spk.sh",
+      "bytes": 4179,
+      "sha256": "5b960074f7225ecf142dd312fbc5a964a1a03485f10b6139bb33f5c3951a52d0"
+    },
+    {
+      "path": "spk/noderag/INFO",
+      "bytes": 461,
+      "sha256": "0cefcdb2f961af64cf67efab9ac6dafe2a3ac540617c4bedcb40ab1281a67eb0"
+    },
+    {
+      "path": "spk/noderag/Makefile",
+      "bytes": 539,
+      "sha256": "d61f03179f638971d4f61a670596afa24f30f63fcd6104de95283e738c14e5d1"
+    },
+    {
+      "path": "spk/noderag/scripts/service-setup",
+      "bytes": 10728,
+      "sha256": "0f239abc9831e3fb90100a333c3839ecc22d4e70651a97485e72da6dda5ad1a3"
+    }
+  ]
+}

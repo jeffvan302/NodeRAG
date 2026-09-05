@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "jobParserRevision": 2,
+  "supportedFormats": ["txt", "md", "pdf", "docx", "xlsx"],
+  "pageBasis": ["exact", "sheet", "rendered", "explicit", "none"],
+  "sources": [
+    "packages/server/src/extract/assembly.ts",
+    "packages/server/src/extract/contract.ts",
+    "packages/server/src/extract/docx.ts",
+    "packages/server/src/extract/index.ts",
+    "packages/server/src/extract/office-archive.ts",
+    "packages/server/src/extract/pdf.ts",
+    "packages/server/src/extract/text.ts",
+    "packages/server/src/extract/xlsx.ts",
+    "packages/server/src/store/jobs.ts"
+  ]
+}

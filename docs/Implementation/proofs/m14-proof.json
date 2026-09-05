@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "milestone": "M14",
+  "candidate": "1.0.0-rc.1",
+  "recordedAt": "2026-09-05T00:10:05Z",
+  "implementationBaseCommit": "3d71e4476e190a6545ce0f7826ddced17f73e8f2",
+  "candidateCommit": null,
+  "proofClosureCommit": null,
+  "tag": null,
+  "release": null,
+  "contracts": {
+    "releaseMetadata": "platform/release-candidate.v1.json",
+    "releaseFreeze": "platform/release-freeze.v1.json",
+    "migrationHead": "000011_recovery_hardening",
+    "openApi": "platform/openapi.m14.json",
+    "settingsDefaults": "platform/settings-defaults.v1.json",
+    "parserRevisions": "platform/parser-revisions.v1.json",
+    "modelManifest": "docker-testbed/m01/model-manifest.json",
+    "sbom": "platform/sbom.spdx.json"
+  },
+  "artifact": {
+    "name": "noderag-1.0.0-rc.1-x86_64.spk",
+    "sha256": "9a77dc37740d8bdb7a1c9886b755a01669b45315fcc82c838a06b1d91030ceeb",
+    "repeatBuildDeterministic": true,
+    "taggedCandidateHealthVersion": null
+  },
+  "tests": {
+    "localQuality": {
+      "status": "passed",
+      "unitFiles": 28,
+      "unitTests": 89,
+      "dependencyModules": 119,
+      "dependencyEdges": 195,
+      "sbomRuntimePackages": 150
+    },
+    "postgresIntegration": { "status": "passed", "files": 10, "tests": 51 },
+    "browserE2e": { "status": "passed", "tests": 6 },
+    "evaluation": {
+      "status": "passed",
+      "frozenCases": 60,
+      "unitTests": 10,
+      "integrationTests": 2
+    },
+    "recoveryAndMajorUpgrade": {
+      "status": "passed",
+      "recoveryUnitTests": 16,
+      "recoveryIntegrationTests": 4,
+      "postgresMajorPath": "16.15-to-17.11",
+      "retainedSourceRollback": true
+    },
+    "packageLifecycle": { "status": "passed", "nonRootExactSpk": true },
+    "harnessValidation": {
+      "status": "passed",
+      "artifactSha256": "9a77dc37740d8bdb7a1c9886b755a01669b45315fcc82c838a06b1d91030ceeb",
+      "startedAt": "2026-09-05T00:08:18.067Z",
+      "completedAt": "2026-09-05T00:10:05.686Z",
+      "actualDurationSeconds": 90,
+      "validationMode": true,
+      "certificationAccepted": false,
+      "samples": 16,
+      "failures": []
+    }
+  },
+  "soak": {
+    "minimumSeconds": 86400,
+    "evidence": null,
+    "passed": false
+  },
+  "workflowRuns": [],
+  "liveEvidence": {},
+  "failures": [],
+  "gate": "in-progress",
+  "certification": "not-complete",
+  "releaseAuthorized": false,
+  "dsmCertificationRequired": true
+}

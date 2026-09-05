@@ -42,7 +42,7 @@ const main = async (): Promise<void> => {
       pool,
       database: config.database,
       dataRoot: config.dataRoot,
-      nodeRagVersion: '0.2.0',
+      nodeRagVersion: '1.0.0-rc.1',
       secretVault,
       ...(process.env['NODERAG_PG_DUMP'] === undefined
         ? {}
@@ -77,6 +77,7 @@ const main = async (): Promise<void> => {
     );
   }
   const app = buildApp({
+    version: '1.0.0-rc.1',
     readiness:
       config.database === null
         ? unavailableReadiness

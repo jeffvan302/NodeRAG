@@ -16,6 +16,21 @@ PostgreSQL 16 source is digest-pinned and disposable; the rehearsal retains the
 source until the restored database has passed verification, then proves the
 source remains usable after the target is removed as the rollback case.
 
+## Milestone 14 release-candidate soak
+
+After building the production candidate, validate the soak harness with its
+fixed, non-certifying 90-second profile:
+
+```bash
+bash docker-testbed/scripts/m14-soak.sh validate
+```
+
+Only `bash docker-testbed/scripts/m14-soak.sh start` runs the default 86,400-second
+certification profile. Use it only for an immutable, committed candidate that
+has passed CI. Inspect progress with the `status` or `logs` actions. Testbed
+evidence is written under ignored `docker-testbed/artifacts/m14/` and must not
+be represented as live DSM certification.
+
 This directory is the repository-owned development and test environment for
 NodeRag Milestones 0 through 14. It is not the production deployment model:
 the released product remains one Synology DSM package, and Docker is never

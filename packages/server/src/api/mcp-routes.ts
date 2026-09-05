@@ -177,7 +177,7 @@ export const registerMcpRoutes = (
         response(message.id, {
           protocolVersion: '2025-06-18',
           capabilities: { tools: { listChanged: false } },
-          serverInfo: { name: 'NodeRag', version: '0.2.0' },
+          serverInfo: { name: 'NodeRag', version: '1.0.0-rc.1' },
           instructions:
             'NodeRag scopes every tool to the authenticated principal and the current gateway. Silo arguments only narrow access.',
         }),

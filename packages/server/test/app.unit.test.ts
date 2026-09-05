@@ -17,7 +17,11 @@ describe('Fastify service skeleton', () => {
     });
     const response = await app.inject({ method: 'GET', url: '/health' });
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ service: 'noderag', status: 'ok', version: '0.2.0' });
+    expect(response.json()).toEqual({
+      service: 'noderag',
+      status: 'ok',
+      version: '1.0.0-rc.1',
+    });
     await app.close();
   });
 

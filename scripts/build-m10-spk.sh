@@ -9,7 +9,7 @@ work_root="${repository_root}/spk/work/m10"
 outer_root="${work_root}/outer"
 payload_root="${work_root}/payload"
 artifact_root="${repository_root}/spk/artifacts"
-artifact="${artifact_root}/noderag-0.2.0-1-x86_64-production.spk"
+artifact="${artifact_root}/noderag-1.0.0-rc.1-x86_64.spk"
 
 [[ -f "${runtime_root}/postgresql-runtime.tar.gz" ]] || {
   echo "M10 PostgreSQL runtime is missing; run pnpm package:runtime first." >&2
@@ -48,6 +48,8 @@ cp -- "${repository_root}/platform/route-authorization.v1.json" "${payload_root}
 cp -- "${repository_root}/platform/openapi.m"*.json "${payload_root}/platform/"
 cp -- "${repository_root}/platform/backup-"*.json "${payload_root}/platform/"
 cp -- "${repository_root}/platform/sbom.spdx.json" "${payload_root}/platform/"
+cp -- "${repository_root}/platform/release-candidate.v1.json" "${payload_root}/platform/"
+cp -- "${repository_root}/platform/release-freeze.v1.json" "${payload_root}/platform/"
 cp -- "${runtime_root}/postgresql-runtime.tar.gz" "${payload_root}/runtime/"
 cp -- "${runtime_root}/postgresql-runtime.tar.gz.sha256" "${payload_root}/runtime/"
 cp -- "${runtime_root}/postgresql-runtime.txt" "${payload_root}/runtime/"

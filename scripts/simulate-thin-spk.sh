@@ -4,7 +4,7 @@ set -euo pipefail
 m02_script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd -- "${m02_script_dir}/.." && pwd)"
 source "${repository_root}/docker-testbed/scripts/common.sh"
-artifact="${1:-${repository_root}/spk/artifacts/noderag-0.2.0-1-x86_64.spk}"
+artifact="${1:-${repository_root}/spk/artifacts/noderag-1.0.0-rc.1-x86_64-thin.spk}"
 [[ -f "${artifact}" ]] || { echo "Thin SPK not found: ${artifact}" >&2; exit 66; }
 
 artifact_directory="$(cd -- "$(dirname -- "${artifact}")" && pwd)"

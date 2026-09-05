@@ -111,7 +111,7 @@ export const buildApp = (options: BuildAppOptions): FastifyInstance => {
     const response = healthResponseSchema.parse({
       service: 'noderag',
       status: 'ok',
-      version: options.version ?? '0.2.0',
+      version: options.version ?? '1.0.0-rc.1',
     });
     return reply.code(200).send(response);
   });

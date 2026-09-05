@@ -70,6 +70,8 @@ export const pgDumpInvocation = (
     '--no-owner',
     '--no-privileges',
     '--schema=noderag',
+    '--exclude-table=noderag.chunk_stage_b*_s*',
+    '--exclude-table=noderag.chunk_rollback_b*_s*',
     '--file=-',
   ],
   environment: toolEnvironment(connection),
@@ -103,6 +105,7 @@ const safeParentEnvironment = (): Readonly<Record<string, string>> => {
     'TMP',
     'LANG',
     'LC_ALL',
+    'LD_LIBRARY_PATH',
   ];
   return Object.fromEntries(
     allowed.flatMap((name) => {

@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd -- "${script_dir}/.." && pwd)"
-artifact="${repository_root}/spk/artifacts/noderag-0.2.0-1-x86_64.spk"
+artifact="${repository_root}/spk/artifacts/noderag-1.0.0-rc.1-x86_64-thin.spk"
 verify_root="${repository_root}/spk/work/m02-verify"
 
 [[ -f "${artifact}" ]] || {
@@ -81,8 +81,8 @@ done
   echo "Missing payload member: platform/openapi.m12.json" >&2
   exit 1
 }
-[[ -e "${verify_root}/payload/platform/openapi.m13.json" ]] || {
-  echo "Missing payload member: platform/openapi.m13.json" >&2
+[[ -e "${verify_root}/payload/platform/openapi.m14.json" ]] || {
+  echo "Missing payload member: platform/openapi.m14.json" >&2
   exit 1
 }
 
@@ -110,7 +110,7 @@ grep -F '"openapi": "3.1.1"' \
 grep -F '"openapi": "3.1.1"' \
   "${verify_root}/payload/platform/openapi.m12.json"
 grep -F '"openapi": "3.1.1"' \
-  "${verify_root}/payload/platform/openapi.m13.json"
+  "${verify_root}/payload/platform/openapi.m14.json"
 for recovery_contract in \
   backup-data-classification.v1.json backup-manifest.v1.schema.json backup-sidecar.v1.schema.json \
   sbom.spdx.json; do

@@ -138,8 +138,8 @@ jobs:
       - name: Build twice and verify the M12 package payload
         run: |
           pnpm package:thin
-          first_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64.spk | awk '{print $1}')"
+          first_sha="$(sha256sum spk/artifacts/noderag-1.0.0-rc.1-x86_64-thin.spk | awk '{print $1}')"
           pnpm package:thin
-          second_sha="$(sha256sum spk/artifacts/noderag-0.2.0-1-x86_64.spk | awk '{print $1}')"
+          second_sha="$(sha256sum spk/artifacts/noderag-1.0.0-rc.1-x86_64-thin.spk | awk '{print $1}')"
           test "${first_sha}" = "${second_sha}"
           pnpm package:verify

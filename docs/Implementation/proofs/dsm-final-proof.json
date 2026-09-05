@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "candidateTag": "v1.0.0-rc.1",
+  "candidateSha256": null,
+  "environment": "live-synology-dsm",
+  "recordedAt": null,
+  "nas": null,
+  "checks": [],
+  "liveEvidence": {},
+  "failures": [],
+  "gate": "blocked-pending-live-dsm",
+  "certification": "not-started",
+  "releaseAuthorized": false,
+  "dockerEvidenceImportedAsLive": false
+}

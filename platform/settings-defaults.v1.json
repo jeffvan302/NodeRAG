@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "source": "packages/server/migrations/000002_identity_foundation.sql",
+  "settings": {
+    "targetChars": 2000,
+    "overlapChars": 300,
+    "maxTokens": 1024,
+    "snapWindow": 0.15,
+    "headingPrefix": true,
+    "rulesVersion": 1,
+    "embedThreads": 4,
+    "ingestThreads": 2,
+    "throttleWhenBusy": true,
+    "textSearchConfig": "simple",
+    "visionEnabled": true,
+    "ollamaParallel": 2,
+    "ollamaTimeoutMs": 60000,
+    "maximumImagePixels": 1600,
+    "defaultSearchMode": "vector",
+    "efSearch": 100,
+    "loginEnabled": true,
+    "auditRetentionDays": 90
+  }
+}

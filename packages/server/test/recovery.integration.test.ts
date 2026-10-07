@@ -233,7 +233,10 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
       markdown,
       'utf8',
     );
-    const sourceChatStorage = await probeChatStorage(join(root, 'source-chat-storage'));
+    const sourceChatStorage = await probeChatStorage(join(root, 'source-chat-storage'), {
+      policy: 'testbed',
+      rebuildReserveBytes: 0n,
+    });
     const recoveryConversationId = '00000000-0000-4000-8000-000000000099';
     const recoveryRequestMessageId = '00000000-0000-4000-8000-000000000100';
     const recoveryResponseMessageId = '00000000-0000-4000-8000-000000000101';

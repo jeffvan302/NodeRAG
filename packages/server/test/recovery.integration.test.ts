@@ -33,7 +33,7 @@ import { bootstrapFirstAdministrator, issueSetupToken } from '../src/setup/boots
 import { probeChatStorage, type ChatStorageProbeOptions } from '../src/chat/storage.js';
 
 vi.mock('../src/chat/storage.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../src/chat/storage.js')>();
+  const actual = await importOriginal<{ probeChatStorage: typeof probeChatStorage }>();
   return {
     ...actual,
     probeChatStorage: (requestedPath: string, options: ChatStorageProbeOptions = {}) =>

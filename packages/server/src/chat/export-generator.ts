@@ -327,7 +327,7 @@ const canonicalizeDocx = async (bytes: Buffer): Promise<Buffer> => {
     if (uncompressed > MAX_DOCX_UNCOMPRESSED_BYTES) {
       throw new ChatExportGenerationError('chat_export_docx_invalid');
     }
-    output.file(name, content, { date: FIXED_DATE, createFolders: true });
+    output.file(name, content, { date: FIXED_DATE, createFolders: false });
   }
   return output.generateAsync({
     type: 'nodebuffer',

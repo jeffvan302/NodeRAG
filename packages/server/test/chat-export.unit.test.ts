@@ -106,6 +106,7 @@ describe('C09 normalized document and deterministic safe export', () => {
     }
     expect(sha256(first.bytes)).toBe(sha256(second.bytes));
     const zip = await JSZip.loadAsync(first.bytes);
+    expect(Object.values(zip.files).filter((entry) => entry.dir)).toEqual([]);
     expect(Object.keys(zip.files).join('\n')).not.toMatch(/vba|activeX|externalLinks/iu);
     expect(await zip.file('word/document.xml')?.async('string')).toContain('Revenue Research');
     const extracted = await extractDocument(first.bytes, 'docx');

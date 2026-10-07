@@ -9,7 +9,19 @@
   "remoteAccessInScope": false,
   "environment": "live-synology-dsm",
   "recordedAt": null,
-  "nas": null,
+  "acceptanceStartedAt": null,
+  "acceptanceCompletedAt": null,
+  "nas": {
+    "model": null,
+    "dsmBuild": null,
+    "architecture": null,
+    "cpuModel": null,
+    "logicalProcessors": null,
+    "memoryBytes": null,
+    "volumes": [],
+    "nodeVersion": null,
+    "webStationVersion": null
+  },
   "preflight": {
     "result": "historical-existing-install-not-certified",
     "observedAt": "2026-09-15T19:17:25Z",
@@ -22,8 +34,129 @@
     "exactCandidateInstalled": false,
     "countsAsAcceptance": false
   },
-  "checks": [],
-  "liveEvidence": {},
+  "checks": [
+    {
+      "id": "candidate-integrity",
+      "title": "Transferred SPK checksum matches the frozen candidate before installation",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "package-install-upgrade",
+      "title": "Package Center install or revision 26 upgrade completes without data loss or re-indexing",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "package-identity-runtime",
+      "title": "NodeRag runs as its package account with private PostgreSQL socket and no root privileges",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "storage-acl",
+      "title": "Approved shared-folder and .noderag-chat paths pass ACL, write, fsync, capacity, relocation, and rollback checks",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "web-station-lan",
+      "title": "Trusted-LAN /noderag/ alias, assets, sign-in, CSRF writes, streaming, downloads, and viewer links pass",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "embedding-and-calibration",
+      "title": "Packaged embedding runtime, 1024-element output, model variants, and Argon2id calibration pass on DSM",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "ingestion-search-research",
+      "title": "Formats, watched input, large PDF ingestion, re-ingestion, all search modes, Research, viewers, reindex, purge, and rebuild pass",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "ollama-cloud-chat-internet",
+      "title": "Encrypted Ollama Cloud key persists across restart and fixed generation, web search, and web fetch endpoints pass",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "openai-oauth",
+      "title": "OpenAI OAuth device sign-in, model refresh, restart persistence, and generation pass when included in release claims",
+      "required": false,
+      "status": "not-evaluated",
+      "evidence": []
+    },
+    {
+      "id": "chat-artifacts-exports",
+      "title": "Streaming, tools, citations, managed context, chat files, Markdown artifacts, DOCX/PDF export, and exact-revision promotion pass",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "restart-reboot-recovery",
+      "title": "Idle and active-run package restart plus DSM reboot recover explicitly without stuck leases or lost committed history",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "backup-isolated-restore",
+      "title": "Encrypted full backup verifies and restores into an isolated target with safe credential and in-flight-run handling",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "feature-disabled-rollback",
+      "title": "Chat-disabled rollback preserves Chat data while ingestion, Research, and search continue",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "resource-and-live-soak",
+      "title": "CPU, memory, disk, thermal, concurrency, browser history, and minimum one-hour live DSM workload remain within release ceilings",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "uninstall-reinstall-purge",
+      "title": "Retained uninstall/reinstall passes and destructive purge passes only against disposable acceptance data",
+      "required": true,
+      "status": "pending",
+      "evidence": []
+    }
+  ],
+  "liveEvidence": {
+    "installedArtifactSha256": null,
+    "installedPackageVersion": null,
+    "migrationHead": null,
+    "trustedLanUrl": null,
+    "packageAccount": null,
+    "packageStartAt": null,
+    "packageRestartAt": null,
+    "dsmRebootAt": null,
+    "backupId": null,
+    "isolatedRestoreId": null,
+    "liveSoakStartedAt": null,
+    "liveSoakCompletedAt": null,
+    "liveSoakDurationSeconds": null,
+    "safeLogReferences": []
+  },
   "failures": [],
   "gate": "blocked-pending-live-dsm",
   "certification": "not-started",

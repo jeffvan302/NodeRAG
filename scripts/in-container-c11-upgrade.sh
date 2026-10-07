@@ -10,7 +10,7 @@ tar -xzf /work/old-outer/package.tgz -C /work/old-package
 tar -xf "${NODERAG_NEW_SPK}" -C /work/new-outer
 tar -xzf /work/new-outer/package.tgz -C /work/new-package
 grep -q '^version="1.0.0-26"$' /work/old-outer/INFO
-grep -q '^version="1.0.0-45"$' /work/new-outer/INFO
+grep -q '^version="1.0.0-46"$' /work/new-outer/INFO
 
 export NODERAG_NODE_BIN
 NODERAG_NODE_BIN="$(command -v node)"
@@ -63,7 +63,7 @@ response = await fetch(`${base}/v1/research`, {
 if (response.status !== 201) throw new Error(`Revision 26 Research create failed: ${response.status} ${await response.text()}`);
 const research = await response.json();
 const form = new FormData();
-form.append('file', new Blob(['# Upgrade proof\n\nMAGENTA-ORBIT survives revision 45 without re-indexing.\n'], { type: 'text/markdown' }), 'upgrade-proof.md');
+form.append('file', new Blob(['# Upgrade proof\n\nMAGENTA-ORBIT survives revision 46 without re-indexing.\n'], { type: 'text/markdown' }), 'upgrade-proof.md');
 response = await fetch(`${base}/v1/documents?siloId=${setup.defaultSilo.id}`, {
   method: 'POST',
   headers: mutationHeaders('c11-upgrade-document'),
@@ -139,4 +139,4 @@ if (!response.ok || cloud?.serviceRoot !== 'https://ollama.com') {
 NODE
 
 /work/new-outer/scripts/start-stop-status stop
-echo 'Revision 26 to revision 45 forward-upgrade simulation passed.'
+echo 'Revision 26 to revision 46 forward-upgrade simulation passed.'

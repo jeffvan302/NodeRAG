@@ -1,9 +1,9 @@
 # NodeRag Chat Implementation Status
 
 **Authority:** [Chat phased implementation plan](chat-phased-implementation.md)
-**Last updated:** 2026-09-16
+**Last updated:** 2026-10-07
 **Current stage:** C11 — security, evaluation, operations, and DSM release candidate
-**Overall state:** C00–C10 are complete; C11 Docker/package qualification is complete and live DSM acceptance is pending
+**Overall state:** C00–C10 are complete; C11 revision 46 local qualification is in progress and live DSM acceptance is pending
 
 ## Stage dashboard
 
@@ -20,45 +20,33 @@
 | C08 Chat files/Markdown           | Testbed complete | Migrations 000026/000029; contained Markdown workspace; immutable revisions; owner-only UUID image URLs; safe reader; artifact drawer; recovery and all gates        | Real DSM filesystem execution remains deferred to C11                                       |
 | C09 DOCX/PDF export               | Testbed complete | Migration 000027; passive deterministic DOCX/PDF; durable export jobs; exact-revision RAG promotion; preview/download; all gates                                     | Real DSM filesystem/execution remains deferred to C11                                       |
 | C10 Managed context/archives      | Testbed complete | Migration 000028; conservative budgets; L1–L4 compression; immutable snapshots; verified gzip paging; owner-mapped reconciliation; all gates                         | Real DSM filesystem/execution remains deferred to C11                                       |
-| C11 DSM package/release           | DSM pending      | Security/evaluation/recovery gates; revision 32 exact-SPK lifecycle and 26→32 upgrade; short and one-hour mixed workloads; Chat file URL qualification               | Live checksum-matched Synology acceptance                                                   |
+| C11 DSM package/release           | Requalification  | Security/evaluation/recovery gates; Chat file URL qualification; CI-only SBOM and thin-simulator defects corrected                                               | Revision 46 exact package, upgrade, short/one-hour workloads, then live DSM acceptance       |
 
 ## Current verification
 
-- C11 revision 32 is the active package candidate:
-  `spk/artifacts/noderag-1.0.0-32-x86_64.spk`, 188,426,240 bytes, SHA-256
-  `24e0115026d6b8ccc1b9e8aba5cbeb17bdfef00dcef8535ca3931465a24c8bd4`.
+- C11 revision 46 is the active package candidate. Its final implementation commit, artifact size,
+  and reproducible SHA-256 will be recorded after the corrected frozen inputs pass all gates.
+- Version 1 is intentionally limited to trusted-LAN access. Remote/WAN publication, public DNS,
+  certificates, reverse-proxy exposure, and internet hardening are outside the release claim.
 - C11 provider boundary: Chat generation, internet search, and internet fetch use Ollama Cloud
   only; the service root is fixed to `https://ollama.com`, and no local/custom Chat endpoint is
   accepted. The loopback Ollama process in soak testing is a vision-only outage test double.
-- C11 final quality gate: 29 forward-only migrations through `000029_chat_files`, 53 unit files and
-  237 tests, type checks, lint/format, dependency boundaries, production build and
+- C11 final quality gate: 29 forward-only migrations through `000029_chat_files`, 54 unit files and
+  244 tests, type checks, lint/format, dependency boundaries, production build and
   smoke, licenses, SBOM, and secret scan all pass.
 - C11 full PostgreSQL integration suite: 19 files and 119 tests passing. The initial isolated rerun
   omitted one planning fixture from its test-only copy; after copying that fixture, its 10 tests
   passed without a product-code change.
 - C11 full browser/accessibility suite: 29/29 passing.
-- C11 conversation evaluation: eight frozen scenarios, 12 executable evidence references, 18
+- C11 conversation evaluation: eight frozen scenarios, 12 executable evidence references, 19
   focused unit tests, and 38 focused PostgreSQL integration tests passing.
 - Chat file verification covers duplicate original filenames, distinct UUID URLs, owner/search-only/
   disabled isolation, exact extension matching, binary integrity, shared quota, delete invalidation,
   DSM mount-prefix URL resolution, Markdown rendering, and the complete browser workflow.
-- Revision 32 exact-SPK lifecycle verification passed under the non-root package identity, including
-  retained uninstall/reinstall, destructive purge, and feature-disabled rollback behavior.
-- The revision 26→32 forward-upgrade simulation passed while preserving administrator authentication,
-  the knowledge base, the existing search index without re-embedding, Research data, and the setup
-  root key.
-- The revision 32 90-second validation passed with zero failures. It recorded 16 resource samples,
-  94 searches, 16 Chat reads, package restart/log rotation, verified manual and scheduled backups,
-  source-loss recovery, reindexing, and rebuild activation. Its proof SHA-256 is
-  `fd4e2339a342c00099f41df79670405fabade728dfe49610e9765445010a6e4d`.
-- The exact revision 32 one-hour mixed workload passed with zero failures over 3,618.296 seconds. It
-  recorded 60 resource samples, 324 searches, 60 MCP requests, 60 gateway requests, 60 cross-silo
-  checks, 60 Chat reads/health checks, six background ingests, six Chat artifact checkpoints,
-  restart/log rotation, backup verification, scheduled backup verification, source-loss recovery,
-  reindexing, rebuild activation, and vision outage/recovery. Peak sampled RSS was 208,504 KiB for
-  the server, 137,500 KiB for the worker, and 67,344 KiB for the embedder; peak package data was
-  178,105,180 bytes. The preserved proof SHA-256 is
-  `7dcc6ff957640f0adfafd79ae2c69f1b078e248e03f3e7fd5344f57cffa8666a`.
+- Revision 46 corrects the CI-only Linux SBOM difference and restores the isolated thin-SPK
+  lifecycle path while keeping bundled PostgreSQL mandatory for real DSM installs. The thin-SPK
+  non-root lifecycle and clean-Linux SBOM comparison now pass locally. Exact production artifact,
+  upgrade, short workload, and one-hour evidence are being regenerated.
 
 - C10 focused context runtime unit suite: 12/12 passing, including the retained-facts golden set.
 - C10 focused managed-context/reconciliation PostgreSQL integration: 3/3 passing; combined
@@ -154,7 +142,8 @@
 
 ## Immediate next work
 
-1. Install the exact checksum-matched SPK on the real Synology and complete the DSM acceptance
+1. Complete and preserve the exact revision 46 package, upgrade, short workload, and one-hour proof.
+2. Install the exact checksum-matched SPK on the real Synology and complete the DSM acceptance
    matrix, including Web Station, package ACLs, Ollama Cloud, optional OpenAI OAuth claim scope,
    restart/reboot, backup/restore, exports, ingestion bridge, and resource ceilings.
-2. Freeze the implementation in a source commit before any release publication.
+3. Keep `releaseAuthorized=false` until the user completes the live DSM verification.

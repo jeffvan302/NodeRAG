@@ -9,7 +9,7 @@ work_root="$(mktemp -d "${TMPDIR:-/tmp}/noderag-spk-m10.XXXXXX")"
 outer_root="${work_root}/outer"
 payload_root="${work_root}/payload"
 artifact_root="${repository_root}/spk/artifacts"
-artifact="${artifact_root}/noderag-1.0.0-45-x86_64.spk"
+artifact="${artifact_root}/noderag-1.0.0-46-x86_64.spk"
 trap 'rm -rf -- "${work_root}"' EXIT
 
 [[ -f "${runtime_root}/postgresql-runtime.tar.gz" ]] || {

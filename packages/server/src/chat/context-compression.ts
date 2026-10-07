@@ -503,11 +503,12 @@ export const compressManagedContext = async (
   );
   deadline.unref();
   let heartbeatBusy = false;
+  let heartbeatInFlight: Promise<void> = Promise.resolve();
   const leaseHeartbeat = setInterval(
     () => {
       if (heartbeatBusy || compressionController.signal.aborted) return;
       heartbeatBusy = true;
-      heartbeat(options.pool, job, 'prepare', 10)
+      heartbeatInFlight = heartbeat(options.pool, job, 'prepare', 10)
         .catch((error: unknown) => compressionController.abort(error))
         .finally(() => {
           heartbeatBusy = false;
@@ -781,6 +782,7 @@ export const compressManagedContext = async (
     clearTimeout(deadline);
     clearInterval(leaseHeartbeat);
     options.signal.removeEventListener('abort', relayAbort);
+    await heartbeatInFlight.catch(() => undefined);
   }
 };
 

@@ -87,9 +87,10 @@ progress 0.45
 runtime_archive="${SYNOPKG_PKGDEST}/runtime/postgresql-runtime.tar.gz"
 runtime_root="${SYNOPKG_PKGVAR}/runtime/postgresql"
 if [ ! -f "${runtime_archive}" ]; then
-  fail "the bundled PostgreSQL runtime archive is missing"
-fi
-if [ ! -x "${runtime_root}/bin/postgres" ]; then
+  if [ "${NODERAG_SIMULATOR:-0}" != "1" ] || [ -z "${NODERAG_POSTGRES_HOST:-}" ]; then
+    fail "the bundled PostgreSQL runtime archive is missing"
+  fi
+elif [ ! -x "${runtime_root}/bin/postgres" ]; then
   checksum_file="${runtime_archive}.sha256"
   [ -f "${checksum_file}" ] || fail "the PostgreSQL runtime checksum is missing"
   (cd "$(dirname "${runtime_archive}")" &&

@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd -- "${script_dir}/.." && pwd)"
-artifact="${1:-${repository_root}/spk/artifacts/noderag-1.0.0-45-x86_64.spk}"
+artifact="${1:-${repository_root}/spk/artifacts/noderag-1.0.0-46-x86_64.spk}"
 verify_root="$(mktemp -d "${TMPDIR:-/tmp}/noderag-spk-m10-verify.XXXXXX")"
 trap 'rm -rf -- "${verify_root}"' EXIT
 [[ -f "${artifact}" ]] || { echo "M10 SPK candidate not found." >&2; exit 66; }
@@ -70,7 +70,7 @@ grep -q 'href="\./favicon\.svg"' "${verify_root}/payload/ui/index.html"
 grep -q '^arch="x86_64"$' "${verify_root}/outer/INFO"
 grep -q '^os_min_ver="7\.2-' "${verify_root}/outer/INFO"
 grep -q '^install_dep_packages="Node.js_v22:WebStation"$' "${verify_root}/outer/INFO"
-grep -q '^version="1.0.0-45"$' "${verify_root}/outer/INFO"
+grep -q '^version="1.0.0-46"$' "${verify_root}/outer/INFO"
 grep -Fq 'description="Private local-first retrieval service. Open NodeRag at http://<ip address>/noderag/"' "${verify_root}/outer/INFO"
 grep -q '^beta="yes"$' "${verify_root}/outer/INFO"
 grep -q '^dsmuidir="ui"$' "${verify_root}/outer/INFO"

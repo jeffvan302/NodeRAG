@@ -22,6 +22,7 @@ tar -xzf /work/outer/package.tgz -C /work/package
 export NODERAG_NODE_BIN
 NODERAG_NODE_BIN="$(command -v node)"
 export NODERAG_PORT=8787
+export NODERAG_SIMULATOR=1
 preinstall_log=/work/preinstall.log
 env -u SYNOPKG_PKGDEST -u SYNOPKG_PKGVAR \
   SYNOPKG_TEMP_LOGFILE="${preinstall_log}" /work/outer/scripts/preinst

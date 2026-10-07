@@ -1,7 +1,7 @@
 # C11 Chat Release and Synology Operations
 
 **Status:** Testbed qualification in progress
-**Candidate:** `noderag-1.0.0-45-x86_64.spk`
+**Candidate:** `noderag-1.0.0-46-x86_64.spk`
 **Database head:** `000029_chat_files`
 
 ## Non-negotiable provider boundary
@@ -24,12 +24,12 @@ that changed after its evidence was recorded.
    tests, browser/accessibility tests, production build/smoke, license policy, SBOM, and secret scan.
 3. Validate the eight-case C11 conversation-evaluation catalog and its mapped automated evidence.
 4. Regenerate and verify the release freeze after every frozen input has stopped changing.
-5. Build revision 45 with the pinned Node 22, PostgreSQL 17.11, pgvector 0.8.6, and production
+5. Build revision 46 with the pinned Node 22, PostgreSQL 17.11, pgvector 0.8.6, and production
    dependencies. Record the SPK SHA-256.
 6. Inspect the package archive and run the non-root package-user lifecycle simulation. This must
    cover Chat configuration/storage, an artifact across restart, full backup inclusion,
    feature-disabled rollback, retained uninstall/reinstall, and destructive purge.
-7. Run the revision-26-to-45 forward-upgrade simulation. Authentication, knowledge base, document,
+7. Run the revision-26-to-46 forward-upgrade simulation. Authentication, knowledge base, document,
    existing search index, Research collection, and root encryption key must survive without a
    document re-index.
 8. Run the 90-second mixed-workload qualification. Only after it passes, start the minimum 1-hour

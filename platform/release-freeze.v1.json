@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "releaseVersion": "1.0.0-rc.1",
-  "spkPackageVersion": "1.0.0-45",
-  "artifactName": "noderag-1.0.0-45-x86_64.spk",
+  "spkPackageVersion": "1.0.0-46",
+  "artifactName": "noderag-1.0.0-46-x86_64.spk",
   "migrationHead": "000029_chat_files",
   "inputCount": 89,
-  "aggregateSha256": "d6ee7f7a7429b0230fb0504e9d93f96e843cb5ab05dc7df6c21d67ba2378f5a7",
+  "aggregateSha256": "034b70afea4dc35068b65607b2b1303a6608b98aa25614f65d953da42a160737",
   "inputs": [
     {
       "path": "LICENSE-POLICY.md",
@@ -15,7 +15,7 @@
     {
       "path": "THIRD-PARTY.md",
       "bytes": 68902,
-      "sha256": "9cf00038f42dcf099aefd97dc0e693dd3093b3d03b9b7b34aaecf9195e1eb7c4"
+      "sha256": "620d025407f4021fa6fb54ed2d37911902d518888099649e056d0b173682df7c"
     },
     {
       "path": "docker-testbed/m01/model-manifest.json",
@@ -24,13 +24,13 @@
     },
     {
       "path": "docker-testbed/scripts/m14-soak.sh",
-      "bytes": 4007,
-      "sha256": "6adc61f90c44f22d93f055c04ee08437649e62492bd401cdbea42a0bcd2f3209"
+      "bytes": 4179,
+      "sha256": "eef623a01a72ddf57ec61f416016899b78a4105a1deee09ffba50cfc2c4ce08e"
     },
     {
       "path": "docs/Implementation/chat-c11-release-operations.md",
       "bytes": 7115,
-      "sha256": "abcc3f38c53e1c98d6fac8e18a217dd8d985bf6b8ea2fd3cb9a1e71b8b72c3b0"
+      "sha256": "dc310e6e2d79d751956b5f1a40b1b180e0aea5db967d64361aa5c8da82ebf87a"
     },
     {
       "path": "docs/Implementation/chat-phased-implementation.md",
@@ -39,8 +39,8 @@
     },
     {
       "path": "docs/Implementation/release/1.0.0-rc.1-release-notes.md",
-      "bytes": 19007,
-      "sha256": "083a71cacc4a7f2d0173a6a1e99621d765427b26f89d83cff94ff5a005a7348a"
+      "bytes": 19360,
+      "sha256": "61d75a001fb61fda1595b0b3c07cd699ee7e6feab277fdd448afae7ff842cf80"
     },
     {
       "path": "fixtures/chat/c11-conversation-evaluation.v1.json",
@@ -299,8 +299,8 @@
     },
     {
       "path": "platform/sbom.spdx.json",
-      "bytes": 239948,
-      "sha256": "131f9533c76f977d42e5c1e8d62816062b793eea2bf2506e3d8a22c764bac6fb"
+      "bytes": 239139,
+      "sha256": "63a81b829e297bf80990afe84f0f3e632bfa079a8c1b3ee795f92f53bb48aeec"
     },
     {
       "path": "platform/settings-defaults.v1.json",
@@ -320,7 +320,7 @@
     {
       "path": "scripts/build-m10-spk.sh",
       "bytes": 4543,
-      "sha256": "f70c1f6212153768f52f0e9f978735c644440d8b785a831e73098f7afb204bb9"
+      "sha256": "319e16208430ae841c7e955fbaa953836a45d3bf0abad9e7c7cb49b4273332b1"
     },
     {
       "path": "scripts/generate-package-icons.mjs",
@@ -330,12 +330,12 @@
     {
       "path": "scripts/in-container-c11-upgrade.sh",
       "bytes": 6541,
-      "sha256": "b25d34948e5347a6fbb88b731cc2e3dfe211b2814c7384e48972f86a596d7a35"
+      "sha256": "beaea187c763a1475bdc5b26d3fed3fd96ca4b32dad0f490c03faee5f3c40bcf"
     },
     {
       "path": "scripts/in-container-m02-spk-sim.sh",
-      "bytes": 24955,
-      "sha256": "33759ee7075d5d2b09663242164956ed486f7b47ea47797ab4bb176ef57c6064"
+      "bytes": 24982,
+      "sha256": "e08e552a1e31f6036af0b02fddb5831413e9fc20c4f644148a32a8c735fc9d7e"
     },
     {
       "path": "scripts/m14-ollama-mock.mjs",
@@ -350,27 +350,27 @@
     {
       "path": "scripts/simulate-c11-upgrade.sh",
       "bytes": 2434,
-      "sha256": "673c0dfbab37f969bf1c6ebc64f7def4ce43844bcd0c3ef9a18cdca84efdcca8"
+      "sha256": "276a16f704c316e5cbb190c8b53ff942e6c031cbfe157e09d3791f04c0cbb58f"
     },
     {
       "path": "scripts/simulate-m10-spk.sh",
       "bytes": 2217,
-      "sha256": "1a23eaed290c372ca0ae875a7481232502bf21f533d3717e48ce1eb9e8da05bb"
+      "sha256": "15d7e1aa98d6a4cd3414345516f081466f38f3871dc3d5a9bc98540bc7ad6da4"
     },
     {
       "path": "scripts/verify-m10-spk.sh",
       "bytes": 9892,
-      "sha256": "351b436f34edd3a60e2a0e3083725b8e0741d318eeeeeeec1e0f5438cb08d1c7"
+      "sha256": "29d23480f82ea0aa8806c0a75ac2c5ef772ce5c55d1a2d5411ea0a6eb23b019c"
     },
     {
       "path": "spk/noderag/INFO",
       "bytes": 529,
-      "sha256": "d1f0674f08fa939fcb35339cc8acd8c2ee2f716af7f3c03905f35ddddda715c0"
+      "sha256": "288725e2b7846014ff91f5df72aca61bb12ddf6d4493e96f20633728858741b4"
     },
     {
       "path": "spk/noderag/Makefile",
-      "bytes": 675,
-      "sha256": "604b5d329b640e3ef8d22e7cff012790310d446c35f9e1120a25075a651e95e6"
+      "bytes": 700,
+      "sha256": "55f34aae4ecdbdf3f6f1e96f00ad0b55e19fc51937cd4b488aa8d040b6c830df"
     },
     {
       "path": "spk/noderag/WIZARD_UIFILES/install_uifile.sh",
@@ -404,8 +404,8 @@
     },
     {
       "path": "spk/noderag/scripts/postinst",
-      "bytes": 4423,
-      "sha256": "287448fd94c7ae6a7fbdf4ba9e9bd02721597fc55e760cd69679ff5d38dd359b"
+      "bytes": 4516,
+      "sha256": "8c222f4e6450f6cc1a7a9a1b251a9651ee931e2e6fc5a3f112dd3183e3571da9"
     },
     {
       "path": "spk/noderag/scripts/postuninst",

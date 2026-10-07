@@ -5,9 +5,9 @@ upgrade_script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd -- "${upgrade_script_dir}/.." && pwd)"
 source "${repository_root}/docker-testbed/scripts/common.sh"
 old_artifact="${1:-${repository_root}/spk/artifacts/noderag-1.0.0-26-x86_64.spk}"
-new_artifact="${2:-${repository_root}/spk/artifacts/noderag-1.0.0-45-x86_64.spk}"
+new_artifact="${2:-${repository_root}/spk/artifacts/noderag-1.0.0-46-x86_64.spk}"
 [[ -f "${old_artifact}" ]] || { echo "Revision 26 SPK is missing: ${old_artifact}" >&2; exit 66; }
-[[ -f "${new_artifact}" ]] || { echo "Revision 45 SPK is missing: ${new_artifact}" >&2; exit 66; }
+[[ -f "${new_artifact}" ]] || { echo "Revision 46 SPK is missing: ${new_artifact}" >&2; exit 66; }
 
 old_directory="$(cd -- "$(dirname -- "${old_artifact}")" && pwd)"
 new_directory="$(cd -- "$(dirname -- "${new_artifact}")" && pwd)"

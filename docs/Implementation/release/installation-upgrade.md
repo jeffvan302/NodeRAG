@@ -2,12 +2,13 @@
 
 ## Before installation
 
-1. Use only `noderag-1.0.0-45-x86_64.spk`. Package revision 45 replaces revisions 1–44. It is the
-   current Chat-capable Synology test candidate. Revision 45 makes managed-context L2/L3 calls start
-   concurrently after one durable progress update and keeps PDF page-level Research actions usable
-   while PDF.js is still loading. For Chat, Ollama is always Ollama Cloud at the fixed
+1. Use only `noderag-1.0.0-46-x86_64.spk`. Package revision 46 replaces revisions 1–45. It is the
+   current Chat-capable Synology test candidate. Revision 46 makes the Linux/x86_64 SBOM
+   cross-platform deterministic and restores the isolated thin-package lifecycle simulator while
+   retaining revision 45's managed-context concurrency and PDF Research-loading fixes. For Chat,
+   Ollama is always Ollama Cloud at the fixed
    `https://ollama.com` service; its encrypted API key is used for Chat generation, web search, and
-   web fetch. Local/custom Ollama endpoints are not a Chat option. Revision 45 retains revision 26's
+   web fetch. Local/custom Ollama endpoints are not a Chat option. Revision 46 retains revision 26's
    fix for the Administration settings reload so saved embedding-thread and ingest-worker values remain
    visible after changing tabs or returning to Settings, and standardizes the saved settings API
    response. It retains revision 25's live Administration controls for embedding CPU threads and background document concurrency,
@@ -54,20 +55,12 @@ Uninstall retains data unless the destructive wizard choice is explicitly select
 reinstall must reuse the cluster, root key, database password, configuration, and documents. If it
 does not, stop and preserve Package Center plus component logs; do not delete package data.
 
-## Public HTTPS alias
+## Remote access deferred
 
-1. Keep Web Station's NodeRag alias set to `noderag`; do not expose the internal application port
-   8787 to the internet.
-2. Assign a valid DSM certificate for `vanweb.synology.me` to the HTTPS Web Station service or
-   reverse-proxy entry serving that hostname.
-3. Forward WAN TCP port 443 to the NAS HTTPS service and allow it through the DSM firewall. Then
-   test `https://vanweb.synology.me/noderag/` from a device on mobile data or another external
-   network.
-4. If the public URL works externally but not from the home LAN, enable NAT loopback on the router
-   or add split DNS so `vanweb.synology.me` resolves to the NAS LAN address internally.
-5. Confirm sign-in and one authenticated write operation through the public hostname. Revision 5
-   uses the original HTTPS host for secure cookies and CSRF validation only when DSM's local proxy
-   supplied it.
+Version 1 supports the DSM/Web Station `/noderag/` path on the trusted LAN. Do not forward router
+ports or treat a public hostname, public certificate, external reverse proxy, or WAN test as a v1
+installation requirement. Those controls need a separate internet-facing threat model and release
+stage before they can be supported.
 
 ## Upgrade
 

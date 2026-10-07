@@ -9,7 +9,7 @@ pnpm package:candidate
 pnpm package:candidate:verify
 ```
 
-The first command builds or reuses the pinned spksrc volume, assembles the deterministic PostgreSQL/pgvector runtime, builds the application/UI, and writes `spk/artifacts/noderag-1.0.0-45-x86_64.spk`. The verifier performs archive inspection and runs the package-user lifecycle simulation, including Chat state and a DSM-like pre-install environment without permanent package paths. The SPK and generated runtime are build outputs and are intentionally ignored by Git.
+The first command builds or reuses the pinned spksrc volume, assembles the deterministic PostgreSQL/pgvector runtime, builds the application/UI, and writes `spk/artifacts/noderag-1.0.0-46-x86_64.spk`. The verifier performs archive inspection and runs the package-user lifecycle simulation, including Chat state and a DSM-like pre-install environment without permanent package paths. The SPK and generated runtime are build outputs and are intentionally ignored by Git.
 
 ## Startup sequence
 

@@ -22,18 +22,18 @@ const inventory = JSON.parse(result.stdout);
 const dependencies = [];
 const isLinuxX64GlibcPackage = (name) => {
   const platform =
-    /(?:^|[-_])(aix|android|darwin|freebsd|linux|openbsd|sunos|win32)(?:[-_]|$)/u.exec(
+    /(?:^|[-_])(aix|android|darwin|freebsd|linux|openbsd|sunos|win32)(?:[-_@]|$)/u.exec(
       name.toLowerCase(),
     )?.[1];
   if (platform === undefined) return true;
   if (platform !== 'linux') return false;
-  if (/(?:^|[-_])(arm|arm64|ia32|ppc|ppc64|riscv64|s390x)(?:[-_]|$)/u.test(name)) return false;
-  return !/(?:^|[-_])musl(?:[-_]|$)/u.test(name);
+  if (/(?:^|[-_])(arm|arm64|ia32|ppc|ppc64|riscv64|s390x)(?:[-_@]|$)/u.test(name)) return false;
+  return !/(?:^|[-_])musl(?:[-_@]|$)/u.test(name);
 };
 for (const [license, entries] of Object.entries(inventory)) {
   for (const entry of entries) {
-    if (!isLinuxX64GlibcPackage(entry.name)) continue;
     for (const version of entry.versions) {
+      if (!isLinuxX64GlibcPackage(`${entry.name}@${version}`)) continue;
       dependencies.push({
         name: entry.name,
         version,

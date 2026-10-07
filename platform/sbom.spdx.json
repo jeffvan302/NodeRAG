@@ -33,7 +33,6 @@
     "SPDXRef-Package-169a06c5cb51bd3427c3",
     "SPDXRef-Package-fee529523d6721437587",
     "SPDXRef-Package-9adaeb63bf25fb5f3a3f",
-    "SPDXRef-Package-2ace3c189d92b52d071e",
     "SPDXRef-Package-84a96edf818709ec7815",
     "SPDXRef-Package-ca8b9ef85dfd6fbbbcb7",
     "SPDXRef-Package-5ce7a4b363924d04cec5",
@@ -749,24 +748,6 @@
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
           "referenceLocator": "pkg:npm/%40openai%2Fcodex@0.147.0-linux-x64"
-        }
-      ]
-    },
-    {
-      "name": "@openai/codex",
-      "SPDXID": "SPDXRef-Package-2ace3c189d92b52d071e",
-      "versionInfo": "0.147.0-win32-x64",
-      "downloadLocation": "NOASSERTION",
-      "filesAnalyzed": false,
-      "licenseConcluded": "Apache-2.0",
-      "licenseDeclared": "Apache-2.0",
-      "copyrightText": "NOASSERTION",
-      "homepage": "https://github.com/openai/codex#readme",
-      "externalRefs": [
-        {
-          "referenceCategory": "PACKAGE-MANAGER",
-          "referenceType": "purl",
-          "referenceLocator": "pkg:npm/%40openai%2Fcodex@0.147.0-win32-x64"
         }
       ]
     },
@@ -6003,11 +5984,6 @@
       "spdxElementId": "SPDXRef-DOCUMENT",
       "relationshipType": "DESCRIBES",
       "relatedSpdxElement": "SPDXRef-Package-9adaeb63bf25fb5f3a3f"
-    },
-    {
-      "spdxElementId": "SPDXRef-DOCUMENT",
-      "relationshipType": "DESCRIBES",
-      "relatedSpdxElement": "SPDXRef-Package-2ace3c189d92b52d071e"
     },
     {
       "spdxElementId": "SPDXRef-DOCUMENT",

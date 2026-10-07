@@ -2,7 +2,10 @@
 
 **Status:** In progress
 **Environment:** F-drive worktree; WSL2 Linux/amd64 Docker testbed; real DSM required for closure
-**Candidate:** `noderag-1.0.0-45-x86_64.spk`
+**Candidate:** `noderag-1.0.0-46-x86_64.spk`
+**Implementation commit:** pending final revision 46 source commit
+**Candidate SHA-256:** pending reproducible build
+**Network scope:** trusted LAN only; remote/WAN access is not part of version 1
 
 ## Ollama Cloud boundary
 
@@ -27,9 +30,9 @@
 - [x] Package lifecycle simulation exercises durable Chat configuration and artifact state.
 - [x] Chat image uploads use owner-only chat/file UUID routes, tolerate duplicate original names,
       retain the DSM `/noderag/` mount in copied URLs, and render in managed Markdown.
-- [ ] Revision 26 → 45 forward-upgrade simulation passes against the built candidate.
+- [ ] Revision 26 → 46 forward-upgrade simulation passes against the built candidate.
 - [ ] All final workspace gates pass after the release freeze inputs stop changing.
-- [ ] Exact revision 45 SPK builds reproducibly, verifies, and has a recorded SHA-256.
+- [ ] Exact revision 46 SPK builds reproducibly, verifies, and has a recorded SHA-256.
 - [ ] Short mixed workload passes against the exact SPK.
 - [ ] Minimum 1-hour mixed Chat/ingest/search soak passes against the exact SPK.
 
@@ -48,6 +51,6 @@
 
 ## Exit gate
 
-C11 remains open until the exact revision 45 package passes the final automated freeze, 1-hour
+C11 remains open until the exact revision 46 package passes the final automated freeze, 1-hour
 soak, and live Synology matrix. The package remains a private test candidate and
 `releaseAuthorized=false` until then.

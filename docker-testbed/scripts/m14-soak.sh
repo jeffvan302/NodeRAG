@@ -5,7 +5,7 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd -- "${script_dir}/../.." && pwd)"
 source "${script_dir}/common.sh"
 action="${1:-status}"
-artifact="${2:-${repository_root}/spk/artifacts/noderag-1.0.0-45-x86_64.spk}"
+artifact="${2:-${repository_root}/spk/artifacts/noderag-1.0.0-46-x86_64.spk}"
 container="noderag-m14-soak-rc1"
 volume="noderag-m14-soak-rc1-data"
 evidence_directory="${repository_root}/docker-testbed/artifacts/m14"
@@ -16,6 +16,9 @@ case "${action}" in
     if "${docker_command[@]}" container inspect "${container}" >/dev/null 2>&1; then
       echo "The M14 soak container already exists; inspect or stop it before starting another." >&2
       exit 65
+    fi
+    if "${docker_command[@]}" volume inspect "${volume}" >/dev/null 2>&1; then
+      "${docker_command[@]}" volume rm "${volume}" >/dev/null
     fi
     mkdir -p -- "${evidence_directory}"
     artifact_directory="$(cd -- "$(dirname -- "${artifact}")" && pwd)"
@@ -68,7 +71,7 @@ case "${action}" in
     ;;
   stop)
     "${docker_command[@]}" container rm -f "${container}" >/dev/null 2>&1 || true
-    echo "Stopped the M14 soak container. The evidence and disposable data volume were retained."
+    echo "Stopped the M14 soak container. Evidence was retained; the disposable volume will be replaced by the next run."
     ;;
   *)
     echo "Usage: bash docker-testbed/scripts/m14-soak.sh start|validate|status|logs|stop [artifact]" >&2

@@ -27,6 +27,16 @@ cleanup() {
   /work/outer/scripts/start-stop-status stop >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
+install_wizard_output=/work/install-wizard.json
+SYNOPKG_TEMP_LOGFILE="${install_wizard_output}" /work/outer/WIZARD_UIFILES/install_uifile.sh
+wizard_setup_token="$(node -e '
+  const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+  const field = value[0]?.items?.flatMap((item) => item.subitems ?? [])
+    .find((item) => item.key === "wizard_setup_token");
+  if (!/^setup_[a-f0-9]{64}$/.test(field?.defaultValue ?? "")) process.exit(1);
+  process.stdout.write(field.defaultValue);
+' "${install_wizard_output}")"
+export wizard_setup_token
 /work/outer/scripts/postinst
 /work/outer/scripts/start-stop-status start
 node /simulator/m14-soak-driver.mjs

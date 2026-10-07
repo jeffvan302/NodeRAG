@@ -1,6 +1,6 @@
 SPK_NAME = noderag
 SPK_VERS = 1.0.0
-SPK_REV = 45
+SPK_REV = 46
 SPK_ICON = src/noderag.svg
 DSM_UI_DIR = ui
 DSM_APP_NAME = SYNO.SDS.NodeRag
@@ -9,7 +9,7 @@ MAINTAINER = NodeRag contributors
 DESCRIPTION = Private local-first retrieval service
 DISPLAY_NAME = NodeRag
 STARTABLE = yes
-CHANGELOG = NodeRag 1.0.0 package revision 45 makes managed-context layer concurrency deterministic and keeps PDF page Research actions available while PDF.js loads
+CHANGELOG = NodeRag 1.0.0 package revision 46 makes release simulation fresh-volume deterministic, restores the thin-package lifecycle, and drains managed-context heartbeats before shutdown
 HOMEPAGE = https://github.com/jeffvan302/NodeRAG
 LICENSE = Proprietary
 SERVICE_USER = auto

@@ -147,16 +147,16 @@ jobs:
             done
           }
           build_candidate
-          first_sha="$(sha256sum spk/artifacts/noderag-1.0.0-45-x86_64.spk | awk '{print $1}')"
+          first_sha="$(sha256sum spk/artifacts/noderag-1.0.0-46-x86_64.spk | awk '{print $1}')"
           build_candidate
-          second_sha="$(sha256sum spk/artifacts/noderag-1.0.0-45-x86_64.spk | awk '{print $1}')"
+          second_sha="$(sha256sum spk/artifacts/noderag-1.0.0-46-x86_64.spk | awk '{print $1}')"
           test "${first_sha}" = "${second_sha}"
           NODERAG_M10_REUSE_RUNTIME=1 pnpm package:runtime
           pnpm package:candidate:verify
           runtime_sha="$(sha256sum spk/generated/m10/postgresql-runtime.tar.gz | awk '{print $1}')"
           runtime_sidecar_sha="$(awk '{print $1}' spk/generated/m10/postgresql-runtime.tar.gz.sha256)"
           test "${runtime_sha}" = "${runtime_sidecar_sha}"
-          test "$(sha256sum spk/artifacts/noderag-1.0.0-45-x86_64.spk | awk '{print $1}')" = \
+          test "$(sha256sum spk/artifacts/noderag-1.0.0-46-x86_64.spk | awk '{print $1}')" = \
             "${second_sha}"
           printf 'Release-candidate SPK SHA-256: %s\n' "${second_sha}"
           printf 'Bundled PostgreSQL runtime SHA-256: %s\n' "${runtime_sha}"
@@ -164,7 +164,7 @@ jobs:
       - name: Assemble immutable private prerelease assets
         run: |
           mkdir -p spk/artifacts/m14-release
-          cp spk/artifacts/noderag-1.0.0-45-x86_64.spk* spk/artifacts/m14-release/
+          cp spk/artifacts/noderag-1.0.0-46-x86_64.spk* spk/artifacts/m14-release/
           cp platform/sbom.spdx.json platform/release-candidate.v1.json \
             platform/release-freeze.v1.json THIRD-PARTY.md spk/artifacts/m14-release/
           cp docs/Implementation/release/1.0.0-rc.1-release-notes.md \

@@ -132,7 +132,8 @@ describe.sequential('M08 measured ANN and RLS gates', () => {
       if (role) await client.query('SET LOCAL ROLE noderag_benchmark');
       await client.query('SET LOCAL enable_seqscan=off');
       await client.query('SET LOCAL enable_bitmapscan=off');
-      await client.query(`SELECT set_config('hnsw.ef_search','100',true)`);
+      await client.query(`SELECT set_config('hnsw.ef_search','200',true)`);
+      await client.query(`SELECT set_config('hnsw.iterative_scan','relaxed_order',true)`);
       const prefix = explain
         ? 'EXPLAIN (FORMAT JSON) '
         : measure

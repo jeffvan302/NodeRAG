@@ -3,7 +3,7 @@ import { mkdtemp, readFile, realpath, rm, writeFile, mkdir } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { executeBackup } from '../src/recovery/backup.js';
 import { SecretVault } from '../src/identity/secrets.js';
 import { authenticatePassword, hashPassword } from '../src/identity/passwords.js';
@@ -30,7 +30,16 @@ import { runMigrations } from '../src/store/migrations.js';
 import { createChunkPartition } from '../src/store/silos.js';
 import { executeUpgradeRehearsal, planUpgrade } from '../src/recovery/upgrade.js';
 import { bootstrapFirstAdministrator, issueSetupToken } from '../src/setup/bootstrap.js';
-import { probeChatStorage } from '../src/chat/storage.js';
+import { probeChatStorage, type ChatStorageProbeOptions } from '../src/chat/storage.js';
+
+vi.mock('../src/chat/storage.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/chat/storage.js')>();
+  return {
+    ...actual,
+    probeChatStorage: (requestedPath: string, options: ChatStorageProbeOptions = {}) =>
+      actual.probeChatStorage(requestedPath, { rebuildReserveBytes: 0n, ...options }),
+  };
+});
 
 const postgresImage =
   'pgvector/pgvector@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f';

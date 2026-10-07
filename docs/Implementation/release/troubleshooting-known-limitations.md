@@ -32,7 +32,10 @@
 - Release candidate and final v1 target only x86_64 DSM 7.2+; ARM/aarch64 is excluded.
 - Supported documents are TXT, Markdown, PDF, DOCX, and XLSX. PPTX, HTML, EML, CSV, XLS,
   standalone images, exact LibreOffice rendering, and finer document ACLs are excluded.
-- Embeddings are local only. Ollama is used solely for optional vision.
+- Embeddings are local only. Document vision uses its separate administrator-configured
+  Ollama-compatible vision endpoint. Chat uses Ollama Cloud only: generation, web search, and web
+  fetch are fixed to `https://ollama.com` and share the encrypted Ollama Cloud credential. Local,
+  self-hosted, forwarded, and custom Ollama endpoints are not supported for Chat.
 - No DSM SSO, public package repository, auto-update, Redis, remote embedding provider, or
   cross-encoder reranker is included.
 - Docker proves Linux/package behavior but not Package Center, DSM ACL/ABI/storage/reboot, Hyper

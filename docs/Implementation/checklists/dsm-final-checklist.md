@@ -1,8 +1,36 @@
 # Final DSM Certification Checklist
 
-Use only the exact `v1.0.0-rc.1` prerelease SPK and verify its recorded SHA-256 before install.
+**Status:** Ready for live Synology acceptance; not yet DSM-certified
+
+## Exact candidate identity
+
+- Release candidate: `v1.0.0-rc.1`
+- Package: `noderag-1.0.0-46-x86_64.spk`
+- Package version: `1.0.0-46`
+- Candidate source commit: `13d4b5b8b367865e273d914a89a27fb64d4e9798`
+- Required SHA-256: `bd5c430181fe9042bf57a77c7b4b431d106fd79fe954cd5afab22271df738011`
+- Minimum DSM: `7.2-64570`
+- Architecture: `x86_64`
+- Network scope: trusted LAN only; remote/WAN access is excluded from version 1
+
+Use only this exact prerelease SPK. Verify its SHA-256 before installation and again after any file
+transfer. A mismatched checksum, source change, or package rebuild creates a different candidate
+and invalidates the acceptance run.
+
 Record evidence in `dsm-final-proof.json`; do not copy Docker results into live fields.
 Version 1 certifies trusted-LAN use only; remote/WAN access and public TLS are out of scope.
+
+## Before starting
+
+- [ ] Confirm the SPK SHA-256 exactly matches the required value above.
+- [ ] Record the NAS model, DSM build, test start time, installed Node.js version, and whether this
+      is an upgrade or clean installation in `dsm-final-proof.json`.
+- [ ] Use synthetic documents and dedicated provider credentials. Never record setup keys, API
+      keys, OAuth tokens, backup passphrases, cookies, or private document contents in evidence.
+- [ ] Open the application from the trusted LAN at `http://<NAS-IP>/noderag/` after Package Center
+      reports NodeRag running.
+
+## Acceptance checks
 
 - [ ] NAS model, DSM build, x86_64 CPU/features, cores, RAM, volumes, filesystems, encryption, ACLs,
       free space, and ports recorded.

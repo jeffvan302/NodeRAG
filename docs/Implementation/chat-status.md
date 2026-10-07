@@ -3,7 +3,7 @@
 **Authority:** [Chat phased implementation plan](chat-phased-implementation.md)
 **Last updated:** 2026-10-07
 **Current stage:** C11 — security, evaluation, operations, and DSM release candidate
-**Overall state:** C00–C10 are complete; C11 revision 46 local qualification is in progress and live DSM acceptance is pending
+**Overall state:** C00–C10 are complete; C11 revision 46 is locally qualified and live DSM acceptance is pending
 
 ## Stage dashboard
 
@@ -20,12 +20,13 @@
 | C08 Chat files/Markdown           | Testbed complete | Migrations 000026/000029; contained Markdown workspace; immutable revisions; owner-only UUID image URLs; safe reader; artifact drawer; recovery and all gates        | Real DSM filesystem execution remains deferred to C11                                       |
 | C09 DOCX/PDF export               | Testbed complete | Migration 000027; passive deterministic DOCX/PDF; durable export jobs; exact-revision RAG promotion; preview/download; all gates                                     | Real DSM filesystem/execution remains deferred to C11                                       |
 | C10 Managed context/archives      | Testbed complete | Migration 000028; conservative budgets; L1–L4 compression; immutable snapshots; verified gzip paging; owner-mapped reconciliation; all gates                         | Real DSM filesystem/execution remains deferred to C11                                       |
-| C11 DSM package/release           | Requalification  | Security/evaluation/recovery gates; Chat file URL qualification; CI-only SBOM and thin-simulator defects corrected                                               | Revision 46 exact package, upgrade, short/one-hour workloads, then live DSM acceptance       |
+| C11 DSM package/release           | DSM acceptance pending | Exact revision 46 package; reproducible SHA-256; security/evaluation/recovery gates; upgrade rehearsal; short and one-hour workloads; all final CI workflows | Install the checksum-matched candidate and complete the live DSM acceptance matrix            |
 
 ## Current verification
 
-- C11 revision 46 is the active package candidate. Its final implementation commit, artifact size,
-  and reproducible SHA-256 will be recorded after the corrected frozen inputs pass all gates.
+- C11 revision 46 is the active package candidate at commit
+  `13d4b5b8b367865e273d914a89a27fb64d4e9798`. The 188,436,480-byte artifact has reproducible
+  SHA-256 `bd5c430181fe9042bf57a77c7b4b431d106fd79fe954cd5afab22271df738011`.
 - Version 1 is intentionally limited to trusted-LAN access. Remote/WAN publication, public DNS,
   certificates, reverse-proxy exposure, and internet hardening are outside the release claim.
 - C11 provider boundary: Chat generation, internet search, and internet fetch use Ollama Cloud
@@ -45,8 +46,13 @@
   DSM mount-prefix URL resolution, Markdown rendering, and the complete browser workflow.
 - Revision 46 corrects the CI-only Linux SBOM difference and restores the isolated thin-SPK
   lifecycle path while keeping bundled PostgreSQL mandatory for real DSM installs. The thin-SPK
-  non-root lifecycle and clean-Linux SBOM comparison now pass locally. Exact production artifact,
-  upgrade, short workload, and one-hour evidence are being regenerated.
+  non-root lifecycle and clean-Linux SBOM comparison pass. The exact production artifact also
+  passes archive/runtime verification, non-root lifecycle, revision 26→46 upgrade rehearsal, a
+  90-second mixed validation, and a 3,600-second mixed workload with 60 samples and zero failures.
+- Final GitHub workflows M08–M14 pass on the exact source commit. The one-hour workload completed
+  324 searches, 60 MCP requests, 60 gateway requests, six scheduled ingestions, provider
+  interruption/recovery, process restart, backup verification, log rotation, source-missing
+  recovery, reindex/rebuild checks, Chat reads, artifact creation, and health checks.
 
 - C10 focused context runtime unit suite: 12/12 passing, including the retained-facts golden set.
 - C10 focused managed-context/reconciliation PostgreSQL integration: 3/3 passing; combined
@@ -142,8 +148,7 @@
 
 ## Immediate next work
 
-1. Complete and preserve the exact revision 46 package, upgrade, short workload, and one-hour proof.
-2. Install the exact checksum-matched SPK on the real Synology and complete the DSM acceptance
+1. Install the exact checksum-matched SPK on the real Synology and complete the DSM acceptance
    matrix, including Web Station, package ACLs, Ollama Cloud, optional OpenAI OAuth claim scope,
    restart/reboot, backup/restore, exports, ingestion bridge, and resource ceilings.
-3. Keep `releaseAuthorized=false` until the user completes the live DSM verification.
+2. Keep `releaseAuthorized=false` until the user completes the live DSM verification.

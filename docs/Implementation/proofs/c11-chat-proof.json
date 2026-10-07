@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "stage": "C11",
   "name": "Security, Evaluation, Operations, and DSM Release Candidate",
-  "recordedAt": "2026-10-07T14:12:33-04:00",
+  "recordedAt": "2026-10-07T16:53:33-04:00",
   "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
-  "candidateCommit": null,
-  "workingTreeFrozen": false,
+  "candidateCommit": "13d4b5b8b367865e273d914a89a27fb64d4e9798",
+  "workingTreeFrozen": true,
   "releaseAuthorized": false,
   "boundary": {
     "chatProvider": "ollama_cloud",
@@ -24,31 +24,31 @@
     "releaseVersion": "1.0.0-rc.1",
     "packageVersion": "1.0.0-46",
     "artifact": "spk/artifacts/noderag-1.0.0-46-x86_64.spk",
-    "bytes": null,
-    "sha256": null,
+    "bytes": 188436480,
+    "sha256": "bd5c430181fe9042bf57a77c7b4b431d106fd79fe954cd5afab22271df738011",
     "migrationHead": "000029_chat_files",
     "minimumDsm": "7.2-64570",
     "architecture": "x86_64",
     "releaseChannel": "private-prerelease"
   },
   "frozenEvidence": {
-    "releaseFreezeSha256": null,
-    "releaseCandidateSha256": null,
+    "releaseFreezeSha256": "0e907b46a64dbf8710d7a5e73434b96ccac485695172d31fdaa06d4c317ed957",
+    "releaseCandidateSha256": "181e088cbeb9a011e1db5b70bb89f88e308d1c958549f47d565127454e65547f",
     "openApiSha256": "af29c026adaf21b404c9678b5d73be5a00a12c47d779e3eb64da51469f0b4d9a",
     "routeAuthorizationSha256": "324bccbf2069d04e8f312fda4a150709233ac7e54a9df461b30fa2e66496ae7b",
-    "sbomSha256": null,
+    "sbomSha256": "63a81b829e297bf80990afe84f0f3e632bfa079a8c1b3ee795f92f53bb48aeec",
     "conversationCorpusSha256": "e5bbe568da5ad5f61b052b5f09215ab58e1c6810f1bfe8c06216b884ea466802",
-    "operationsRunbookSha256": null,
-    "packageVerifierSha256": null,
-    "upgradeSimulatorSha256": null,
+    "operationsRunbookSha256": "dc310e6e2d79d751956b5f1a40b1b180e0aea5db967d64361aa5c8da82ebf87a",
+    "packageVerifierSha256": "29d23480f82ea0aa8806c0a75ac2c5ef772ce5c55d1a2d5411ea0a6eb23b019c",
+    "upgradeSimulatorSha256": "276a16f704c316e5cbb190c8b53ff942e6c031cbfe157e09d3791f04c0cbb58f",
     "soakDriverSha256": "22d25b99a7aeee8da7d247b611d058c9a7d8eaa1f10e719607ecdde6fee453a3",
     "soakVisionDoubleSha256": "e381fbef99bb839a4dfc7021a66589af3f064a634445d3373ab49b42973cf146",
-    "soakLauncherSha256": null,
+    "soakLauncherSha256": "ce309f34c129dbe83295b40ec3491c0221d9aeb4b079b6ebeb9add43f3b72a3f",
     "chatHealthSha256": "dc2085682af3ee42b28c750a37cc0f8a7b7bb0add581e1ae68426cec28e1a0b0"
   },
   "verification": {
     "qualityGate": {
-      "result": "pending-revision-46-rerun",
+      "result": "passed",
       "unitFiles": 54,
       "unitTests": 244,
       "migrationCount": 29,
@@ -81,8 +81,8 @@
       "localOllamaAccepted": false
     },
     "packageProviderBoundaryInspection": {
-      "result": "pending-revision-46-rerun",
-      "artifactSha256": null,
+      "result": "passed",
+      "artifactSha256": "bd5c430181fe9042bf57a77c7b4b431d106fd79fe954cd5afab22271df738011",
       "builtServerContains": [
         "https://ollama.com",
         "/api/chat",
@@ -95,7 +95,7 @@
       "visionConfigurationSeparate": true
     },
     "packageLifecycle": {
-      "result": "pending-revision-46-rerun",
+      "result": "passed",
       "exactArtifact": true,
       "nonRoot": true,
       "retainedUninstallReinstall": true,
@@ -103,7 +103,7 @@
       "featureDisabledRollback": true
     },
     "forwardUpgrade": {
-      "result": "pending-revision-46-rerun",
+      "result": "passed",
       "fromPackageRevision": 26,
       "toPackageRevision": 46,
       "preserved": [
@@ -115,25 +115,29 @@
       ]
     },
     "shortMixedWorkload": {
-      "result": "pending-revision-46-rerun",
+      "result": "passed",
       "proof": "docker-testbed/artifacts/m14/c11-revision-46-90-second-validation-proof.json",
-      "proofSha256": null,
-      "artifactSha256": null,
+      "proofSha256": "fd50769c9cab1757ca64a612e9aff4eb7f93bb4ac4975bf40d1a1773371afd2a",
+      "artifactSha256": "bd5c430181fe9042bf57a77c7b4b431d106fd79fe954cd5afab22271df738011",
       "requestedDurationSeconds": 90,
-      "actualDurationSeconds": null,
-      "samples": null,
-      "failures": null
+      "actualDurationSeconds": 90,
+      "samples": 16,
+      "failures": 0
     },
     "oneHourMixedWorkload": {
-      "result": "pending-revision-46-rerun",
+      "result": "passed",
       "minimumSeconds": 3600,
       "requestedDurationSeconds": 3600,
-      "artifactSha256": null,
-      "proof": "docker-testbed/artifacts/m14/c11-revision-46-one-hour-soak-proof.json"
+      "actualDurationSeconds": 3600,
+      "samples": 60,
+      "failures": 0,
+      "artifactSha256": "bd5c430181fe9042bf57a77c7b4b431d106fd79fe954cd5afab22271df738011",
+      "proof": "docker-testbed/artifacts/m14/c11-revision-46-one-hour-soak-proof.json",
+      "proofSha256": "09c296d48a52ed55598607ed2ca4cfdbfd5be895c99d007b552c27a5e8778f16"
     },
     "liveSynologyDsm": {
       "result": "pending",
-      "requiresExactArtifactSha256": null
+      "requiresExactArtifactSha256": "bd5c430181fe9042bf57a77c7b4b431d106fd79fe954cd5afab22271df738011"
     }
   },
   "securityEvidence": [
@@ -166,9 +170,8 @@
       "safe reset of in-flight runs"
     ]
   },
-  "gate": "pending_local_soak_and_live_dsm",
+  "gate": "pending_live_dsm",
   "remaining": [
-    "Complete the revision 46 local release gates and one-hour mixed workload against the exact checksum-matched SPK.",
     "Run the documented live Synology DSM acceptance matrix against the exact checksum-matched SPK.",
     "Keep releaseAuthorized=false unless every claimed provider and DSM behavior has matching live evidence."
   ]

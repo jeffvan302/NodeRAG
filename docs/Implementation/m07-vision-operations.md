@@ -40,12 +40,13 @@ The package service already supplies `NODERAG_SECRET_ROOT`. A standalone deploym
 ```json
 {
   "baseUrl": "https://ollama.com/api/chat",
-  "model": "vision-model:latest",
+  "model": "minimax-m3:cloud",
   "bearerToken": "optional-secret",
   "maximumParallel": 2,
+  "maximumImagesPerCall": 3,
   "timeoutMs": 120000,
   "maximumAttempts": 3,
-  "maximumImageDimension": 2048
+  "maximumImageDimension": 1650
 }
 ```
 
@@ -55,9 +56,10 @@ Set `NODERAG_OLLAMA_NUM_PARALLEL` to the provider's actual process-wide capacity
 
 The administrator screen exposes the same activation contract as an explained form. It shows the
 current provider and queue status; permits editing the address, model, `maximumParallel` (1–16),
-timeout, attempts, and image-size cap; and accepts an optional replacement API key in a masked
-field. A blank key keeps the existing encrypted credential. The status response reports only
-whether a vault credential is configured and never returns its plaintext.
+`maximumImagesPerCall` (1–16), timeout, attempts, and image-size cap; and accepts an optional
+replacement API key in a masked field. A blank key reuses the existing encrypted credential for
+the connection test and keeps it after the save. The status response reports only whether a vault
+credential is configured and never returns its plaintext.
 
 ## Failure and recovery behavior
 

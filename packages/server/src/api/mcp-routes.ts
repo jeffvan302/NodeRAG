@@ -19,7 +19,7 @@ const requestSchema = z
 const searchArguments = z
   .object({
     query: z.string().min(1).max(4000),
-    mode: z.enum(['vector', 'keyword', 'hybrid']).default('vector'),
+    mode: z.enum(['vector', 'semantic', 'keyword', 'hybrid']).default('vector'),
     siloIds: z.array(z.number().int().min(1).max(32_767)).max(64).optional(),
     limit: z.number().int().min(1).max(50).default(10),
     filters: z
@@ -34,6 +34,7 @@ const searchArguments = z
         pageTo: z.number().int().min(0).optional(),
         hasImages: z.boolean().optional(),
         hasTables: z.boolean().optional(),
+        minimumConfidence: z.number().min(0.05).max(0.95).optional(),
       })
       .strict()
       .default({}),
@@ -67,14 +68,29 @@ const tools = [
       type: 'object',
       properties: {
         query: { type: 'string', minLength: 1, maxLength: 4000 },
-        mode: { type: 'string', enum: ['vector', 'keyword', 'hybrid'], default: 'vector' },
+        mode: {
+          type: 'string',
+          enum: ['vector', 'semantic', 'keyword', 'hybrid'],
+          default: 'vector',
+        },
         siloIds: {
           type: 'array',
           maxItems: 64,
           items: { type: 'integer', minimum: 1, maximum: 32767 },
         },
         limit: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
-        filters: { type: 'object', additionalProperties: false },
+        filters: {
+          type: 'object',
+          properties: {
+            minimumConfidence: {
+              type: 'number',
+              minimum: 0.05,
+              maximum: 0.95,
+              default: 0.3,
+            },
+          },
+          additionalProperties: false,
+        },
       },
       required: ['query'],
       additionalProperties: false,
@@ -157,6 +173,7 @@ const exactFilters = (input: z.infer<typeof searchArguments>['filters']): Search
   ...(input.pageTo === undefined ? {} : { pageTo: input.pageTo }),
   ...(input.hasImages === undefined ? {} : { hasImages: input.hasImages }),
   ...(input.hasTables === undefined ? {} : { hasTables: input.hasTables }),
+  ...(input.minimumConfidence === undefined ? {} : { minimumConfidence: input.minimumConfidence }),
 });
 
 export const registerMcpRoutes = (
@@ -217,6 +234,9 @@ export const registerMcpRoutes = (
                   limit: args.data.limit,
                   filters: exactFilters(args.data.filters),
                 },
+                ...(options.retrievalCalibration === undefined
+                  ? {}
+                  : { calibration: options.retrievalCalibration }),
               });
         return reply.send(
           response(

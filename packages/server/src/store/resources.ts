@@ -12,15 +12,21 @@ interface ResourceLease {
   readonly epoch: number;
 }
 
-const acquireCpu = async (pool: Pool, owner: string): Promise<ResourceLease> => {
-  const deadline = Date.now() + 10_000;
+const acquireCpu = async (pool: Pool, owner: string, priority: number): Promise<ResourceLease> => {
+  const deadline = Date.now() + (priority <= 1 ? 10_000 : 10 * 60_000);
   while (Date.now() < deadline) {
     const lease = await withTransaction(pool, async (database) => {
       const acquired = await database.query<{ slot: number; lease_epoch: unknown }>(
         `WITH candidate AS (
            SELECT slot FROM noderag.resource_lease
            WHERE resource = 'cpu' AND (owner IS NULL OR leased_until <= now())
-           ORDER BY slot FOR UPDATE SKIP LOCKED LIMIT 1
+             AND (
+               $2::integer <= 1
+               OR NOT COALESCE((SELECT throttle_when_busy FROM noderag.settings WHERE id=1), true)
+               OR slot > 0
+             )
+           ORDER BY CASE WHEN $2::integer <= 1 AND slot = 0 THEN 0 ELSE 1 END, slot
+           FOR UPDATE SKIP LOCKED LIMIT 1
          )
          UPDATE noderag.resource_lease lease
          SET owner = $1, lease_epoch = lease.lease_epoch + 1,
@@ -28,7 +34,7 @@ const acquireCpu = async (pool: Pool, owner: string): Promise<ResourceLease> => 
          FROM candidate
          WHERE lease.resource = 'cpu' AND lease.slot = candidate.slot
          RETURNING lease.slot, lease.lease_epoch`,
-        [owner],
+        [owner, priority],
       );
       const row = acquired.rows[0];
       return row === undefined
@@ -83,8 +89,9 @@ export const withCpuResource = async <T>(
   pool: Pool,
   owner: string,
   operation: () => Promise<T>,
+  priority = 5,
 ): Promise<T> => {
-  const lease = await acquireCpu(pool, owner);
+  const lease = await acquireCpu(pool, owner, priority);
   try {
     return await operation();
   } finally {
@@ -96,7 +103,7 @@ export const withHnswBuildResource = async <T>(
   pool: Pool,
   owner: string,
   operation: () => Promise<T>,
-): Promise<T> => withCpuResource(pool, owner, () => withAdvisoryGate(pool, 'hnsw', operation));
+): Promise<T> => withCpuResource(pool, owner, () => withAdvisoryGate(pool, 'hnsw', operation), 8);
 
 export const coordinatedEmbedder = (pool: Pool, owner: string, embedder: Embedder): Embedder => ({
   countTokens: (
@@ -104,16 +111,25 @@ export const coordinatedEmbedder = (pool: Pool, owner: string, embedder: Embedde
     priority?: number,
     model?: EmbedderModel,
   ): Promise<readonly number[]> =>
-    withCpuResource(pool, `${owner}:tokenize`, () => embedder.countTokens(texts, priority, model)),
+    withCpuResource(
+      pool,
+      `${owner}:tokenize`,
+      () => embedder.countTokens(texts, priority, model),
+      priority ?? 5,
+    ),
   embed: (
     texts: readonly string[],
     maximumTokens: number,
     priority?: number,
     model?: EmbedderModel,
   ): Promise<EmbeddingBatch> =>
-    withCpuResource(pool, `${owner}:embed`, () =>
-      withAdvisoryGate(pool, 'embedding', () =>
-        embedder.embed(texts, maximumTokens, priority, model),
-      ),
+    withCpuResource(
+      pool,
+      `${owner}:embed`,
+      () =>
+        withAdvisoryGate(pool, 'embedding', () =>
+          embedder.embed(texts, maximumTokens, priority, model),
+        ),
+      priority ?? 5,
     ),
 });

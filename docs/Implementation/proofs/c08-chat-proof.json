@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "stage": "C08",
+  "name": "Contained Chat Artifacts and Safe Markdown Reader",
+  "recordedAt": "2026-09-15T09:27:00.6824746-04:00",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "boundary": {
+    "internetProvider": "ollama_cloud",
+    "ollamaServiceRoot": "https://ollama.com",
+    "localOllamaAccepted": false,
+    "selfHostedOllamaAccepted": false,
+    "customOllamaAccepted": false,
+    "shellAccessAccepted": false,
+    "binaryModelWritesAccepted": false,
+    "markdownOnlyModelWrites": true,
+    "externalMarkdownImagesDefault": false,
+    "synologyDsmExecution": "deferred_to_C11"
+  },
+  "implementation": {
+    "migration": {
+      "path": "packages/server/migrations/000026_chat_artifacts.sql",
+      "sha256": "c93a2d80a7ac477b602fcfa5fdd9582cfc9788a3a4c88b0450a3d4141dc11530"
+    },
+    "artifactServiceSha256": "0ed3e9aa59c36a71413c2fabe99bc4ecede722fed26021c65d31daaca2da5206",
+    "artifactRoutesSha256": "fd315ad97af233973e7f3385dcabf8e74a25a9ec409c64cf6c3f18c13d02d186",
+    "logStoreSha256": "18867f249719983d449f53f66d13a2cad9f2e5af4a9f8e40cb372f604894f31a",
+    "runnerSha256": "1bcb83d03a96b92a8ca55a099597fe96e87c80b3fb502f958df3f571a87a29fc",
+    "appSha256": "33c88a1dc4595312889663d5db2c4576e205a730d20a53221bec779d54265747",
+    "workerSha256": "ff659bc1f0536d867d8938596cf42dfefe1c518e71517db5e4eae7380069acc2",
+    "configurationSha256": "dcd39bfa50a71a1410415cd98738a5ea21c624a625745408c2beac596a18acab",
+    "configurationRoutesSha256": "5ac90bdf7b1f51017d4d536bbdb1c5c5401b51d0c712f32439824a5eebe3d790",
+    "artifactDrawerSha256": "d99a1dab8c5315bab7ee00c354a2b08f78c42c7051694a5568c098aad38fafac",
+    "chatUiSha256": "beb5db0815297540abae256d470d6d6c93f06d036789d2eb07c2775f570cfd62",
+    "markdownViewerSha256": "37e5bc9994a1bd195f34c265c21a65c47b9b74fb2b30ebd6dcba26ab6ff183ad",
+    "stylesSha256": "932fd8420100a3abf9dd8c44ba759729dcf398b8f49d07138198134f0c3699f6",
+    "unitTestSha256": "c6848d745de1ebf827a86285cd9a9d1fcaf530560e4d8a421b97a58965d1a140",
+    "integrationTestSha256": "67e9eb2d021f83eb17bd916f988477c2101f06c5341b21b0ffc043d7b372721c",
+    "logRecoveryTestSha256": "0cc87b76420acbdf3d922af9967541006db53477f1342661759d0a3c836ebb17",
+    "browserTestSha256": "031a592e537ba88f1490b420fd7a416c74db79bd4e41578847af79e085329b20",
+    "routeAuthorizationSha256": "3b90bcb81e577233387b255a57dd354e2451608d7df77b8c369baec14a24dc91",
+    "openApiSha256": "ccd894b05041ad95480fa016cd8f303dc8e8bc4fc59c0ce3391b84fd50827962",
+    "backupPolicySha256": "d9089bc0c9a2b8c2fa570677e972ce57c19bafeff3b65a345041ab91e96f0048",
+    "migrationInventorySha256": "69b7fb58878be799203b82b654e2b2c2c5d7d290e6ba36bb9954f18618d940bc"
+  },
+  "limits": {
+    "maximumArtifactFileBytes": 10485760,
+    "defaultPerChatQuotaBytes": 268435456,
+    "defaultExternalMarkdownImages": false,
+    "defaultLogSegmentMaximumBytes": 8388608,
+    "defaultLogSegmentMaximumAgeMinutes": 1440
+  },
+  "verification": {
+    "chatArtifactUnit": { "result": "passed", "tests": 4 },
+    "chatArtifactIntegration": {
+      "result": "passed",
+      "tests": 7,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "artifactConfigurationAndLogIntegration": {
+      "result": "passed",
+      "tests": 20,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "fullIntegration": {
+      "result": "passed",
+      "files": 17,
+      "tests": 108,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "fullBrowser": { "result": "passed", "tests": 28, "wcagAAndAA": "passed" },
+    "fullUnit": { "result": "passed", "files": 49, "tests": 205 },
+    "migrationInventory": { "result": "passed", "head": "000026_chat_artifacts" },
+    "workspaceTypecheck": { "result": "passed", "projects": 6 },
+    "workspaceLint": { "result": "passed" },
+    "workspaceFormat": { "result": "passed" },
+    "dependencyBoundaries": { "result": "passed", "modules": 173, "dependencies": 347 },
+    "buildAndSmoke": { "result": "passed" },
+    "licenseInventory": { "result": "passed", "licenseClasses": 7 },
+    "sbom": { "result": "passed", "runtimePackages": 267 },
+    "secretScan": { "result": "passed" },
+    "combinedQualityGate": { "result": "passed" }
+  },
+  "faultEvidence": [
+    "absolute paths, traversal, Windows drive paths, ADS syntax, hidden names, and reserved names are rejected",
+    "symlinks and junctions cannot escape the principal and chat workspace",
+    "atomic writes and immutable revisions recover after abandoned temporary files",
+    "optimistic exact-line patches reject stale edits instead of overwriting concurrent work",
+    "disk-full and quota failures return stable safe errors without publishing partial revisions",
+    "model artifact tools cannot delete files, invoke a shell, or write binary content",
+    "model-written revisions require exact chat, run, response, tool, principal, and citation provenance",
+    "Markdown HTML, URLs, Mermaid diagrams, KaTeX, and external images use explicit safe rendering policy",
+    "owner isolation, idempotency, backup classification, and retained-uninstall inventory are exercised",
+    "active NDJSON segments are checksummed and interrupted tails are reconciled"
+  ],
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "remaining": [
+    "C09 adds deterministic DOCX and PDF exports.",
+    "C10 adds artifact ingestion, managed context, archives, and reconciliation.",
+    "Real Synology DSM execution and a new SPK remain the C11 package gate."
+  ]
+}

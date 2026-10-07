@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "stage": "C00",
+  "name": "Chat scope, privacy, provider contract, and runtime feasibility",
+  "recordedAt": "2026-09-15T02:49:27.8760068-04:00",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "contract": {
+    "version": "chat-provider.v1",
+    "decision": "docs/Implementation/decisions/chat-cloud-egress.md",
+    "providerKinds": ["ollama_cloud", "openai_oauth"],
+    "ollamaServiceRoot": "https://ollama.com",
+    "internetProvider": "ollama_cloud",
+    "featureFlagCount": 9,
+    "featureFlagsDefaultEnabled": 0
+  },
+  "implementation": {
+    "contractPath": "packages/server/src/chat/contract.ts",
+    "contractSha256": "36490902d88ecb053f2891a0dce3e344b3288b7feed014d8950e6e32627e95b7",
+    "fakePath": "packages/server/src/chat/fake.ts",
+    "fakeSha256": "65cc0a04ea85aafd66da883d62399ec90e2f93c523004a875bfdb6f7b26f1a90",
+    "featureFlagsPath": "packages/server/src/chat/features.ts",
+    "featureFlagsSha256": "e4e38ef2578c7fee4c8e2f371b033e2e80ea68aabab58b78db331f731ffeec0e",
+    "appServerSmokePath": "scripts/verify-chat-app-server.mjs",
+    "appServerSmokeSha256": "f4d619fee1f16ad7de46eda7415c685fd72b6662cafe5df76c9a96cfb91aacb4",
+    "decisionSha256": "aa7a98483e39f0e70361390ac800ad48af6eb687c10453d22f5fad51aa129f3f"
+  },
+  "runtime": {
+    "package": "@openai/codex",
+    "version": "0.147.0",
+    "license": "Apache-2.0",
+    "windowsX64Smoke": "passed",
+    "wslLinuxX64Smoke": "passed",
+    "dockerLinuxX64Smoke": "passed",
+    "dockerImage": "node@sha256:b21fe589dfbe5cc39365d0544b9be3f1f33f55f3c86c87a76ff65a02f8f5848e",
+    "dockerNetwork": "none",
+    "isolatedCredentialStore": true,
+    "credentialPersistedBySmoke": false
+  },
+  "verification": {
+    "focusedUnit": { "result": "passed", "files": 1, "tests": 6 },
+    "serverTypecheck": { "result": "passed" },
+    "workspaceTypecheck": { "result": "passed", "projects": 6 },
+    "workspaceLint": { "result": "passed" },
+    "workspaceFormat": { "result": "passed" },
+    "dependencyBoundaries": { "result": "passed", "modules": 151, "dependencies": 266 },
+    "licenseInventory": { "result": "passed", "licenseClasses": 7 },
+    "secretScan": { "result": "passed" },
+    "fullUnit": { "result": "passed", "files": 41, "tests": 158 },
+    "combinedQualityGate": { "result": "passed" }
+  },
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "remaining": [
+    "Real Synology DSM app-server execution and resource acceptance remain deferred to C11.",
+    "User-visible Chat behavior remains disabled until its later milestone gates pass."
+  ]
+}

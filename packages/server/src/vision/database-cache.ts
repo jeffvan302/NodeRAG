@@ -1,5 +1,6 @@
 import type { Pool } from 'pg';
 import type { AnalysedVisionResult } from '../extract/contract.js';
+import { visionLayoutBlockSchema } from './contract.js';
 import { withTransaction } from '../store/database.js';
 import type { VisionCacheKey, VisionCachePort, VisionDispatch } from './service.js';
 
@@ -9,6 +10,7 @@ interface CachedVisionRow {
   readonly alt_text: string;
   readonly confidence: number;
   readonly elapsed_ms: number | null;
+  readonly layout_blocks: unknown;
 }
 
 const bytes = (hex: string): Buffer => Buffer.from(hex, 'hex');
@@ -21,11 +23,17 @@ export class DatabaseVisionCache implements VisionCachePort {
       `UPDATE noderag.vision_cache
        SET last_used_at = now()
        WHERE cache_key = $1
-       RETURNING kind, markdown, alt_text, confidence, elapsed_ms`,
+       RETURNING kind, markdown, alt_text, confidence, elapsed_ms, layout_blocks`,
       [bytes(key.fingerprint)],
     );
     const row = result.rows[0];
     if (row === undefined) return null;
+    const layoutBlocks = Array.isArray(row.layout_blocks)
+      ? row.layout_blocks
+          .map((value) => visionLayoutBlockSchema.safeParse(value))
+          .filter((value) => value.success)
+          .map(({ data }) => data)
+      : [];
     return {
       disposition: 'analysed',
       kind: row.kind,
@@ -48,6 +56,7 @@ export class DatabaseVisionCache implements VisionCachePort {
       elapsedMs: row.elapsed_ms ?? 0,
       cached: true,
       cacheKey: key.fingerprint,
+      ...(layoutBlocks.length === 0 ? {} : { layoutBlocks }),
     };
   }
 
@@ -80,12 +89,15 @@ export class DatabaseVisionCache implements VisionCachePort {
         `INSERT INTO noderag.vision_cache
            (cache_key, image_sha256, preprocessed_sha256, provider, model,
             provider_revision, model_revision, prompt_revision, schema_revision,
-            preprocessing_revision, kind, markdown, alt_text, confidence, elapsed_ms)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            preprocessing_revision, source_policy_revision, kind, markdown, alt_text,
+            confidence, elapsed_ms, layout_blocks)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+                 $16, $17::jsonb)
          ON CONFLICT (cache_key) DO UPDATE
          SET kind = EXCLUDED.kind, markdown = EXCLUDED.markdown,
              alt_text = EXCLUDED.alt_text, confidence = EXCLUDED.confidence,
-             elapsed_ms = EXCLUDED.elapsed_ms, last_used_at = now()`,
+             elapsed_ms = EXCLUDED.elapsed_ms, layout_blocks = EXCLUDED.layout_blocks,
+             last_used_at = now()`,
         [
           bytes(key.fingerprint),
           bytes(key.originalSha256),
@@ -97,11 +109,13 @@ export class DatabaseVisionCache implements VisionCachePort {
           key.promptRevision,
           key.schemaRevision,
           key.preprocessingRevision,
+          key.sourcePolicyRevision,
           result.kind,
           result.markdown,
           result.alt,
           result.confidence,
           result.elapsedMs,
+          JSON.stringify(result.layoutBlocks ?? []),
         ],
       );
       if (dispatchId !== null) {

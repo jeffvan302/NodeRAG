@@ -392,6 +392,326 @@
         }
       }
     },
+    "/v1/research": {
+      "get": {
+        "operationId": "get_v1_research",
+        "tags": ["research"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      },
+      "post": {
+        "operationId": "post_v1_research",
+        "tags": ["research"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/research/memberships": {
+      "get": {
+        "operationId": "get_v1_research_memberships",
+        "tags": ["research"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/research/{id}/items": {
+      "get": {
+        "operationId": "get_v1_research_id_items",
+        "tags": ["research"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      },
+      "post": {
+        "operationId": "post_v1_research_id_items",
+        "tags": ["research"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/research/{id}/page-memberships": {
+      "get": {
+        "operationId": "get_v1_research_id_page_memberships",
+        "tags": ["research"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/research/{id}/pages": {
+      "post": {
+        "operationId": "post_v1_research_id_pages",
+        "tags": ["research"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/research/{id}/items/{itemId}": {
+      "delete": {
+        "operationId": "delete_v1_research_id_items_itemId",
+        "tags": ["research"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "itemId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
     "/v1/search": {
       "post": {
         "operationId": "post_v1_search",
@@ -417,6 +737,53 @@
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/SearchResponse" } }
             }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/search/evidence": {
+      "post": {
+        "operationId": "post_v1_search_evidence",
+        "tags": ["search"],
+        "x-noderag-authorization": {
+          "scope": "silo",
+          "action": "read_chunk",
+          "searchOnlyAllowed": true,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
           },
           "201": {
             "description": "Resource created",
@@ -749,6 +1116,76 @@
         }
       }
     },
+    "/v1/documents/{id}/extraction-diagnostics": {
+      "get": {
+        "operationId": "get_v1_documents_id_extraction_diagnostics",
+        "tags": ["documents"],
+        "x-noderag-authorization": {
+          "scope": "silo",
+          "action": "read_markdown",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/documents/{id}/enhanced-reindex-estimate": {
+      "get": {
+        "operationId": "get_v1_documents_id_enhanced_reindex_estimate",
+        "tags": ["documents"],
+        "x-noderag-authorization": {
+          "scope": "silo",
+          "action": "read_markdown",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
     "/v1/documents/{id}/pages/{ordinal}": {
       "get": {
         "operationId": "get_v1_documents_id_pages_ordinal",
@@ -961,6 +1398,38 @@
             "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
           },
           "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/source-folders": {
+      "get": {
+        "operationId": "get_v1_source_folders",
+        "tags": ["source-folders"],
+        "x-noderag-authorization": {
+          "scope": "silo",
+          "action": "configure_source",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
           "400": { "$ref": "#/components/responses/Problem" },
           "401": { "$ref": "#/components/responses/Problem" },
           "403": { "$ref": "#/components/responses/Problem" },
@@ -2386,6 +2855,1103 @@
         }
       }
     },
+    "/v1/admin/logs": {
+      "get": {
+        "operationId": "get_v1_admin_logs",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "administration",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers": {
+      "get": {
+        "operationId": "get_v1_admin_chat_providers",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "administration",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers/ollama-cloud": {
+      "put": {
+        "operationId": "put_v1_admin_chat_providers_ollama_cloud",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers/ollama-cloud/disable": {
+      "post": {
+        "operationId": "post_v1_admin_chat_providers_ollama_cloud_disable",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers/ollama-cloud/refresh-models": {
+      "post": {
+        "operationId": "post_v1_admin_chat_providers_ollama_cloud_refresh_models",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers/ollama-cloud/test-generation": {
+      "post": {
+        "operationId": "post_v1_admin_chat_providers_ollama_cloud_test_generation",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers/ollama-cloud/test-web-search": {
+      "post": {
+        "operationId": "post_v1_admin_chat_providers_ollama_cloud_test_web_search",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers/ollama-cloud/test-web-fetch": {
+      "post": {
+        "operationId": "post_v1_admin_chat_providers_ollama_cloud_test_web_fetch",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers/openai-oauth/status": {
+      "get": {
+        "operationId": "get_v1_admin_chat_providers_openai_oauth_status",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "administration",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers/openai-oauth": {
+      "put": {
+        "operationId": "put_v1_admin_chat_providers_openai_oauth",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers/openai-oauth/login": {
+      "post": {
+        "operationId": "post_v1_admin_chat_providers_openai_oauth_login",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers/openai-oauth/login/cancel": {
+      "post": {
+        "operationId": "post_v1_admin_chat_providers_openai_oauth_login_cancel",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers/openai-oauth/refresh-models": {
+      "post": {
+        "operationId": "post_v1_admin_chat_providers_openai_oauth_refresh_models",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers/openai-oauth/test": {
+      "post": {
+        "operationId": "post_v1_admin_chat_providers_openai_oauth_test",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/providers/openai-oauth/disconnect": {
+      "post": {
+        "operationId": "post_v1_admin_chat_providers_openai_oauth_disconnect",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/configuration": {
+      "get": {
+        "operationId": "get_v1_admin_chat_configuration",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "administration",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/health": {
+      "get": {
+        "operationId": "get_v1_admin_chat_health",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "administration",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/context": {
+      "put": {
+        "operationId": "put_v1_admin_chat_context",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/context/preview": {
+      "post": {
+        "operationId": "post_v1_admin_chat_context_preview",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/settings": {
+      "put": {
+        "operationId": "put_v1_admin_chat_settings",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/exports/capabilities": {
+      "get": {
+        "operationId": "get_v1_admin_chat_exports_capabilities",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "administration",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/models/{profileId}": {
+      "patch": {
+        "operationId": "patch_v1_admin_chat_models_profileId",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "name": "profileId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/storage/probe": {
+      "post": {
+        "operationId": "post_v1_admin_chat_storage_probe",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/storage/reconcile/preview": {
+      "post": {
+        "operationId": "post_v1_admin_chat_storage_reconcile_preview",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/storage/reconcile": {
+      "post": {
+        "operationId": "post_v1_admin_chat_storage_reconcile",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/storage/reconcile/{operationId}": {
+      "get": {
+        "operationId": "get_v1_admin_chat_storage_reconcile_operationId",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "administration",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "name": "operationId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
     "/v1/admin/vision/status": {
       "get": {
         "operationId": "get_v1_admin_vision_status",
@@ -2662,6 +4228,83 @@
       },
       "post": {
         "operationId": "post_v1_admin_models",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/models/default/status": {
+      "get": {
+        "operationId": "get_v1_admin_models_default_status",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "administration",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/models/default/install": {
+      "post": {
+        "operationId": "post_v1_admin_models_default_install",
         "tags": ["administration"],
         "x-noderag-authorization": {
           "scope": "server_admin",
@@ -3480,6 +5123,83 @@
         }
       }
     },
+    "/v1/admin/calibration/embedding/status": {
+      "get": {
+        "operationId": "get_v1_admin_calibration_embedding_status",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "administration",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/calibration/embedding/start": {
+      "post": {
+        "operationId": "post_v1_admin_calibration_embedding_start",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "administration",
+          "csrfBrowser": true,
+          "idempotency": false
+        },
+        "security": [{ "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
     "/v1/admin/backups": {
       "get": {
         "operationId": "get_v1_admin_backups",
@@ -3707,6 +5427,1917 @@
         }
       }
     },
+    "/v1/chats": {
+      "get": {
+        "operationId": "get_v1_chats",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      },
+      "post": {
+        "operationId": "post_v1_chats",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}": {
+      "get": {
+        "operationId": "get_v1_chats_chatId",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      },
+      "patch": {
+        "operationId": "patch_v1_chats_chatId",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      },
+      "delete": {
+        "operationId": "delete_v1_chats_chatId",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/messages": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_messages",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      },
+      "post": {
+        "operationId": "post_v1_chats_chatId_messages",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/messages/{messageId}/pin": {
+      "post": {
+        "operationId": "post_v1_chats_chatId_messages_messageId_pin",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "messageId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/context": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_context",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/context/compression-preview": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_context_compression_preview",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/context/compressions": {
+      "post": {
+        "operationId": "post_v1_chats_chatId_context_compressions",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/context/compressions/{jobId}/cancel": {
+      "post": {
+        "operationId": "post_v1_chats_chatId_context_compressions_jobId_cancel",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "jobId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/research": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_research",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/research/refresh": {
+      "post": {
+        "operationId": "post_v1_chats_chatId_research_refresh",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/research/sources/{sourceId}/page": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_research_sources_sourceId_page",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "sourceId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/research/sources/{sourceId}/document": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_research_sources_sourceId_document",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "sourceId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/research/sources/{sourceId}/original": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_research_sources_sourceId_original",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "sourceId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/citations/{citationId}/page": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_citations_citationId_page",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "citationId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/citations/{citationId}/document": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_citations_citationId_document",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "citationId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/citations/{citationId}/original": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_citations_citationId_original",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "citationId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/web-citations/{citationId}": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_web_citations_citationId",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "citationId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/artifacts": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_artifacts",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      },
+      "post": {
+        "operationId": "post_v1_chats_chatId_artifacts",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/files": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_files",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      },
+      "post": {
+        "operationId": "post_v1_chats_chatId_files",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": { "file": { "type": "string", "format": "binary" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/chat/{chatId}/file/{fileName}": {
+      "get": {
+        "operationId": "get_chat_chatId_file_fileName",
+        "tags": ["chat-files"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "fileName", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "image/png": { "schema": { "type": "string", "format": "binary" } },
+              "image/jpeg": { "schema": { "type": "string", "format": "binary" } },
+              "image/gif": { "schema": { "type": "string", "format": "binary" } },
+              "image/webp": { "schema": { "type": "string", "format": "binary" } }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/files/{fileId}": {
+      "delete": {
+        "operationId": "delete_v1_chats_chatId_files_fileId",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "fileId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/artifacts/directories": {
+      "post": {
+        "operationId": "post_v1_chats_chatId_artifacts_directories",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/artifacts/{artifactId}/content": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_artifacts_artifactId_content",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "artifactId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      },
+      "patch": {
+        "operationId": "patch_v1_chats_chatId_artifacts_artifactId_content",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "artifactId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/artifacts/{artifactId}/history": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_artifacts_artifactId_history",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "artifactId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/artifacts/{artifactId}/download": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_artifacts_artifactId_download",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "artifactId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/artifacts/{artifactId}/rename": {
+      "post": {
+        "operationId": "post_v1_chats_chatId_artifacts_artifactId_rename",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "artifactId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/artifacts/{artifactId}/copy": {
+      "post": {
+        "operationId": "post_v1_chats_chatId_artifacts_artifactId_copy",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "artifactId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/artifacts/{artifactId}": {
+      "delete": {
+        "operationId": "delete_v1_chats_chatId_artifacts_artifactId",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "artifactId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/artifacts-reconciliation": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_artifacts_reconciliation",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/artifacts/{artifactId}/exports": {
+      "post": {
+        "operationId": "post_v1_chats_chatId_artifacts_artifactId_exports",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "artifactId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/exports": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_exports",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/exports/{exportId}": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_exports_exportId",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "exportId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/exports/{exportId}/cancel": {
+      "post": {
+        "operationId": "post_v1_chats_chatId_exports_exportId_cancel",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "exportId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/exports/{exportId}/download": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_exports_exportId_download",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "exportId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/artifacts/{artifactId}/ingestions": {
+      "post": {
+        "operationId": "post_v1_chats_chatId_artifacts_artifactId_ingestions",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "silo",
+          "action": "upload",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "artifactId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/runs/{runId}/stop": {
+      "post": {
+        "operationId": "post_v1_chats_chatId_runs_runId_stop",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "runId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/runs/{runId}/retry": {
+      "post": {
+        "operationId": "post_v1_chats_chatId_runs_runId_retry",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "runId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/chats/{chatId}/events": {
+      "get": {
+        "operationId": "get_v1_chats_chatId_events",
+        "tags": ["chats"],
+        "x-noderag-authorization": {
+          "scope": "authenticated",
+          "searchOnlyAllowed": false,
+          "routeClass": "read",
+          "csrfBrowser": false,
+          "idempotency": false
+        },
+        "security": [{ "bearerAuth": [] }, { "sessionCookie": [] }],
+        "parameters": [
+          { "name": "chatId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/v1/admin/chat/entitlements/{principalId}": {
+      "put": {
+        "operationId": "put_v1_admin_chat_entitlements_principalId",
+        "tags": ["administration"],
+        "x-noderag-authorization": {
+          "scope": "server_admin",
+          "searchOnlyAllowed": false,
+          "routeClass": "mutation",
+          "csrfBrowser": true,
+          "idempotency": true
+        },
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "name": "principalId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "201": {
+            "description": "Resource created",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "202": {
+            "description": "Operation accepted",
+            "content": { "application/json": { "schema": { "type": ["object", "array", "null"] } } }
+          },
+          "204": { "description": "Operation completed without a response body" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" },
+          "409": { "$ref": "#/components/responses/Problem" },
+          "413": { "$ref": "#/components/responses/Problem" },
+          "415": { "$ref": "#/components/responses/Problem" },
+          "422": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Problem" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
     "/v1/openapi.json": {
       "get": {
         "operationId": "get_v1_openapi.json",
@@ -3813,7 +7444,7 @@
           "query": { "type": "string", "minLength": 1, "maxLength": 4000 },
           "mode": {
             "type": "string",
-            "enum": ["vector", "keyword", "hybrid"],
+            "enum": ["vector", "semantic", "keyword", "hybrid"],
             "default": "vector"
           },
           "silos": {
@@ -3857,7 +7488,14 @@
           "pageFrom": { "type": "integer", "minimum": 0 },
           "pageTo": { "type": "integer", "minimum": 0 },
           "hasImages": { "type": "boolean" },
-          "hasTables": { "type": "boolean" }
+          "hasTables": { "type": "boolean" },
+          "minimumConfidence": {
+            "type": "number",
+            "minimum": 0.05,
+            "maximum": 0.95,
+            "default": 0.3,
+            "description": "Hide search hits whose calibrated match confidence is below this value."
+          }
         },
         "additionalProperties": false
       },
@@ -3866,7 +7504,7 @@
         "required": ["items", "mode", "elapsedMs", "nextCursor"],
         "properties": {
           "items": { "type": "array", "items": { "$ref": "#/components/schemas/SearchHit" } },
-          "mode": { "enum": ["vector", "keyword", "hybrid"] },
+          "mode": { "enum": ["vector", "semantic", "keyword", "hybrid"] },
           "elapsedMs": { "type": "number", "minimum": 0 },
           "nextCursor": { "type": ["string", "null"] }
         },
@@ -3882,6 +7520,8 @@
           "documentId",
           "text",
           "score",
+          "confidence",
+          "evidence",
           "locator",
           "document"
         ],
@@ -3893,6 +7533,26 @@
           "documentId": { "type": "integer" },
           "text": { "type": "string" },
           "score": { "type": "number" },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.99,
+            "description": "Calibrated retrieval match confidence. This estimates evidence strength and is not the probability that an answer is correct."
+          },
+          "evidence": {
+            "type": "array",
+            "description": "Sentence-level evidence used by Semantic ranking. Exact and combined modes normally populate this on demand.",
+            "items": {
+              "type": "object",
+              "required": ["kind", "text", "confidence"],
+              "properties": {
+                "kind": { "enum": ["exact", "semantic"] },
+                "text": { "type": "string" },
+                "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+              },
+              "additionalProperties": false
+            }
+          },
           "locator": {
             "type": "object",
             "description": "Character offsets are UTF-16 code units; byte offsets are UTF-8 bytes. Clients normally use the returned text/context and do not slice."

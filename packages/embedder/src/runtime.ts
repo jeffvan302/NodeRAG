@@ -2,13 +2,46 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
-import type { Embedder, EmbedderModel } from '@noderag/shared';
+import type { Embedder, EmbedderModel, EmbedderRuntimeStatus } from '@noderag/shared';
 import type { Tensor as OrtTensor } from 'onnxruntime-node';
 
 export interface EmbeddingRuntime extends Embedder {
   readonly dimensions: number;
   close(): Promise<void>;
 }
+
+export interface ManagedEmbeddingRuntime extends EmbeddingRuntime {
+  runtimeStatus(): EmbedderRuntimeStatus;
+  configureThreads(threads: number): Promise<EmbedderRuntimeStatus>;
+}
+
+export const createLazyRuntime = (
+  dimensions: number,
+  load: () => Promise<EmbeddingRuntime>,
+): EmbeddingRuntime => {
+  let pending: Promise<EmbeddingRuntime> | null = null;
+  const runtime = async (): Promise<EmbeddingRuntime> => {
+    pending ??= load().catch((error: unknown) => {
+      pending = null;
+      throw error;
+    });
+    return pending;
+  };
+  return {
+    dimensions,
+    async countTokens(texts, priority, model) {
+      return (await runtime()).countTokens(texts, priority, model);
+    },
+    async embed(texts, maximumTokens, priority, model) {
+      return (await runtime()).embed(texts, maximumTokens, priority, model);
+    },
+    async close() {
+      const loaded = pending;
+      pending = null;
+      if (loaded !== null) await (await loaded).close();
+    },
+  };
+};
 
 export const defaultModelManifestDigest =
   'a3e6f76a9d02f5e3fcd88491aab3ad3622739e785e8847d0e098362bf7640aaf';
@@ -28,35 +61,56 @@ const deterministicTokens = (text: string): readonly string[] =>
 export const createDeterministicRuntime = (
   dimensions = 1024,
   baseManifestDigest = defaultModelManifestDigest,
-): EmbeddingRuntime => ({
-  dimensions,
-  async countTokens(texts) {
-    return texts.map((text) => deterministicTokens(text).length);
-  },
-  async embed(texts, maxTokens, _priority, model) {
-    const started = performance.now();
-    const tokenCounts = texts.map((text) => deterministicTokens(text).length);
-    if (tokenCounts.some((count) => count > maxTokens)) throw new Error('TOKEN_LIMIT');
-    const selectedDimensions = model?.dimensions ?? dimensions;
-    const salt =
-      model === undefined || model.manifestDigest === baseManifestDigest
-        ? undefined
-        : model.manifestDigest;
-    const vectors = texts.map((text) => {
-      const vector = new Array<number>(selectedDimensions).fill(0);
-      for (const token of deterministicTokens(text)) {
-        const hash = createHash('sha256');
-        if (salt !== undefined) hash.update(salt).update('\0');
-        const digest = hash.update(token).digest();
-        const index = digest.readUInt32BE(0) % selectedDimensions;
-        vector[index] = (vector[index] ?? 0) + 1;
+  availableProcessors = 32,
+): ManagedEmbeddingRuntime => {
+  let threads = 1;
+  let generation = 0;
+  const status = (): EmbedderRuntimeStatus => ({ availableProcessors, threads, generation });
+  return {
+    dimensions,
+    async countTokens(texts) {
+      return texts.map((text) => deterministicTokens(text).length);
+    },
+    async embed(texts, maxTokens, _priority, model) {
+      const started = performance.now();
+      const tokenCounts = texts.map((text) => deterministicTokens(text).length);
+      if (tokenCounts.some((count) => count > maxTokens)) throw new Error('TOKEN_LIMIT');
+      const selectedDimensions = model?.dimensions ?? dimensions;
+      const salt =
+        model === undefined || model.manifestDigest === baseManifestDigest
+          ? undefined
+          : model.manifestDigest;
+      const vectors = texts.map((text) => {
+        const vector = new Array<number>(selectedDimensions).fill(0);
+        for (const token of deterministicTokens(text)) {
+          const hash = createHash('sha256');
+          if (salt !== undefined) hash.update(salt).update('\0');
+          const digest = hash.update(token).digest();
+          const index = digest.readUInt32BE(0) % selectedDimensions;
+          vector[index] = (vector[index] ?? 0) + 1;
+        }
+        return normalized(vector);
+      });
+      return { vectors, tokenCounts, elapsedMilliseconds: performance.now() - started };
+    },
+    runtimeStatus: status,
+    async configureThreads(nextThreads) {
+      if (
+        !Number.isSafeInteger(nextThreads) ||
+        nextThreads < 1 ||
+        nextThreads > Math.min(32, availableProcessors)
+      ) {
+        throw new Error('EMBEDDER_THREAD_COUNT_INVALID');
       }
-      return normalized(vector);
-    });
-    return { vectors, tokenCounts, elapsedMilliseconds: performance.now() - started };
-  },
-  async close() {},
-});
+      if (threads !== nextThreads) {
+        threads = nextThreads;
+        generation += 1;
+      }
+      return status();
+    },
+    async close() {},
+  };
+};
 
 const asBigInt64 = (data: ArrayLike<number | bigint>): BigInt64Array =>
   data instanceof BigInt64Array ? data : BigInt64Array.from(data, (value) => BigInt(value));
@@ -225,6 +279,63 @@ export const createOnnxRuntime = async (options: {
     },
     async close() {
       await session.release();
+    },
+  };
+};
+
+export const createLazyOnnxRuntime = (
+  options: Parameters<typeof createOnnxRuntime>[0],
+): EmbeddingRuntime => createLazyRuntime(options.dimensions, () => createOnnxRuntime(options));
+
+export const createManagedOnnxRuntime = (options: {
+  readonly modelRoot: string;
+  readonly modelPath: string;
+  readonly dimensions: number;
+  readonly threads: number;
+  readonly availableProcessors: number;
+  readonly manifestDigest?: string;
+}): ManagedEmbeddingRuntime => {
+  const availableProcessors = Math.max(1, Math.trunc(options.availableProcessors));
+  const maximumThreads = Math.min(32, availableProcessors);
+  const validThreads = (value: number): number => {
+    if (!Number.isSafeInteger(value) || value < 1 || value > maximumThreads) {
+      throw new Error('EMBEDDER_THREAD_COUNT_INVALID');
+    }
+    return value;
+  };
+  let threads = validThreads(options.threads);
+  let generation = 0;
+  const createRuntime = (): EmbeddingRuntime =>
+    createLazyOnnxRuntime({
+      modelRoot: options.modelRoot,
+      modelPath: options.modelPath,
+      dimensions: options.dimensions,
+      threads,
+      ...(options.manifestDigest === undefined ? {} : { manifestDigest: options.manifestDigest }),
+    });
+  let runtime = createRuntime();
+  const status = (): EmbedderRuntimeStatus => ({
+    availableProcessors,
+    threads,
+    generation,
+  });
+  return {
+    dimensions: options.dimensions,
+    countTokens: (texts, priority, model) => runtime.countTokens(texts, priority, model),
+    embed: (texts, maximumTokens, priority, model) =>
+      runtime.embed(texts, maximumTokens, priority, model),
+    runtimeStatus: status,
+    async configureThreads(nextThreads) {
+      const selected = validThreads(nextThreads);
+      if (selected === threads) return status();
+      await runtime.close();
+      threads = selected;
+      generation += 1;
+      runtime = createRuntime();
+      return status();
+    },
+    async close() {
+      await runtime.close();
     },
   };
 };

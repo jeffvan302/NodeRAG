@@ -2,21 +2,46 @@
 
 ## Before installation
 
-1. Use only `noderag-1.0.0-rc.1-x86_64.spk` from the private GitHub prerelease.
+1. Use only `noderag-1.0.0-45-x86_64.spk`. Package revision 45 replaces revisions 1–44. It is the
+   current Chat-capable Synology test candidate. Revision 45 makes managed-context L2/L3 calls start
+   concurrently after one durable progress update and keeps PDF page-level Research actions usable
+   while PDF.js is still loading. For Chat, Ollama is always Ollama Cloud at the fixed
+   `https://ollama.com` service; its encrypted API key is used for Chat generation, web search, and
+   web fetch. Local/custom Ollama endpoints are not a Chat option. Revision 45 retains revision 26's
+   fix for the Administration settings reload so saved embedding-thread and ingest-worker values remain
+   visible after changing tabs or returning to Settings, and standardizes the saved settings API
+   response. It retains revision 25's live Administration controls for embedding CPU threads and background document concurrency,
+   detected-versus-active processor reporting, three safe resource presets, controlled embedding
+   engine reload, persistence across Package Center restarts, and an interactive CPU reservation for
+   searches and semantic PDF highlighting. It retains revision 24's repair for
+   a regression that could suppress the background semantic request when a search result already
+   contained green-highlight evidence, requests up to four qualifying semantic sentences, and
+   displays a clear status if processing fails, no sentence meets the threshold, or PDF text cannot
+   be aligned. It retains revision 23's immediate exact highlights, semantic cache, and render-time
+   improvements, revision 22's repaired PDF evidence alignment and page-level Research
+   references, revision 21's rolling ingestion log and PDF bounds repair, and revision 20's Ollama
+   Cloud defaults:
+   `minimax-m3:cloud`, two parallel calls, three images per call, a
+   120-second call timeout, three attempts, and a 1650-pixel image limit. Leaving the API-key field
+   blank now reuses the encrypted saved credential during the connection test. It includes revision
+   19's enhanced PDF extraction and re-index fixes plus all earlier DSM fixes.
 2. Compare its SHA-256 with the attached `.sha256` file before opening Package Center.
-3. Confirm x86_64, DSM 7.2-64570 or newer, `Node.js_v22`, port 8787 availability, adequate RAM,
-   and enough package plus data-volume space for the corpus, model, and one full rebuild.
+3. Confirm x86_64, DSM 7.2-64570 or newer, Synology `Node.js_v22` and `WebStation`, port 8787
+   availability, adequate RAM, and enough package plus data-volume space for the corpus, model,
+   and one full rebuild. Package Center should offer to install either missing dependency.
 4. Select a package-data volume and separate backup destination. Do not place backups inside any
    active database, document, model, cache, upload, or temporary root.
 5. Keep the NAS behind its normal trusted-LAN controls. PostgreSQL must never be exposed over TCP.
+   Remote/WAN access, public DNS, and external TLS termination are outside the version 1 scope.
 
 ## Clean installation
 
 1. In Package Center, choose Manual Install and select the verified SPK.
-2. Review the package identity and data-retention notice, then install.
+2. Copy the complete one-time setup key displayed by the installation wizard, review the package
+   identity and data-retention notice, then install.
 3. Wait for Package Center to report Running. Do not attempt to initialize PostgreSQL manually.
-4. Open NodeRag from the package UI. The first-run flow uses a short-lived setup token created by
-   the package; it must not require SSH or a shell.
+4. Open NodeRag from the package UI and enter the copied setup key on step 1. The key expires 24
+   hours after the service first starts and is deleted after setup completes; SSH is not required.
 5. Create the first administrator and default silo, sign in, select/probe storage, import the
    checksum-pinned embedding model, run calibration, test Ollama if used, register sources, and
    complete setup.
@@ -28,6 +53,21 @@
 Uninstall retains data unless the destructive wizard choice is explicitly selected. A retained
 reinstall must reuse the cluster, root key, database password, configuration, and documents. If it
 does not, stop and preserve Package Center plus component logs; do not delete package data.
+
+## Public HTTPS alias
+
+1. Keep Web Station's NodeRag alias set to `noderag`; do not expose the internal application port
+   8787 to the internet.
+2. Assign a valid DSM certificate for `vanweb.synology.me` to the HTTPS Web Station service or
+   reverse-proxy entry serving that hostname.
+3. Forward WAN TCP port 443 to the NAS HTTPS service and allow it through the DSM firewall. Then
+   test `https://vanweb.synology.me/noderag/` from a device on mobile data or another external
+   network.
+4. If the public URL works externally but not from the home LAN, enable NAT loopback on the router
+   or add split DNS so `vanweb.synology.me` resolves to the NAS LAN address internally.
+5. Confirm sign-in and one authenticated write operation through the public hostname. Revision 5
+   uses the original HTTPS host for secure cookies and CSRF validation only when DSM's local proxy
+   supplied it.
 
 ## Upgrade
 
@@ -41,8 +81,10 @@ does not, stop and preserve Package Center plus component logs; do not delete pa
    stops services in dependency order.
 5. The post-upgrade hook starts PostgreSQL, verifies the expected forward-only migration head,
    starts embedder/API/worker, and removes its marker only after health succeeds.
-6. Verify authentication, silo grants, a known locator, vector/keyword/hybrid search, jobs,
-   gateways, scheduled sources, backup destinations, Ollama, and audit history.
+6. Verify authentication, silo grants, a known locator, vector/semantic/keyword/hybrid search, jobs,
+   gateways, scheduled sources, backup destinations, vision configuration, audit history, and the
+   Chat provider/storage/health screens. Test Ollama Cloud Chat generation, web search, and web
+   fetch independently.
 7. Retain the old package/cluster or safety backup until the acceptance period ends.
 
 If migration, health, search, authentication, or restore verification fails, stop activation and

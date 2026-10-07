@@ -1,0 +1,100 @@
+{
+  "contract": "chat-context-retention-golden.v1",
+  "cases": [
+    {
+      "name": "cloud-boundary-and-decision",
+      "summary": "NodeRag Chat uses Ollama Cloud for generation and its hosted web APIs for internet research. The DSM package is built only after the Docker gates pass.",
+      "state": {
+        "goal": "Deliver the NodeRag Chat capability through the staged plan.",
+        "constraints": [
+          "Ollama means Ollama Cloud only; never use a local or custom Ollama endpoint.",
+          "Do not build the DSM package before the Docker gates pass."
+        ],
+        "preferences": ["Use plain-language Administration diagnostics."],
+        "decisions": [
+          "Use Ollama Cloud /api/web_search and /api/web_fetch for Chat internet research."
+        ],
+        "failedApproaches": ["Treating a local Ollama runtime as the Chat provider."],
+        "openQuestions": [
+          "What resource ceiling will the real Synology acceptance test establish?"
+        ],
+        "entities": [
+          {
+            "name": "Ollama Cloud",
+            "kind": "hosted provider",
+            "notes": "Supplies Chat generation, web search, and web fetch."
+          }
+        ],
+        "currentPhase": "C10",
+        "flaggedNotes": ["Preserve the Cloud-only provider boundary in every restored chat."]
+      },
+      "required": {
+        "constraints": [
+          "Ollama means Ollama Cloud only; never use a local or custom Ollama endpoint."
+        ],
+        "decisions": [
+          "Use Ollama Cloud /api/web_search and /api/web_fetch for Chat internet research."
+        ],
+        "citations": []
+      }
+    },
+    {
+      "name": "citation-and-recovery-provenance",
+      "summary": "The retention policy keeps the cited finding and its recovery provenance. Revenue was reported in the selected government source [R1].",
+      "state": {
+        "goal": "Retain evidence-backed findings across managed-context compression.",
+        "constraints": ["Never turn an unverified citation into a verified claim."],
+        "preferences": ["Keep the original citation label with the finding."],
+        "decisions": ["Treat sealed logs as immutable and verify their hash before paging them."],
+        "failedApproaches": [],
+        "openQuestions": [],
+        "entities": [
+          {
+            "name": "[R1]",
+            "kind": "research citation",
+            "notes": "Government revenue passage selected by the user."
+          }
+        ],
+        "currentPhase": "C10 recovery verification",
+        "flaggedNotes": ["[R1] must remain attached to the revenue finding."]
+      },
+      "required": {
+        "constraints": ["Never turn an unverified citation into a verified claim."],
+        "decisions": ["Treat sealed logs as immutable and verify their hash before paging them."],
+        "citations": ["[R1]"]
+      }
+    },
+    {
+      "name": "operator-safety-invariants",
+      "summary": "Original messages remain queryable after folding, explicit pins remain exact, and reconciliation requires owner mapping.",
+      "state": {
+        "goal": "Keep long conversations bounded without losing recoverability.",
+        "constraints": [
+          "Never delete original messages during context compression.",
+          "Do not import a conversation until its source owner maps to one local principal."
+        ],
+        "preferences": ["Show folded messages through View older logs."],
+        "decisions": ["Quarantine bad checksums instead of guessing or repairing them silently."],
+        "failedApproaches": ["Blindly importing an external chat folder."],
+        "openQuestions": [],
+        "entities": [
+          {
+            "name": ".noderag-chat",
+            "kind": "storage contract",
+            "notes": "Contains checksummed logs and portable chat manifests."
+          }
+        ],
+        "currentPhase": "C10",
+        "flaggedNotes": ["Pinned messages are exact L1 context and remain in original history."]
+      },
+      "required": {
+        "constraints": [
+          "Never delete original messages during context compression.",
+          "Do not import a conversation until its source owner maps to one local principal."
+        ],
+        "decisions": ["Quarantine bad checksums instead of guessing or repairing them silently."],
+        "citations": []
+      }
+    }
+  ]
+}

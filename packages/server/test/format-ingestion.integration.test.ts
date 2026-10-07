@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDeterministicRuntime } from '../../embedder/src/runtime.js';
 import { buildApp } from '../src/app.js';
 import { createRequestAuthenticator } from '../src/api/authentication.js';
-import { drainMarkdownJobs } from '../src/ingest/pipeline.js';
+import { drainMarkdownJobs, processOneDocumentJob } from '../src/ingest/pipeline.js';
 import { bootstrapFirstAdministrator, issueSetupToken } from '../src/setup/bootstrap.js';
 import { DocumentFileStore } from '../src/storage/document-files.js';
 import { runMigrations } from '../src/store/migrations.js';
@@ -53,6 +53,7 @@ describe.sequential('M06 all-format ingestion', () => {
   let root: string;
   let files: DocumentFileStore;
   let siloId: number;
+  let administratorId: number;
   let app: ReturnType<typeof buildApp>;
   let cookie: string | string[] | undefined;
   let csrf: string;
@@ -78,6 +79,7 @@ describe.sequential('M06 all-format ingestion', () => {
       password: 'M06-admin-password!',
     });
     siloId = setup.defaultSilo.id;
+    administratorId = setup.principalId;
     root = await mkdtemp(join(tmpdir(), 'noderag-m06-'));
     files = new DocumentFileStore(root);
     await files.initialize();
@@ -198,14 +200,24 @@ describe.sequential('M06 all-format ingestion', () => {
     for (const [index, input] of inputs.entries()) {
       ids.push(await upload(input.name, input.mime, input.bytes, `m06-format-${String(index)}`));
     }
-    expect(
-      await drainMarkdownJobs({
-        pool,
-        files,
-        embedder: new DeterministicEmbedder(),
-        leaseOwner: 'm06-format-worker',
-      }),
-    ).toBe(inputs.length * 2);
+    const processedJobs = await drainMarkdownJobs({
+      pool,
+      files,
+      embedder: new DeterministicEmbedder(),
+      leaseOwner: 'm06-format-worker',
+    });
+    const jobDiagnostics = await pool.query<{
+      kind: string;
+      state: string;
+      last_error_code: string | null;
+      last_error_detail: string | null;
+    }>(
+      `SELECT kind,state,last_error_code,last_error_detail
+       FROM noderag.job WHERE document_id=ANY($1::bigint[])
+       ORDER BY document_id,kind`,
+      [ids],
+    );
+    expect(processedJobs, JSON.stringify(jobDiagnostics.rows)).toBe(inputs.length * 2);
 
     const documents = await pool.query<{
       id: string;
@@ -213,7 +225,10 @@ describe.sequential('M06 all-format ingestion', () => {
       state: string;
       page_basis: string;
       page_count: number;
-      metadata: { extractionWarnings?: readonly string[] };
+      metadata: {
+        extractionWarnings?: readonly string[];
+        extractionMetadata?: Record<string, unknown>;
+      };
     }>(
       `SELECT id::text, extension, state, page_basis, page_count, metadata
        FROM noderag.document WHERE id = ANY($1::bigint[]) ORDER BY id`,
@@ -222,6 +237,49 @@ describe.sequential('M06 all-format ingestion', () => {
     expect(documents.rows.map(({ state }) => state)).toEqual(inputs.map(() => 'ready'));
     expect(documents.rows.map(({ page_basis }) => page_basis)).toEqual(
       inputs.map(({ basis }) => basis),
+    );
+    expect(documents.rows[2]?.metadata.extractionMetadata).toMatchObject({
+      pdfExtractionVersion: 'pdf-layout.v3-hybrid',
+      parserRevision: 'pdfjs-dist@6.3.289',
+      layoutPolicyRevision: 'native-layout.v1',
+      confidencePolicyRevision: 'pdf-confidence.v1',
+    });
+    const pdfProgress = await pool.query<{ detail: Record<string, unknown> }>(
+      `SELECT event.detail
+       FROM noderag.job job
+       JOIN noderag.job_event event ON event.job_id=job.id
+       WHERE job.document_id=$1 AND job.kind='extract' AND event.event_type='progress'
+       ORDER BY event.sequence`,
+      [ids[2]],
+    );
+    expect(pdfProgress.rows.some(({ detail }) => detail['stage'] === 'extracting-pages')).toBe(
+      true,
+    );
+    expect(pdfProgress.rows.some(({ detail }) => detail['stage'] === 'classifying-layout')).toBe(
+      true,
+    );
+    expect(pdfProgress.rows.some(({ detail }) => detail['stage'] === 'analysing-pages')).toBe(true);
+    const documentList = await app.inject({
+      method: 'GET',
+      url: '/v1/documents?limit=100',
+      headers: { cookie },
+    });
+    expect(documentList.statusCode, documentList.body).toBe(200);
+    const listedPdf = documentList
+      .json<{
+        items: Array<{
+          id: number;
+          ingestionJobs: Array<{ kind: string; progress: Record<string, unknown> }>;
+        }>;
+      }>()
+      .items.find(({ id }) => id === ids[2]);
+    expect(listedPdf?.ingestionJobs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'extract',
+          progress: expect.objectContaining({ stage: 'complete', percent: 100 }),
+        }),
+      ]),
     );
 
     for (const [index, id] of ids.entries()) {
@@ -242,7 +300,95 @@ describe.sequential('M06 all-format ingestion', () => {
         const characterSlice = canonical.slice(page.character_start, page.character_end);
         expect(sliceUtf8(canonical, page.byte_start, page.byte_end)).toBe(characterSlice);
       }
+      const blocks = await pool.query<{
+        page_ordinal: number;
+        ordinal: number;
+        kind: string;
+        native_text: string;
+        markdown: string;
+        bound_x: number | null;
+        bound_y: number | null;
+        bound_width: number | null;
+        bound_height: number | null;
+        character_start: number;
+        character_end: number;
+        byte_start: number;
+        byte_end: number;
+        confidence_components: {
+          routing?: { disposition?: string; reasons?: string[] };
+          components?: Record<string, number>;
+        };
+      }>(
+        `SELECT page_ordinal, ordinal, kind, native_text, markdown,
+                bound_x, bound_y, bound_width, bound_height,
+                character_start, character_end, byte_start, byte_end, confidence_components
+         FROM noderag.document_block
+         WHERE document_id=$1 ORDER BY page_ordinal, reading_order, ordinal`,
+        [id],
+      );
+      expect(blocks.rows.length).toBeGreaterThan(0);
+      for (const block of blocks.rows) {
+        expect(canonical.slice(block.character_start, block.character_end)).toBe(block.markdown);
+        expect(sliceUtf8(canonical, block.byte_start, block.byte_end)).toBe(block.markdown);
+        if (inputs[index]?.name.endsWith('.pdf') === true) {
+          expect(block.native_text.length).toBeGreaterThan(0);
+          expect(['title', 'heading', 'paragraph', 'list-item', 'table', 'unknown']).toContain(
+            block.kind,
+          );
+          expect([block.bound_x, block.bound_y, block.bound_width, block.bound_height]).toEqual(
+            expect.arrayContaining([expect.any(Number)]),
+          );
+          for (const value of [
+            block.bound_x,
+            block.bound_y,
+            block.bound_width,
+            block.bound_height,
+          ]) {
+            expect(value).toBeGreaterThanOrEqual(0);
+            expect(value).toBeLessThanOrEqual(1);
+          }
+          expect(block.confidence_components.routing?.disposition).toMatch(
+            /^(?:native-safe|regional-vision|full-page-vision)$/u,
+          );
+          expect(block.confidence_components.components).toMatchObject({
+            textIntegrity: expect.any(Number),
+            readingOrder: expect.any(Number),
+          });
+        } else {
+          expect(block.native_text).toBe(block.markdown);
+          expect(block.kind).toBe('unknown');
+        }
+      }
     }
+
+    const diagnostics = await app.inject({
+      method: 'GET',
+      url: `/v1/documents/${String(ids[2])}/extraction-diagnostics`,
+      headers: { cookie },
+    });
+    expect(diagnostics.statusCode, diagnostics.body).toBe(200);
+    expect(diagnostics.json()).toMatchObject({
+      documentId: ids[2],
+      revisions: {
+        pdfExtractionVersion: 'pdf-layout.v3-hybrid',
+        confidencePolicyRevision: 'pdf-confidence.v1',
+      },
+      thresholds: { nativeSafe: 0.82, regionalVision: 0.55 },
+      blockCounts: { lowConfidence: expect.any(Number) },
+      enhancedReindexAvailable: false,
+    });
+    const estimate = await app.inject({
+      method: 'GET',
+      url: `/v1/documents/${String(ids[2])}/enhanced-reindex-estimate`,
+      headers: { cookie },
+    });
+    expect(estimate.statusCode, estimate.body).toBe(200);
+    expect(estimate.json()).toMatchObject({
+      documentId: ids[2],
+      imagesPerCall: 3,
+      targetRevisions: { confidencePolicyRevision: 'pdf-confidence.v1' },
+      estimateIsProvisional: true,
+    });
 
     const pagedChunks = await pool.query<{ extension: string; page_start: number | null }>(
       `SELECT d.extension, c.page_start
@@ -266,6 +412,78 @@ describe.sequential('M06 all-format ingestion', () => {
     });
     expect(search.statusCode, search.body).toBe(200);
     expect(search.json<{ items: readonly unknown[] }>().items.length).toBeGreaterThan(0);
+  });
+
+  it('keeps PDF diagnostics and re-index estimates visible through row-level security', async () => {
+    const found = await pool.query<{ id: string }>(
+      "SELECT id::text FROM noderag.document WHERE extension='pdf' ORDER BY id LIMIT 1",
+    );
+    const documentId = Number(found.rows[0]?.id);
+    expect(documentId).toBeGreaterThan(0);
+
+    await pool.query('CREATE ROLE noderag_vision_route_reader NOLOGIN');
+    await pool.query('GRANT USAGE ON SCHEMA noderag TO noderag_vision_route_reader');
+    await pool.query('GRANT SELECT ON ALL TABLES IN SCHEMA noderag TO noderag_vision_route_reader');
+    const restrictedPool = new Pool({
+      host: container.getHost(),
+      port: container.getPort(),
+      database: container.getDatabase(),
+      user: container.getUsername(),
+      password: container.getPassword(),
+      options: '-c role=noderag_vision_route_reader',
+    });
+    const authenticate = async () => ({
+      principalId: administratorId,
+      serverAdmin: true,
+      searchOnly: false,
+      sessionToken: null,
+      csrfAllowed: () => true,
+    });
+    const restrictedApp = buildApp({
+      readiness: async () => ({
+        service: 'noderag',
+        status: 'ok',
+        state: 'operational',
+        migrationHead: null,
+        expectedMigrationHead: 'test',
+        reasons: [],
+      }),
+      uiRoot: join(root, 'missing-ui'),
+      logger: false,
+      identity: {
+        pool: restrictedPool,
+        expectedOrigin: 'http://noderag.test',
+        secureCookie: false,
+        authenticate,
+      },
+      content: {
+        pool: restrictedPool,
+        authenticate,
+        files,
+        embedder: new DeterministicEmbedder(),
+        maximumUploadBytes: 4 * 1024 * 1024,
+        minimumFreeBytes: 0,
+        sourceRoots: [root],
+      },
+    });
+    try {
+      await restrictedApp.ready();
+      for (const endpoint of [
+        'vision-estimate',
+        'extraction-diagnostics',
+        'enhanced-reindex-estimate',
+      ]) {
+        const response = await restrictedApp.inject({
+          method: 'GET',
+          url: `/v1/documents/${String(documentId)}/${endpoint}`,
+        });
+        expect(response.statusCode, response.body).toBe(200);
+        expect(response.json()).toMatchObject({ documentId });
+      }
+    } finally {
+      await restrictedApp.close();
+      await restrictedPool.end();
+    }
   });
 
   it('keeps a scanned PDF honest and waiting for the next milestone vision path', async () => {
@@ -292,6 +510,83 @@ describe.sequential('M06 all-format ingestion', () => {
     expect(result.rows[0]?.metadata.extractionWarnings).toContain('pdf-page-vision-required');
     const chunks = await pool.query('SELECT 1 FROM noderag.chunk WHERE document_id=$1', [id]);
     expect(chunks.rowCount).toBe(0);
+  });
+
+  it('keeps the prior searchable chunks active until an enhanced PDF re-index swaps atomically', async () => {
+    const id = await upload(
+      'reindex-layout.pdf',
+      'application/pdf',
+      await readFile(fixture('pdf', 'two-column.pdf')),
+      'm06-enhanced-reindex-source',
+    );
+    const worker = {
+      pool,
+      files,
+      embedder: new DeterministicEmbedder(),
+      leaseOwner: 'm06-enhanced-reindex-worker',
+    };
+    expect(await drainMarkdownJobs(worker)).toBe(2);
+    const before = await pool.query<{ id: string; text: string }>(
+      `SELECT id::text, text FROM noderag.chunk
+       WHERE document_id = $1 ORDER BY ordinal`,
+      [id],
+    );
+    expect(before.rows.length).toBeGreaterThan(0);
+
+    const queued = await app.inject({
+      method: 'POST',
+      url: `/v1/documents/${String(id)}/reindex`,
+      headers: {
+        cookie,
+        origin: 'http://noderag.test',
+        'x-csrf-token': csrf,
+        'idempotency-key': 'm06-enhanced-reindex-request',
+      },
+      payload: { siloId, enhanced: true },
+    });
+    expect(queued.statusCode, queued.body).toBe(202);
+    expect(queued.json()).toMatchObject({
+      enhanced: true,
+      targetExtractionVersion: 'pdf-layout.v3-hybrid',
+    });
+    await expect(
+      pool.query('SELECT state FROM noderag.document WHERE id = $1', [id]),
+    ).resolves.toMatchObject({ rows: [{ state: 'ready' }] });
+
+    expect(await processOneDocumentJob(worker)).toBe(true);
+    const during = await pool.query<{ id: string; text: string }>(
+      `SELECT id::text, text FROM noderag.chunk
+       WHERE document_id = $1 ORDER BY ordinal`,
+      [id],
+    );
+    expect(during.rows).toEqual(before.rows);
+    await expect(
+      pool.query('SELECT state FROM noderag.document WHERE id = $1', [id]),
+    ).resolves.toMatchObject({ rows: [{ state: 'ready' }] });
+
+    expect(await processOneDocumentJob(worker)).toBe(true);
+    const after = await pool.query<{ id: string; text: string }>(
+      `SELECT id::text, text FROM noderag.chunk
+       WHERE document_id = $1 ORDER BY ordinal`,
+      [id],
+    );
+    expect(after.rows.map(({ text }) => text)).toEqual(before.rows.map(({ text }) => text));
+    expect(after.rows.map(({ id: chunkId }) => chunkId)).not.toEqual(
+      before.rows.map(({ id: chunkId }) => chunkId),
+    );
+    const completed = await pool.query<{
+      state: string;
+      metadata: { enhancedReindex?: { state?: string; pdfExtractionVersion?: string } };
+    }>('SELECT state, metadata FROM noderag.document WHERE id = $1', [id]);
+    expect(completed.rows[0]).toMatchObject({
+      state: 'ready',
+      metadata: {
+        enhancedReindex: {
+          state: 'active',
+          pdfExtractionVersion: 'pdf-layout.v3-hybrid',
+        },
+      },
+    });
   });
 
   it('discovers and ingests all five formats from an allowlisted watched source', async () => {

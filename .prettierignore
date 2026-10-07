@@ -17,3 +17,4 @@ spk/work/
 *.spk
 *.xlsx
 pnpm-lock.yaml
+packages/server/src/chat/generated-fonts.ts

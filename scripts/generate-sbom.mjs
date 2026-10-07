@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import prettier from 'prettier';
+import { concludedRuntimeLicense, reviewedRuntimeLicenseNotes } from './reviewed-licenses.mjs';
 
 const check = process.argv.includes('--check');
 const npmExecPath = process.env['npm_execpath'];
@@ -36,7 +37,8 @@ for (const [license, entries] of Object.entries(inventory)) {
       dependencies.push({
         name: entry.name,
         version,
-        license,
+        declaredLicense: license === 'Unknown' ? 'NOASSERTION' : license,
+        license: concludedRuntimeLicense(entry.name, version, license),
         homepage: entry.homepage,
       });
     }
@@ -45,7 +47,7 @@ for (const [license, entries] of Object.entries(inventory)) {
 const unique = [
   ...new Map(
     dependencies.map((dependency) => [
-      `${dependency.name}\0${dependency.version}\0${dependency.license}`,
+      `${dependency.name}\0${dependency.version}\0${dependency.declaredLicense}\0${dependency.license}`,
       dependency,
     ]),
   ).values(),
@@ -69,7 +71,7 @@ const packages = unique.map((dependency) => ({
   downloadLocation: 'NOASSERTION',
   filesAnalyzed: false,
   licenseConcluded: dependency.license,
-  licenseDeclared: dependency.license,
+  licenseDeclared: dependency.declaredLicense,
   copyrightText: 'NOASSERTION',
   ...(typeof dependency.homepage === 'string' ? { homepage: dependency.homepage } : {}),
   externalRefs: [
@@ -113,12 +115,16 @@ Generated from the exact production dependency graph locked by
 \`pnpm-lock.yaml\`. The machine-readable companion is
 \`platform/sbom.spdx.json\` (SPDX 2.3; lock digest \`${lockDigest}\`).
 
-| Declared license | Locked runtime packages |
+| Concluded license | Locked runtime packages |
 | --- | --- |
 ${[...grouped.entries()]
   .sort(([left], [right]) => left.localeCompare(right))
   .map(([license, values]) => `| ${license} | ${values.join(', ')} |`)
   .join('\n')}
+
+## Reviewed license decisions
+
+${reviewedRuntimeLicenseNotes.map((note) => `- ${note}`).join('\n')}
 
 ## Non-npm runtime components
 
@@ -127,10 +133,10 @@ ${[...grouped.entries()]
 - Qwen3-Embedding-0.6B model and tokenizer artifacts are distributed under Apache-2.0.
 - The pinned Node.js runtime is distributed under its upstream permissive license terms.
 
-All runtime licenses must remain allowed by \`LICENSE-POLICY.md\`. Unknown,
-copyleft, source-available, or custom terms block a release until reviewed and
-documented. Regenerate this file and the SBOM after every lockfile or bundled
-runtime change.
+All runtime licenses must remain allowed by \`LICENSE-POLICY.md\`. An unknown,
+copyleft, source-available, or custom term without an exact package/version
+review blocks a release. Regenerate this file and the SBOM after every lockfile
+or bundled runtime change.
 `,
   { parser: 'markdown' },
 );

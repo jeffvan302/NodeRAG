@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import {
+  api,
+  ApiProblem,
   displayError,
   formatBytes,
   postJson,
@@ -9,6 +11,25 @@ import {
   type Silo,
 } from './api.js';
 import { Field, Icon, Notice, Spinner } from './components.js';
+import { appUrl } from './url.js';
+
+interface DefaultModelStatus {
+  readonly state: 'missing' | 'downloading' | 'paused' | 'failed' | 'ready';
+  readonly downloadedBytes: number;
+  readonly totalBytes: number;
+  readonly progress: number;
+  readonly currentFile: string | null;
+  readonly errorCode: string | null;
+}
+
+interface CalibrationJobStatus {
+  readonly id: string | null;
+  readonly state: 'idle' | 'running' | 'succeeded' | 'failed';
+  readonly phase: 'loading-model' | 'measuring' | 'finalizing' | null;
+  readonly progress: number;
+  readonly result: JsonRecord | null;
+  readonly errorCode: string | null;
+}
 
 const steps = [
   'Verify',
@@ -106,7 +127,7 @@ export const SetupWizard = ({
   return (
     <main class="setup-shell">
       <aside class="setup-aside">
-        <a class="brand" href="/" aria-label="NodeRag home">
+        <a class="brand" href={appUrl('/')} aria-label="NodeRag home">
           <span>N</span>NodeRag
         </a>
         <div>
@@ -281,7 +302,7 @@ export const Login = ({ complete }: { readonly complete: () => void }) => {
   return (
     <main class="login-shell">
       <section class="login-story">
-        <a class="brand" href="/">
+        <a class="brand" href={appUrl('/')}>
           <span>N</span>NodeRag
         </a>
         <div>
@@ -332,6 +353,8 @@ export const FirstRun = ({
   const [error, setError] = useState('');
   const [result, setResult] = useState<JsonRecord | null>(null);
   const [modelCheck, setModelCheck] = useState<JsonRecord | null>(null);
+  const [modelInstall, setModelInstall] = useState<DefaultModelStatus | null>(null);
+  const [calibrationJob, setCalibrationJob] = useState<CalibrationJobStatus | null>(null);
 
   useEffect(() => {
     const recovered = steps.indexOf(status.step.charAt(0).toUpperCase() + status.step.slice(1));
@@ -370,15 +393,68 @@ export const FirstRun = ({
     }
   };
 
+  const ensureDefaultModel = async (): Promise<JsonRecord> => {
+    let install = await api<DefaultModelStatus>('/v1/admin/models/default/status');
+    setModelInstall(install);
+    if (install.state !== 'ready') {
+      install = await postJson<DefaultModelStatus>(
+        '/v1/admin/models/default/install',
+        {},
+        { idempotent: true },
+      );
+      setModelInstall(install);
+    }
+    for (let attempt = 0; attempt < 7200 && install.state !== 'ready'; attempt += 1) {
+      if (install.state === 'failed') {
+        throw new ApiProblem({
+          status: 503,
+          code: install.errorCode ?? 'model_download_failed',
+        });
+      }
+      await new Promise((resolveWait) => setTimeout(resolveWait, 1000));
+      install = await api<DefaultModelStatus>('/v1/admin/models/default/status');
+      setModelInstall(install);
+    }
+    if (install.state !== 'ready') {
+      throw new ApiProblem({ status: 504, code: 'model_download_failed' });
+    }
+    return { ...install };
+  };
+
+  const runCalibration = async (): Promise<JsonRecord> => {
+    let job = await postJson<CalibrationJobStatus>('/v1/admin/calibration/embedding/start', {});
+    setCalibrationJob(job);
+    for (let attempt = 0; attempt < 7200; attempt += 1) {
+      if (job.state === 'succeeded' && job.result !== null) return job.result;
+      if (job.state === 'failed') {
+        throw new ApiProblem({
+          status: 503,
+          code: job.errorCode ?? 'embedding_calibration_failed',
+        });
+      }
+      await new Promise((resolveWait) => setTimeout(resolveWait, 1000));
+      job = await api<CalibrationJobStatus>('/v1/admin/calibration/embedding/status');
+      setCalibrationJob(job);
+    }
+    throw new ApiProblem({ status: 504, code: 'embedding_calibration_timed_out' });
+  };
+
   const storage = async (event: SubmitEvent) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget as HTMLFormElement);
     const managedPath = String(form.get('path') ?? '');
     await run(async () => {
       const probe = await postJson<JsonRecord>('/v1/admin/storage/probe', { managedPath });
+      const verifiedPath =
+        typeof probe['managedPath'] === 'string' ? probe['managedPath'] : managedPath;
       await postJson(
         '/v1/admin/storage',
-        { name: 'Primary documents', managedPath, purpose: 'documents', enabled: true },
+        {
+          name: 'Primary documents',
+          managedPath: verifiedPath,
+          purpose: 'documents',
+          enabled: true,
+        },
         { idempotent: true },
       );
       return probe;
@@ -422,10 +498,11 @@ export const FirstRun = ({
           baseUrl: String(form.get('baseUrl')),
           model: String(form.get('model')),
           ...(bearerToken === '' ? {} : { bearerToken }),
-          maximumParallel: 2,
+          maximumParallel: Number(form.get('maximumParallel')),
+          maximumImagesPerCall: Number(form.get('maximumImagesPerCall')),
           timeoutMs: 120000,
           maximumAttempts: 3,
-          maximumImageDimension: 2048,
+          maximumImageDimension: 1650,
         },
         { idempotent: true },
       ),
@@ -453,7 +530,7 @@ export const FirstRun = ({
   return (
     <main class="first-run-shell">
       <header>
-        <a class="brand" href="/">
+        <a class="brand" href={appUrl('/')}>
           <span>N</span>NodeRag
         </a>
         <div>
@@ -468,15 +545,20 @@ export const FirstRun = ({
             <p class="step-count">Step 4 of 8</p>
             <h1>Choose document storage</h1>
             <p class="muted">
-              Use a persistent folder. For the Docker testbed, the recommended mounted path is shown
-              below.
+              Use NodeRag's private package storage below, or choose an existing Synology folder.
+              Existing shared-folder permissions are preserved; NodeRag creates its own managed
+              subfolder when needed.
             </p>
             <form onSubmit={storage}>
               <Field
                 label="Managed storage path"
-                hint="NodeRag will create the folder if needed and run a write test."
+                hint="The default follows the package if DSM moves it to another volume."
               >
-                <input name="path" defaultValue="/var/lib/noderag/documents" required />
+                <input
+                  name="path"
+                  defaultValue="/var/packages/noderag/var/data/documents"
+                  required
+                />
               </Field>
               {error ? <Notice kind="danger">{error}</Notice> : null}
               <button class="primary" disabled={busy}>
@@ -490,20 +572,35 @@ export const FirstRun = ({
             <p class="step-count">Step 5 of 8</p>
             <h1>Embedding model</h1>
             <p class="muted">
-              The included, checksum-pinned Qwen3 embedding model is the tested default. The
-              production installer adds resumable online download and server-side air-gapped import
-              in Milestone 10.
+              Install the checksum-pinned Qwen3 embedding model into NodeRag's private package
+              storage. The download is approximately 584 MB, resumes after interruptions, and is
+              verified before use.
             </p>
             <div class="choice-card selected">
               <span class="radio-mark" />
               <div>
-                <b>Use the included model</b>
+                <b>Install the recommended model</b>
                 <small>Qwen3-Embedding-0.6B · 1024 dimensions · local CPU</small>
               </div>
               <span class="recommended">Recommended</span>
             </div>
-            <button class="primary" onClick={() => void advance(5)}>
-              Use included model
+            {modelInstall === null || modelInstall.state === 'ready' ? null : (
+              <div class="job-progress" role="status">
+                <progress
+                  max="100"
+                  value={modelInstall.progress}
+                  aria-label="Model download progress"
+                />
+                <small>
+                  {String(modelInstall.progress)}% · {formatBytes(modelInstall.downloadedBytes)} of{' '}
+                  {formatBytes(modelInstall.totalBytes)}
+                </small>
+              </div>
+            )}
+            {error ? <Notice kind="danger">{error}</Notice> : null}
+            <button class="primary" disabled={busy} onClick={() => void run(ensureDefaultModel, 5)}>
+              {busy ? <Spinner /> : null}
+              {busy ? 'Installing model…' : 'Install model and continue'}
             </button>
             <details class="advanced-setup">
               <summary>Verify an air-gapped model file</summary>
@@ -546,6 +643,20 @@ export const FirstRun = ({
               NodeRag will embed 20 representative chunks, then estimate indexing time. No document
               content is retained.
             </p>
+            {modelInstall === null || modelInstall.state === 'ready' ? null : (
+              <div class="job-progress" role="status">
+                <progress
+                  max="100"
+                  value={modelInstall.progress}
+                  aria-label="Model download progress"
+                />
+                <small>
+                  Installing the required local model: {String(modelInstall.progress)}% ·{' '}
+                  {formatBytes(modelInstall.downloadedBytes)} of{' '}
+                  {formatBytes(modelInstall.totalBytes)}
+                </small>
+              </div>
+            )}
             {result === null ? null : (
               <Notice kind="success">
                 <b>{String(result['charactersPerSecond'])} characters/second</b>
@@ -554,16 +665,42 @@ export const FirstRun = ({
                 characters.
               </Notice>
             )}
+            {calibrationJob?.state === 'running' ? (
+              <div class="job-progress" role="status">
+                <progress
+                  max="100"
+                  value={
+                    calibrationJob.phase === 'loading-model' ? undefined : calibrationJob.progress
+                  }
+                  aria-label="Calibration progress"
+                />
+                <small>
+                  {calibrationJob.phase === 'loading-model'
+                    ? 'Loading the local model for the first time. This may take several minutes on a NAS.'
+                    : calibrationJob.phase === 'measuring'
+                      ? `Measuring 20 representative chunks: ${String(calibrationJob.progress)}%`
+                      : 'Finishing the calibration measurement…'}
+                </small>
+              </div>
+            ) : null}
             {error ? <Notice kind="danger">{error}</Notice> : null}
             <div class="button-row">
               <button
                 class="primary"
                 disabled={busy}
                 onClick={() =>
-                  void run(() => postJson<JsonRecord>('/v1/admin/calibration/embedding', {}))
+                  void run(async () => {
+                    await ensureDefaultModel();
+                    return runCalibration();
+                  })
                 }
               >
-                {busy ? <Spinner /> : null}Run calibration
+                {busy ? <Spinner /> : null}
+                {busy
+                  ? modelInstall?.state !== 'ready'
+                    ? 'Installing model…'
+                    : 'Calibrating…'
+                  : 'Run calibration'}
               </button>
               {result === null ? null : (
                 <button class="secondary" onClick={() => void advance(6)}>
@@ -598,7 +735,7 @@ export const FirstRun = ({
                 />
               </Field>
               <Field label="Vision model">
-                <input name="model" defaultValue="qwen2.5vl:7b" required />
+                <input name="model" defaultValue="minimax-m3:cloud" required />
               </Field>
               <Field
                 label="Ollama API key"
@@ -611,6 +748,34 @@ export const FirstRun = ({
                   placeholder="Enter your Ollama API key"
                 />
               </Field>
+              <div class="field-grid">
+                <Field
+                  label="Parallel vision calls"
+                  hint="How many provider requests may run at the same time."
+                >
+                  <input
+                    name="maximumParallel"
+                    type="number"
+                    min="1"
+                    max="16"
+                    defaultValue="2"
+                    required
+                  />
+                </Field>
+                <Field
+                  label="Images per call"
+                  hint="How many images are grouped into each provider request. The default is 3."
+                >
+                  <input
+                    name="maximumImagesPerCall"
+                    type="number"
+                    min="1"
+                    max="16"
+                    defaultValue="3"
+                    required
+                  />
+                </Field>
+              </div>
               {result ? (
                 <Notice kind="success">
                   Connection succeeded in {String(result['elapsedMs'])} ms.

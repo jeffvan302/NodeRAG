@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "stage": "C06",
+  "name": "Permission-scoped RAG Search",
+  "recordedAt": "2026-09-15T07:58:03.6216191-04:00",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "boundary": {
+    "researchToolsIndependent": true,
+    "ragToolsEnabled": true,
+    "internetEnabled": false,
+    "currentSiloScopePerCall": true,
+    "ollamaMeaning": "ollama_cloud_only",
+    "ollamaServiceRoot": "https://ollama.com",
+    "futureInternetSearchEndpoint": "https://ollama.com/api/web_search",
+    "futureInternetFetchEndpoint": "https://ollama.com/api/web_fetch",
+    "futureInternetProvider": "ollama_cloud",
+    "localOllamaAccepted": false,
+    "openAiInternetSearchEnabled": false,
+    "synologyDsmExecution": "deferred_to_C11"
+  },
+  "implementation": {
+    "migration": {
+      "path": "packages/server/migrations/000024_chat_rag.sql",
+      "sha256": "4985ae3ead0f1e5683437e1ffe7817517bfab935deee67aaf6726313188c2312"
+    },
+    "ragServiceSha256": "5b68e4fc410d2e1d9380fca7c8a1ee1d27ecece53bc42959f719d12bca301e74",
+    "runnerSha256": "b017f19195dc13efeee7e8451f2e3d6ec35f3cbc3f1e54b27130ab6b49cc9c7e",
+    "routesSha256": "985922bfd54cff7827d323dd199cf79e7c1ffe9b6f9033506d1abd83015e8ce9",
+    "appSha256": "4738539f2e232c09c72fa81403633cdb0616507fcf040bc85640008ce748100d",
+    "workerSha256": "86fa8bb1f2125e2ce5d4dd5487a2059c14d25e32afea00e37da01db176e66946",
+    "integrationTestSha256": "2bfd8f3bdcd6dc88fb385f7d09af5a34bb93bff876350461af7a43b4dc37de43",
+    "chatUiSha256": "c3fcf19f341fcc6e57d4b596720cc3ef2a07960bbbc8ff8792b2173e7b22607d",
+    "browserTestSha256": "dcf7f6e85b4ffadadcd7ea16f82cf97797cd64709387181d4ec74d1b830c618a",
+    "routeAuthorizationSha256": "08a08c704be3f96239cbe144fbbdbf33605939781a6d66d1e1287ce81b4dd847",
+    "openApiSha256": "c08ed072fe0496c6f79745d0d7fce803ec598857ba275ced444b2fb269b47c55",
+    "backupPolicySha256": "9b6105021835f1fd3fbc14719087e10c1b92fa674a0995323be93f3b122ad180",
+    "migrationInventorySha256": "3266850190720f78f4cb67c6ce68bac87f679c0da4beaf6239cab5451f63c3d5"
+  },
+  "limits": {
+    "maximumSearchResults": 20,
+    "defaultSearchResults": 8,
+    "maximumRagSearchesPerRun": 8,
+    "maximumPassageCharacters": 12000,
+    "maximumCitationChunkIds": 64,
+    "maximumMarkdownReadCharacters": 24000,
+    "maximumEncodedToolResultBytes": 524288
+  },
+  "verification": {
+    "chatRagIntegration": {
+      "result": "passed",
+      "tests": 5,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "combinedChatAndRecoveryIntegration": {
+      "result": "passed",
+      "files": 6,
+      "tests": 40,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "retrievalModes": ["keyword", "semantic", "hybrid", "vector"],
+    "fullBrowser": { "result": "passed", "tests": 26, "wcagAAndAA": "passed" },
+    "fullUnit": { "result": "passed", "files": 47, "tests": 195 },
+    "migrationInventory": { "result": "passed", "head": "000024_chat_rag" },
+    "workspaceTypecheck": { "result": "passed", "projects": 6 },
+    "workspaceLint": { "result": "passed" },
+    "workspaceFormat": { "result": "passed" },
+    "dependencyBoundaries": { "result": "passed", "modules": 169, "dependencies": 329 },
+    "buildAndSmoke": { "result": "passed" },
+    "licenseInventory": { "result": "passed", "licenseClasses": 7 },
+    "sbom": { "result": "passed", "runtimePackages": 267 },
+    "secretScan": { "result": "passed" },
+    "combinedQualityGate": { "result": "passed" }
+  },
+  "faultEvidence": [
+    "zero-grant search returns no results",
+    "one-grant cross-silo tool arguments cannot expose the inaccessible matching document",
+    "grant revocation between search and Markdown read fails closed",
+    "changed source hash becomes stale without content substitution",
+    "search-only API credential cannot enter Chat",
+    "non-owner citation read returns chat_not_found",
+    "identical query loop is suppressed by canonical request digest",
+    "long overlapping-hit passage is clipped with explicit provenance and paged document read",
+    "RAG-disabled deployment rejects opt-in and sends no RAG tools",
+    "all four retrieval modes preserve ordinary Search confidence and locators"
+  ],
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "remaining": [
+    "C07 adds explicit Ollama Cloud web search/fetch with bounded web provenance.",
+    "C08-C10 add contained artifacts, exports, ingest, managed context, and archives.",
+    "Real Synology DSM execution and a new SPK remain the C11 package gate."
+  ]
+}

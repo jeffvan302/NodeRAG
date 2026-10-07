@@ -3,7 +3,7 @@
     "shares": [
       {
         "name": "NodeRag",
-        "permission": { "rw": ["sc-noderag"] },
+        "permission": { "rw": ["noderag"] },
         "once": true
       }
     ]
@@ -17,7 +17,13 @@
         "service": "noderag",
         "display_name": "NodeRag",
         "type": "reverse_proxy",
-        "proxy": { "backend": "http://127.0.0.1:8787" }
+        "icon": "ui/images/icon_{0}.png",
+        "proxy_target": "http://127.0.0.1:8787",
+        "proxy_headers": [
+          { "name": "X-Forwarded-Host", "value": "$http_host" },
+          { "name": "X-Forwarded-Proto", "value": "$scheme" },
+          { "name": "X-Forwarded-For", "value": "$proxy_add_x_forwarded_for" }
+        ]
       }
     ],
     "portals": [

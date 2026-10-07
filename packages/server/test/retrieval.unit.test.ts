@@ -7,6 +7,19 @@ import {
   type RankedCandidate,
 } from '../src/search/retrieval.js';
 import { CursorError, decodeCursor, encodeCursor } from '../src/api/cursor.js';
+import {
+  assertRetrievalCalibration,
+  combinedMatchConfidence,
+  keywordMatchConfidence,
+  passageLexicalEvidenceConfidence,
+  vectorMatchConfidence,
+} from '../src/search/confidence.js';
+import {
+  cosineSimilarity,
+  exactSearchEvidence,
+  semanticSearchEvidence,
+  semanticSentenceCandidates,
+} from '../src/search/evidence.js';
 
 const row = (
   input: Partial<CandidateRow> &
@@ -42,8 +55,72 @@ const row = (
 });
 
 describe('M08 retrieval algorithms', () => {
+  it('rejects weak vector matches and maps measured anchors to conservative confidence', () => {
+    const calibration = {
+      minimumVectorSimilarity: 0.3,
+      highConfidenceVectorSimilarity: 0.7,
+    };
+    expect(vectorMatchConfidence(0.299, calibration)).toBe(0);
+    expect(vectorMatchConfidence(0.3, calibration)).toBe(0.5);
+    expect(vectorMatchConfidence(0.5, calibration)).toBeGreaterThan(0.7);
+    expect(vectorMatchConfidence(0.7, calibration)).toBe(0.99);
+    expect(() =>
+      assertRetrievalCalibration({
+        minimumVectorSimilarity: 0.8,
+        highConfidenceVectorSimilarity: 0.7,
+      }),
+    ).toThrow('invalid-retrieval-confidence-calibration');
+  });
+
+  it('assigns stronger confidence to exact lexical matches and agreeing retrieval modes', () => {
+    const lexical = keywordMatchConfidence(
+      'tax revenue',
+      'The annual tax revenue supports municipal services.',
+      0.2,
+    );
+    const partial = keywordMatchConfidence('tax revenue', 'A tax district.', 0.05);
+    expect(lexical).toBeGreaterThan(partial);
+    expect(combinedMatchConfidence(0.7, lexical)).toBeGreaterThan(Math.max(0.7, lexical));
+    expect(passageLexicalEvidenceConfidence('revenue', 'Municipal revenue sources.')).toBe(0.75);
+    expect(passageLexicalEvidenceConfidence('revenue', 'Municipal revenues increased.')).toBe(0.75);
+    expect(passageLexicalEvidenceConfidence('revenue', 'Municipal expenditure sources.')).toBe(
+      undefined,
+    );
+  });
+
   it('normalizes queries to NFC without changing their meaning', () => {
     expect(normalizeSearchQuery('  Cafe\u0301\t  costs  ')).toBe('Café costs');
+  });
+
+  it('builds short exact and semantic evidence without returning the whole passage', () => {
+    expect(
+      exactSearchEvidence(
+        'tax revenue',
+        'Municipal revenues rose. Tax receipts funded public services.',
+      ),
+    ).toEqual([
+      { kind: 'exact', text: 'revenues', confidence: 1 },
+      { kind: 'exact', text: 'Tax', confidence: 1 },
+    ]);
+    const sentences = semanticSentenceCandidates(
+      'Municipal revenues rose. Public services received additional funding. Tiny.',
+    );
+    expect(sentences).toEqual([
+      'Municipal revenues rose.',
+      'Public services received additional funding.',
+    ]);
+    expect(cosineSimilarity([1, 0], [0.8, 0.6])).toBeCloseTo(0.8);
+    expect(
+      semanticSearchEvidence(
+        ['strong semantic evidence', 'unrelated sentence'],
+        [1, 0],
+        [
+          [0.8, 0.6],
+          [0, 1],
+        ],
+        { minimumVectorSimilarity: 0.3, highConfidenceVectorSimilarity: 0.7 },
+      ),
+    ).toEqual([{ kind: 'semantic', text: 'strong semantic evidence', confidence: 0.99 }]);
   });
 
   it('uses deterministic RRF k=60 and combines duplicate candidates', () => {
@@ -73,10 +150,12 @@ describe('M08 retrieval algorithms', () => {
       {
         row: row({ id: 1, document_id: 10, character_start: 0, character_end: 6, text: 'abcdef' }),
         score: 0.7,
+        evidence: [{ kind: 'semantic', text: 'matched sentence', confidence: 0.7 }],
       },
       {
         row: row({ id: 2, document_id: 10, character_start: 4, character_end: 10, text: 'efghij' }),
         score: 0.9,
+        evidence: [{ kind: 'semantic', text: 'matched sentence', confidence: 0.9 }],
       },
       {
         row: row({ id: 3, document_id: 10, character_start: 10, character_end: 13, text: 'klm' }),
@@ -93,6 +172,9 @@ describe('M08 retrieval algorithms', () => {
     expect(merged?.text).toBe('abcdefghijklm');
     expect(merged?.chunkIds).toEqual([1, 2, 3]);
     expect(merged?.score).toBe(0.9);
+    expect(merged?.evidence).toEqual([
+      { kind: 'semantic', text: 'matched sentence', confidence: 0.9 },
+    ]);
     expect(merged?.locator).toMatchObject({ characterStart: 0, characterEnd: 13 });
   });
 

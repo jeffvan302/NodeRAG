@@ -11,6 +11,13 @@ import { readinessPermits } from '../application/readiness-policy.js';
 import { hashNormalizedQuery, writeAuditEvent } from '../application/audit.js';
 import { coordinatedEmbedder } from '../store/resources.js';
 import { executeSearch, normalizeSearchQuery, type SearchFilters } from '../search/retrieval.js';
+import {
+  exactSearchEvidence,
+  semanticSearchEvidence,
+  semanticSentenceCandidates,
+} from '../search/evidence.js';
+import { SemanticEvidenceCache, semanticEvidenceCacheKey } from '../search/evidence-cache.js';
+import { qwenQ8RetrievalCalibration } from '../search/confidence.js';
 import type { ContentRoutesOptions } from './content-routes.js';
 import type { AuthenticatedPrincipal } from './authentication.js';
 import { decodeCursor, encodeCursor, CursorError } from './cursor.js';
@@ -34,12 +41,13 @@ const filterSchema = z
     pageTo: z.number().int().min(0).max(1_000_000).optional(),
     hasImages: z.boolean().optional(),
     hasTables: z.boolean().optional(),
+    minimumConfidence: z.number().min(0.05).max(0.95).optional(),
   })
   .strict();
 const searchSchema = z
   .object({
     query: z.string().min(1).max(4000),
-    mode: z.enum(['vector', 'keyword', 'hybrid']).default('vector'),
+    mode: z.enum(['vector', 'semantic', 'keyword', 'hybrid']).default('vector'),
     silos: z.array(positiveSmallId).min(1).max(64).optional(),
     siloIds: z.array(positiveSmallId).min(1).max(64).optional(),
     filters: filterSchema.default({}),
@@ -55,6 +63,13 @@ const embedSchema = z
   .object({
     texts: z.array(z.string().min(1).max(32_000)).min(1).max(16),
     inputType: z.enum(['query', 'document']).default('document'),
+  })
+  .strict();
+const evidenceSchema = z
+  .object({
+    query: z.string().min(1).max(4000),
+    mode: z.enum(['vector', 'semantic', 'keyword', 'hybrid']),
+    chunkIds: z.array(idSchema).min(1).max(8),
   })
   .strict();
 const listSchema = z.object({
@@ -84,6 +99,9 @@ const exactFilters = (filters: z.infer<typeof filterSchema>): SearchFilters => (
   ...(filters.pageTo === undefined ? {} : { pageTo: filters.pageTo }),
   ...(filters.hasImages === undefined ? {} : { hasImages: filters.hasImages }),
   ...(filters.hasTables === undefined ? {} : { hasTables: filters.hasTables }),
+  ...(filters.minimumConfidence === undefined
+    ? {}
+    : { minimumConfidence: filters.minimumConfidence }),
 });
 
 interface DocumentRow {
@@ -108,7 +126,30 @@ interface DocumentRow {
   readonly created_at: Date;
   readonly indexed_at: Date | null;
   readonly image_count?: unknown;
+  readonly ingestion_jobs?: unknown;
 }
+
+const documentIngestionJobs = `
+  (SELECT COALESCE(jsonb_agg(summary.item ORDER BY summary.id DESC), '[]'::jsonb)
+   FROM (
+     SELECT job.id,
+            jsonb_build_object(
+              'id', job.id,
+              'kind', job.kind,
+              'state', job.state,
+              'logicalAttempt', job.logical_attempt,
+              'maximumAttempts', job.max_attempts,
+              'progress', job.progress,
+              'createdAt', job.created_at,
+              'updatedAt', job.updated_at,
+              'finishedAt', job.finished_at,
+              'error', job.structured_error
+            ) AS item
+     FROM noderag.job job
+     WHERE job.document_id=d.id AND job.silo_id=d.silo_id
+       AND job.kind IN ('extract','vision','embed')
+     ORDER BY job.id DESC LIMIT 12
+   ) summary) AS ingestion_jobs`;
 
 const requirePrincipal = async (
   request: FastifyRequest,
@@ -148,6 +189,7 @@ const asDocument = (row: DocumentRow) => ({
   ...(row.image_count === undefined
     ? {}
     : { imageCount: databaseInteger(row.image_count, 'image count') }),
+  ...(row.ingestion_jobs === undefined ? {} : { ingestionJobs: row.ingestion_jobs }),
 });
 
 const findDocument = async (
@@ -165,7 +207,8 @@ const findDocument = async (
   const found = await withSiloScope(options.pool, scope, (database) =>
     database.query<DocumentRow>(
       `SELECT d.*, (SELECT count(*) FROM noderag.document_image i
-                    WHERE i.document_id = d.id AND i.silo_id = d.silo_id) AS image_count
+                    WHERE i.document_id = d.id AND i.silo_id = d.silo_id) AS image_count,
+              ${documentIngestionJobs}
        FROM noderag.document d WHERE d.id = $1 AND d.silo_id = ANY ($2::smallint[])`,
       [documentId, scope.siloIds],
     ),
@@ -185,6 +228,8 @@ export const registerRetrievalRoutes = (
   options: ContentRoutesOptions,
   gatewayId?: number,
 ): void => {
+  const semanticEvidenceCache = new SemanticEvidenceCache();
+
   app.post('/v1/search', async (request, reply) => {
     const principal = await requirePrincipal(request, options.authenticate);
     if (principal === null) return sendProblem(reply, 401, 'authentication_required', request.id);
@@ -248,6 +293,9 @@ export const registerRetrievalRoutes = (
           limit: Math.min(200, offset + body.limit + 1),
           filters: exactFilters(body.filters),
         },
+        ...(options.retrievalCalibration === undefined
+          ? {}
+          : { calibration: options.retrievalCalibration }),
       });
       const page = result.items.slice(offset, offset + body.limit);
       const hasNext = result.items.length > offset + body.limit;
@@ -287,6 +335,120 @@ export const registerRetrievalRoutes = (
       if (code === 'incompatible_active_models')
         return sendProblem(reply, 503, 'incompatible_active_models', request.id);
       throw error;
+    }
+  });
+
+  app.post('/v1/search/evidence', async (request, reply) => {
+    const principal = await requirePrincipal(request, options.authenticate);
+    if (principal === null) return sendProblem(reply, 401, 'authentication_required', request.id);
+    if (!(await readReady(options))) return sendProblem(reply, 503, 'read_not_ready', request.id);
+    const parsed = evidenceSchema.safeParse(request.body);
+    if (!parsed.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    const body = parsed.data;
+    const chunkIds = [...new Set(body.chunkIds)];
+    const scope = await SiloScope.resolve(options.pool, principal.principalId, 'read_chunk', {
+      ...(gatewayId === undefined ? {} : { gatewayId }),
+    });
+    if (scope.siloIds.length === 0) return sendProblem(reply, 404, 'not_found', request.id);
+    const rows = await withSiloScope(options.pool, scope, (database) =>
+      database.query<{
+        id: unknown;
+        text: string;
+        maximum_tokens: number;
+        query_prefix: string;
+        document_prefix: string;
+        dimensions: number;
+        manifest_digest: string;
+      }>(
+        `SELECT chunk.id, chunk.text, manifest.maximum_tokens, build.query_prefix,
+                manifest.document_prefix, manifest.dimensions, manifest.manifest_digest
+         FROM noderag.chunk chunk
+         JOIN noderag.silo_build_state active
+           ON active.silo_id=chunk.silo_id AND active.build_id=chunk.build_id
+          AND active.state='active'
+         JOIN noderag.build build ON build.id=chunk.build_id
+         JOIN noderag.model_manifest manifest ON manifest.id=build.model_manifest_id
+         WHERE chunk.id=ANY($1::bigint[]) AND chunk.silo_id=ANY($2::smallint[])
+         ORDER BY array_position($1::bigint[], chunk.id)`,
+        [chunkIds, scope.siloIds],
+      ),
+    );
+    if (rows.rows.length !== chunkIds.length)
+      return sendProblem(reply, 404, 'not_found', request.id);
+    const modelKeys = new Set(
+      rows.rows.map(
+        (row) =>
+          `${row.manifest_digest}:${String(row.dimensions)}:${String(row.maximum_tokens)}:${row.query_prefix}:${row.document_prefix}`,
+      ),
+    );
+    if (modelKeys.size !== 1)
+      return sendProblem(reply, 503, 'incompatible_active_models', request.id);
+    const model = rows.rows[0];
+    if (model === undefined) return sendProblem(reply, 404, 'not_found', request.id);
+    const passage = rows.rows.map(({ text }) => text).join('\n');
+    const exact = exactSearchEvidence(body.query, passage);
+    if (body.mode === 'keyword') {
+      return reply.send({
+        items: exact,
+        semanticStatus: 'not-requested',
+        semanticCache: 'not-used',
+      });
+    }
+    const candidates = semanticSentenceCandidates(passage);
+    if (candidates.length === 0) {
+      return reply.send({
+        items: body.mode === 'semantic' ? [] : exact,
+        semanticStatus: 'ready',
+        semanticCache: 'not-used',
+      });
+    }
+    const calibration = options.retrievalCalibration ?? qwenQ8RetrievalCalibration;
+    const cacheKey = semanticEvidenceCacheKey({
+      query: normalizeSearchQuery(body.query),
+      passage,
+      manifestDigest: model.manifest_digest,
+      dimensions: model.dimensions,
+      maximumTokens: model.maximum_tokens,
+      queryPrefix: model.query_prefix,
+      documentPrefix: model.document_prefix,
+      calibration,
+    });
+    try {
+      const cached = await semanticEvidenceCache.getOrCompute(cacheKey, async () => {
+        const embedded = await coordinatedEmbedder(
+          options.pool,
+          `evidence:${request.id}`,
+          options.embedder,
+        ).embed(
+          [
+            `${model.query_prefix}${normalizeSearchQuery(body.query)}`,
+            ...candidates.map((candidate) => `${model.document_prefix}${candidate}`),
+          ],
+          model.maximum_tokens,
+          1,
+          { manifestDigest: model.manifest_digest, dimensions: model.dimensions },
+        );
+        const queryVector = embedded.vectors[0];
+        if (queryVector === undefined) throw new Error('query-vector-missing');
+        return semanticSearchEvidence(
+          candidates,
+          queryVector,
+          embedded.vectors.slice(1),
+          calibration,
+          4,
+        );
+      });
+      return reply.send({
+        items: body.mode === 'semantic' ? cached.evidence : [...exact, ...cached.evidence],
+        semanticStatus: 'ready',
+        semanticCache: cached.status,
+      });
+    } catch {
+      return reply.send({
+        items: body.mode === 'semantic' ? [] : exact,
+        semanticStatus: 'unavailable',
+        semanticCache: 'not-used',
+      });
     }
   });
 
@@ -373,7 +535,8 @@ export const registerRetrievalRoutes = (
     const found = await withSiloScope(options.pool, scope, (database) =>
       database.query<DocumentRow>(
         `SELECT d.*, (SELECT count(*) FROM noderag.document_image i
-                      WHERE i.document_id = d.id AND i.silo_id = d.silo_id) AS image_count
+                      WHERE i.document_id = d.id AND i.silo_id = d.silo_id) AS image_count,
+                ${documentIngestionJobs}
          FROM noderag.document d
          WHERE d.silo_id = ANY ($1::smallint[])
            AND ($2::text IS NULL OR d.state = $2)

@@ -2,12 +2,17 @@ import { createHash } from 'node:crypto';
 import { posix } from 'node:path';
 import { XMLParser } from 'fast-xml-parser';
 import type {
+  AnalysedVisionResult,
   ExtractedDocument,
   ExtractedImage,
   ExtractedPage,
   ExtractionOptions,
   InjectedVision,
+  SkippedVisionResult,
+  PendingVisionResult,
+  VisionRequest,
 } from './contract.js';
+import { analyseVisionRequests } from './contract.js';
 import { openOfficeArchive, type OfficeArchive } from './office-archive.js';
 import { extractedImageFromVision, markdownFromVision } from '../vision/result.js';
 
@@ -100,11 +105,62 @@ interface RenderContext {
   readonly archive: OfficeArchive;
   readonly relations: ReadonlyMap<string, string>;
   readonly injectedVision?: InjectedVision;
+  readonly visionResults?: ReadonlyMap<
+    string,
+    {
+      readonly request: VisionRequest;
+      readonly result: AnalysedVisionResult | PendingVisionResult | SkippedVisionResult;
+    }
+  >;
   readonly images: ExtractedImage[];
   readonly warnings: string[];
   renderedBreakSeen: boolean;
   explicitBreakSeen: boolean;
 }
+
+const prepareDocumentVision = async (
+  nodes: readonly XmlNode[],
+  archive: OfficeArchive,
+  relations: ReadonlyMap<string, string>,
+  injectedVision: InjectedVision | undefined,
+): Promise<RenderContext['visionResults']> => {
+  if (injectedVision === undefined) return undefined;
+  const relationshipIds = [
+    ...new Set(
+      allTags(nodes, 'blip')
+        .map((blip) => attributes(blip)['@_embed'])
+        .filter((id): id is string => id !== undefined),
+    ),
+  ];
+  const prepared = (
+    await Promise.all(
+      relationshipIds.map(async (relationshipId) => {
+        const path = relations.get(relationshipId);
+        if (path === undefined || !archive.entries.has(path)) return null;
+        const bytes = await archive.read(path);
+        const request: VisionRequest = {
+          kind: 'document-image',
+          bytes,
+          mediaType: mediaType(path),
+          pageNumber: null,
+          imageId: createHash('sha256').update(bytes).digest('hex'),
+        };
+        return { relationshipId, request };
+      }),
+    )
+  ).filter((item): item is NonNullable<typeof item> => item !== null);
+  const results = await analyseVisionRequests(
+    injectedVision,
+    prepared.map(({ request }) => request),
+  );
+  return new Map(
+    prepared.map((item, index) => {
+      const result = results[index];
+      if (result === undefined) throw new Error('vision-result-missing');
+      return [item.relationshipId, { request: item.request, result }] as const;
+    }),
+  );
+};
 
 const imageBlock = async (relationshipId: string, context: RenderContext): Promise<string> => {
   const path = context.relations.get(relationshipId);
@@ -112,8 +168,9 @@ const imageBlock = async (relationshipId: string, context: RenderContext): Promi
     context.warnings.push('docx-image-relationship-missing');
     return '';
   }
-  const bytes = await context.archive.read(path);
-  const id = createHash('sha256').update(bytes).digest('hex');
+  const prepared = context.visionResults?.get(relationshipId);
+  const bytes = prepared?.request.bytes ?? (await context.archive.read(path));
+  const id = prepared?.request.imageId ?? createHash('sha256').update(bytes).digest('hex');
   const sequence = context.images.length;
   if (context.injectedVision === undefined) {
     context.images.push({
@@ -126,14 +183,14 @@ const imageBlock = async (relationshipId: string, context: RenderContext): Promi
     context.warnings.push('docx-image-vision-pending');
     return `<!-- noderag:image id="${id}" -->\n[Image pending analysis]\n<!-- /noderag:image -->`;
   }
-  const request = {
+  const request: VisionRequest = prepared?.request ?? {
     kind: 'document-image',
     bytes,
     mediaType: mediaType(path),
     pageNumber: null,
     imageId: id,
-  } as const;
-  const result = await context.injectedVision.analyse(request);
+  };
+  const result = prepared?.result ?? (await context.injectedVision.analyse(request));
   context.images.push(extractedImageFromVision(request, sequence, result));
   if (result.disposition === 'analysed' && result.confidence < 0.5)
     context.warnings.push('docx-image-low-vision-confidence');
@@ -319,10 +376,13 @@ export const extractDocx = async (
   const nodes = parser.parse(await archive.text('word/document.xml')) as XmlNode[];
   const body = findTag(nodes, 'body');
   if (body === null) throw new Error('docx-body-missing');
+  const relations = await relationMap(archive);
+  const visionResults = await prepareDocumentVision(nodes, archive, relations, injectedVision);
   const context: RenderContext = {
     archive,
-    relations: await relationMap(archive),
+    relations,
     ...(injectedVision === undefined ? {} : { injectedVision }),
+    ...(visionResults === undefined ? {} : { visionResults }),
     images: [],
     warnings: [],
     renderedBreakSeen: false,

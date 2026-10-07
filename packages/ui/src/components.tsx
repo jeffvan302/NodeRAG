@@ -4,7 +4,10 @@ import { useEffect } from 'preact/hooks';
 export const Icon = ({ name }: { readonly name: string }) => {
   const paths: Record<string, ComponentChildren> = {
     search: <path d="m21 21-4.4-4.4m2.4-5.1a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" />,
+    research: <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Zm3 0v16m4-12h4m-4 4h4" />,
+    chat: <path d="M4 5h16v11H9l-5 4V5Zm4 5h.01M12 10h.01M16 10h.01" />,
     documents: <path d="M7 3h7l4 4v14H7V3Zm7 0v5h5M10 12h5m-5 4h5" />,
+    knowledge: <path d="M4 5h16v14H4V5Zm4 4h8m-8 4h8m-8 4h5" />,
     ingest: <path d="M12 16V4m0 0L7 9m5-5 5 5M5 20h14" />,
     activity: <path d="M3 12h4l2-6 4 12 2-6h6" />,
     settings: (
@@ -15,6 +18,9 @@ export const Icon = ({ name }: { readonly name: string }) => {
     check: <path d="m5 12 4 4L19 6" />,
     warning: <path d="M12 4 3 20h18L12 4Zm0 5v5m0 3v.01" />,
     copy: <path d="M8 8h11v12H8V8Zm-3 8H4V4h11v1" />,
+    plus: <path d="M12 5v14M5 12h14" />,
+    edit: <path d="m4 20 4.2-1 10.4-10.4a2.1 2.1 0 0 0-3-3L5.2 16 4 20Zm10-13 3 3" />,
+    folder: <path d="M3 6h7l2 2h9v11H3V6Z" />,
     arrow: <path d="m9 18 6-6-6-6" />,
     menu: <path d="M4 7h16M4 12h16M4 17h16" />,
     moon: <path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z" />,
@@ -94,11 +100,13 @@ export const Modal = ({
   children,
   close,
   wide = false,
+  className = '',
 }: {
   readonly title: string;
   readonly children: ComponentChildren;
   readonly close: () => void;
   readonly wide?: boolean;
+  readonly className?: string;
 }) => {
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -115,7 +123,7 @@ export const Modal = ({
     >
       <section
         aria-modal="true"
-        class={`modal ${wide ? 'wide' : ''}`}
+        class={`modal ${wide ? 'wide' : ''} ${className}`.trim()}
         role="dialog"
         aria-labelledby="modal-title"
       >
@@ -148,7 +156,7 @@ export const Field = ({
 );
 
 export const SkeletonRows = ({ count = 3 }: { readonly count?: number }) => (
-  <div class="skeleton-list" aria-label="Loading" aria-busy="true">
+  <div class="skeleton-list" role="status" aria-label="Loading" aria-busy="true">
     {Array.from({ length: count }, (_, index) => (
       <div class="skeleton" key={index} />
     ))}

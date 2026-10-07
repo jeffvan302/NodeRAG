@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "name": "M4 frozen document-ranking signals",
+  "sourceCatalog": "gold-fixture-catalog.json",
+  "retrievalConfiguration": {
+    "mode": "hybrid",
+    "keywordWeight": 0.4,
+    "vectorWeight": 0.6,
+    "minimumScore": 0.15,
+    "protectedDepth": 1,
+    "rrfK": 60
+  },
+  "documents": [
+    {
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "sourceTitle": "Town of Smyrna Financial Statements for December 31, 2024",
+      "fileName": "1. Town of Smyrna Financial Statements for December 31, 2024.pdf",
+      "sourceIdentityDigest": "7b450d6c1af0a9839e91557f19e4cd08dc66f84e24ed6809d8bf722711a8b3f5",
+      "documentKeywordIndexDigest": "7b450d6c1af0a9839e91557f19e4cd08dc66f84e24ed6809d8bf722711a8b3f5",
+      "documentVectorIndexDigest": "7b450d6c1af0a9839e91557f19e4cd08dc66f84e24ed6809d8bf722711a8b3f5"
+    },
+    {
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "sourceTitle": "2020 Smyrna Comprehensive Plan",
+      "fileName": "2. 2020 Smyrna Comp Plan FINAL.pdf",
+      "sourceIdentityDigest": "f4735813ce31ab8e15017f6a9404a06520b64b093e238e552079630d2a325630",
+      "documentKeywordIndexDigest": "f4735813ce31ab8e15017f6a9404a06520b64b093e238e552079630d2a325630",
+      "documentVectorIndexDigest": "f4735813ce31ab8e15017f6a9404a06520b64b093e238e552079630d2a325630"
+    },
+    {
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "sourceTitle": "Comprehensive Plan Town Council Presentation",
+      "fileName": "3. Comp Plan Town Council Presentation1 September 30 2020_1.pdf",
+      "sourceIdentityDigest": "6be00013d1d1d825df03029c789e6f5e3500b7f940681cf34a71e8b1c2596d31",
+      "documentKeywordIndexDigest": "6be00013d1d1d825df03029c789e6f5e3500b7f940681cf34a71e8b1c2596d31",
+      "documentVectorIndexDigest": "6be00013d1d1d825df03029c789e6f5e3500b7f940681cf34a71e8b1c2596d31"
+    },
+    {
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "sourceTitle": "Town of Smyrna Performance Audit Report 2022-2023",
+      "fileName": "4. Town-of-Smyrna-Performance-Audit-Report-2022-2023-1.pdf",
+      "sourceIdentityDigest": "f8ded76d5226d49aca85154c081320f1779e69526535477cf91299b5fc2f3f37",
+      "documentKeywordIndexDigest": "f8ded76d5226d49aca85154c081320f1779e69526535477cf91299b5fc2f3f37",
+      "documentVectorIndexDigest": "f8ded76d5226d49aca85154c081320f1779e69526535477cf91299b5fc2f3f37"
+    }
+  ],
+  "cases": [
+    {
+      "queryKey": "financial_position",
+      "requirementKey": "financial_position",
+      "query": "audited financial position, revenues, expenditures, debt, and material findings",
+      "expectedCandidateKeys": ["financial_statements_2024"],
+      "allowedAdditionalCandidateKeys": ["performance_audit_2022_2023"],
+      "signals": [
+        {
+          "candidateKey": "financial_statements_2024",
+          "chunkKey": "financial_statements_2024_p18",
+          "keywordScore": 22.5,
+          "vectorSimilarity": 0.94,
+          "pageNumber": 18
+        },
+        {
+          "candidateKey": "performance_audit_2022_2023",
+          "chunkKey": "performance_audit_2022_2023_p12",
+          "keywordScore": 7.5,
+          "vectorSimilarity": 0.58,
+          "pageNumber": 12
+        }
+      ]
+    },
+    {
+      "queryKey": "comprehensive_plan_initiatives",
+      "requirementKey": "comprehensive_plan_initiatives",
+      "query": "comprehensive plan goals, strategic initiatives, land use, and implementation progress",
+      "expectedCandidateKeys": ["comprehensive_plan_2020"],
+      "allowedAdditionalCandidateKeys": [
+        "comprehensive_plan_presentation_2020"
+      ],
+      "signals": [
+        {
+          "candidateKey": "comprehensive_plan_2020",
+          "chunkKey": "comprehensive_plan_2020_p42",
+          "keywordScore": 19.2,
+          "vectorSimilarity": 0.92,
+          "pageNumber": 42
+        },
+        {
+          "candidateKey": "comprehensive_plan_presentation_2020",
+          "chunkKey": "comprehensive_plan_presentation_2020_p14",
+          "keywordScore": 12.4,
+          "vectorSimilarity": 0.81,
+          "pageNumber": 14
+        }
+      ]
+    },
+    {
+      "queryKey": "performance_findings",
+      "requirementKey": "performance_findings",
+      "query": "performance audit findings, recommendations, corrective actions, and status",
+      "expectedCandidateKeys": ["performance_audit_2022_2023"],
+      "allowedAdditionalCandidateKeys": [],
+      "signals": [
+        {
+          "candidateKey": "performance_audit_2022_2023",
+          "chunkKey": "performance_audit_2022_2023_p27",
+          "keywordScore": 24.1,
+          "vectorSimilarity": 0.96,
+          "pageNumber": 27
+        }
+      ]
+    },
+    {
+      "queryKey": "credible_no_match",
+      "requirementKey": "credible_no_match",
+      "query": "current airport runway snow-removal inspection log",
+      "expectedCandidateKeys": [],
+      "allowedAdditionalCandidateKeys": [],
+      "signals": []
+    }
+  ]
+}

@@ -133,9 +133,9 @@ jobs:
             done
           }
           build_candidate
-          first_sha="$(sha256sum spk/artifacts/noderag-1.0.0-rc.1-x86_64.spk | awk '{print $1}')"
+          first_sha="$(sha256sum spk/artifacts/noderag-1.0.0-45-x86_64.spk | awk '{print $1}')"
           build_candidate
-          second_sha="$(sha256sum spk/artifacts/noderag-1.0.0-rc.1-x86_64.spk | awk '{print $1}')"
+          second_sha="$(sha256sum spk/artifacts/noderag-1.0.0-45-x86_64.spk | awk '{print $1}')"
           test "${first_sha}" = "${second_sha}"
           NODERAG_M10_REUSE_RUNTIME=1 pnpm package:runtime
           pnpm package:candidate:verify

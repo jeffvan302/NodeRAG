@@ -1,6 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { delimiter, join, resolve } from 'node:path';
 import type { ClientConfig } from 'pg';
+import {
+  assertRetrievalCalibration,
+  qwenQ8RetrievalCalibration,
+  type RetrievalConfidenceCalibration,
+} from './search/confidence.js';
+import { loadChatFeatureFlags, type ChatFeatureFlags } from './chat/features.js';
 
 export interface RuntimeConfig {
   readonly host: string;
@@ -14,6 +20,9 @@ export interface RuntimeConfig {
   readonly visionBearerToken?: string;
   readonly ollamaParallelCapacity?: number;
   readonly secretRoot: string;
+  readonly retrievalCalibration: RetrievalConfidenceCalibration;
+  readonly chatFeatureFlags: ChatFeatureFlags;
+  readonly chatCodexHome: string;
 }
 
 const parsePort = (name: string, raw: string | undefined, fallback: number): number => {
@@ -22,6 +31,14 @@ const parsePort = (name: string, raw: string | undefined, fallback: number): num
     throw new Error(`${name} must be an integer from 1 through 65535.`);
   }
   return port;
+};
+
+const parseSimilarity = (name: string, raw: string | undefined, fallback: number): number => {
+  const value = raw === undefined ? fallback : Number(raw);
+  if (!Number.isFinite(value) || value < -1 || value > 1) {
+    throw new Error(`${name} must be a number from -1 through 1.`);
+  }
+  return value;
 };
 
 export const loadRuntimeConfig = async (): Promise<RuntimeConfig> => {
@@ -54,6 +71,18 @@ export const loadRuntimeConfig = async (): Promise<RuntimeConfig> => {
   ) {
     throw new Error('NODERAG_OLLAMA_NUM_PARALLEL must be a positive integer.');
   }
+  const retrievalCalibration = assertRetrievalCalibration({
+    minimumVectorSimilarity: parseSimilarity(
+      'NODERAG_VECTOR_MINIMUM_SIMILARITY',
+      process.env['NODERAG_VECTOR_MINIMUM_SIMILARITY'],
+      qwenQ8RetrievalCalibration.minimumVectorSimilarity,
+    ),
+    highConfidenceVectorSimilarity: parseSimilarity(
+      'NODERAG_VECTOR_HIGH_CONFIDENCE_SIMILARITY',
+      process.env['NODERAG_VECTOR_HIGH_CONFIDENCE_SIMILARITY'],
+      qwenQ8RetrievalCalibration.highConfidenceVectorSimilarity,
+    ),
+  });
 
   return {
     host: process.env['NODERAG_HOST'] ?? '127.0.0.1',
@@ -77,5 +106,10 @@ export const loadRuntimeConfig = async (): Promise<RuntimeConfig> => {
       : { visionBearerToken }),
     ...(ollamaParallelCapacity === undefined ? {} : { ollamaParallelCapacity }),
     secretRoot: resolve(process.env['NODERAG_SECRET_ROOT'] ?? join(dataRoot, 'secrets/root.key')),
+    retrievalCalibration,
+    chatFeatureFlags: loadChatFeatureFlags(),
+    chatCodexHome: resolve(
+      process.env['NODERAG_CHAT_CODEX_HOME'] ?? join(dataRoot, 'chat/openai-codex-home'),
+    ),
   };
 };

@@ -4,7 +4,7 @@ set -euo pipefail
 m10_script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd -- "${m10_script_dir}/.." && pwd)"
 source "${repository_root}/docker-testbed/scripts/common.sh"
-artifact="${1:-${repository_root}/spk/artifacts/noderag-1.0.0-rc.1-x86_64.spk}"
+artifact="${1:-${repository_root}/spk/artifacts/noderag-1.0.0-45-x86_64.spk}"
 [[ -f "${artifact}" ]] || exit 66
 artifact_directory="$(cd -- "$(dirname -- "${artifact}")" && pwd)"
 artifact_mount="${artifact_directory}"

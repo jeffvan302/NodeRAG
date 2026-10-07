@@ -11,10 +11,12 @@
   "scripts": {
     "build": "corepack pnpm@11.25.0 --filter @noderag/ui build && corepack pnpm@11.25.0 --filter @noderag/server build",
     "boundaries": "depcruise --config .dependency-cruiser.cjs --output-type err-long packages adapters scripts",
+    "chat:app-server:smoke": "node scripts/verify-chat-app-server.mjs",
     "ci:quality": "corepack pnpm@11.25.0 migrations:verify && corepack pnpm@11.25.0 openapi:verify && corepack pnpm@11.25.0 typecheck && corepack pnpm@11.25.0 lint && corepack pnpm@11.25.0 format:check && corepack pnpm@11.25.0 boundaries && corepack pnpm@11.25.0 test:unit && corepack pnpm@11.25.0 build && corepack pnpm@11.25.0 build:smoke && corepack pnpm@11.25.0 license:check && corepack pnpm@11.25.0 sbom:verify && corepack pnpm@11.25.0 security:scan",
     "build:smoke": "node scripts/smoke-built-server.mjs",
     "dev": "node scripts/dev.mjs",
     "evaluation:m12": "node scripts/verify-m12-corpus.mjs && vitest run --project unit packages/server/test/evaluation.unit.test.ts packages/server/test/retrieval.unit.test.ts && vitest run --project integration packages/server/test/m12-evaluation.integration.test.ts packages/server/test/retrieval-diagnostics.integration.test.ts",
+    "evaluation:chat:c11": "node scripts/verify-chat-c11-corpus.mjs && vitest run --project unit packages/server/test/chat-runtime.unit.test.ts packages/server/test/chat-context-runtime.unit.test.ts && vitest run --project integration packages/server/test/chat-core.integration.test.ts packages/server/test/chat-research.integration.test.ts packages/server/test/chat-rag.integration.test.ts packages/server/test/chat-web.integration.test.ts packages/server/test/chat-artifacts.integration.test.ts packages/server/test/chat-context.integration.test.ts packages/server/test/recovery.integration.test.ts",
     "evaluation:m12:real": "bash docker-testbed/scripts/verify-m12.sh --real",
     "recovery:m13": "bash docker-testbed/scripts/verify-m13.sh --docker",
     "recovery:m13:matrix": "node scripts/verify-m13-matrix.mjs",

@@ -59,7 +59,7 @@ describe('encrypted recovery archives', () => {
       passphrase: 'correct horse battery staple',
       product: 'full',
       consistencyAt: '2026-09-04T12:00:00.000Z',
-      migrationHead: '000011_recovery_hardening',
+      migrationHead: '000018_research_page_references',
       postgresMajor: 17,
       nodeRagVersion: '0.2.0',
       entries: entries(),
@@ -92,7 +92,7 @@ describe('encrypted recovery archives', () => {
       passphrase: 'twelve characters minimum',
       product: 'portable',
       consistencyAt: '2026-09-04T12:00:00.000Z',
-      migrationHead: '000011_recovery_hardening',
+      migrationHead: '000018_research_page_references',
       postgresMajor: 17,
       entries: entries(),
     });
@@ -120,7 +120,7 @@ describe('encrypted recovery archives', () => {
         passphrase: 'synthetic unsafe archive password',
         product: 'portable',
         consistencyAt: '2026-09-04T12:00:00.000Z',
-        migrationHead: '000011_recovery_hardening',
+        migrationHead: '000018_research_page_references',
         postgresMajor: 17,
         entries: [
           {
@@ -138,7 +138,7 @@ describe('encrypted recovery archives', () => {
       passphrase: 'synthetic manifest drift password',
       product: 'full',
       consistencyAt: '2026-09-04T12:00:00.000Z',
-      migrationHead: '000011_recovery_hardening',
+      migrationHead: '000018_research_page_references',
       postgresMajor: 17,
       entries: entries(),
     });
@@ -161,7 +161,7 @@ describe('encrypted recovery archives', () => {
       passphrase,
       product: 'full',
       consistencyAt: '2026-09-04T12:00:00.000Z',
-      migrationHead: '000011_recovery_hardening',
+      migrationHead: '000018_research_page_references',
       postgresMajor: 17,
       entries: entries(),
     });
@@ -191,7 +191,7 @@ describe('encrypted recovery archives', () => {
         passphrase: 'synthetic broken archive passphrase',
         product: 'portable',
         consistencyAt: '2026-09-04T12:00:00.000Z',
-        migrationHead: '000011_recovery_hardening',
+        migrationHead: '000018_research_page_references',
         postgresMajor: 17,
         entries: brokenEntries(),
       }),
@@ -207,6 +207,8 @@ describe('recovery policy', () => {
     const portable = includedTables(policy, 'portable').map((entry) => entry.table);
     expect(portable).toContain('document');
     expect(portable).toContain('model_manifest');
+    expect(portable).not.toContain('research_collection');
+    expect(portable).not.toContain('research_reference');
     expect(portable).not.toContain('encrypted_secret');
     expect(portable).not.toContain('session');
     expect(new Set(policy.tables.map((entry) => entry.table)).size).toBe(policy.tables.length);
@@ -226,7 +228,7 @@ describe('recovery policy', () => {
   it('refuses incompatible archive, schema, database, and embedding dimensions', () => {
     const target = {
       supportedArchiveVersions: [1],
-      migrationHead: '000011_recovery_hardening',
+      migrationHead: '000018_research_page_references',
       postgresMajor: 17,
       modelDimensions: [1024],
     };

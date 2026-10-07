@@ -13,6 +13,7 @@ import {
   type EvaluationMetrics,
   type EvaluationObservation,
 } from './evaluation.js';
+import type { RetrievalConfidenceCalibration } from './confidence.js';
 import { executeSearch, type SearchHit, type SearchMode } from './retrieval.js';
 
 interface ClaimedRun {
@@ -40,6 +41,7 @@ export interface ProcessEvaluationRunOptions {
   readonly embedder: Embedder;
   readonly files?: DocumentFileStore;
   readonly leaseOwner: string;
+  readonly calibration?: RetrievalConfidenceCalibration;
 }
 
 const sheetNames = (hit: SearchHit): readonly string[] => {
@@ -81,6 +83,7 @@ const createObservation = async (
     scope,
     requestId: `evaluation:${String(run.id)}:${row.external_id}`,
     request: { query: row.query, mode: run.mode, limit: 10, filters: {} },
+    ...(options.calibration === undefined ? {} : { calibration: options.calibration }),
   });
   const testCase = evaluationCaseSchema.parse({
     id: row.external_id,

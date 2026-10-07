@@ -19,4 +19,26 @@ describe('durable job failure classification', () => {
       'indeterminate',
     );
   });
+
+  it('records safe PostgreSQL constraint diagnostics and does not retry check violations', () => {
+    const error = Object.assign(new Error('new row violates a check constraint'), {
+      code: '23514',
+      schema: 'noderag',
+      table: 'document_block',
+      constraint: 'document_block_check',
+      routine: 'ExecConstraints',
+      query: 'must not be exposed',
+    });
+
+    expect(classifyJobError(error)).toEqual({
+      code: '23514',
+      errorClass: 'permanent',
+      message: 'new row violates a check constraint',
+      detail: {
+        schema: 'noderag',
+        table: 'document_block',
+        constraint: 'document_block_check',
+      },
+    });
+  });
 });

@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "stage": "C03",
+  "name": "Context Window and Chat Settings Administration",
+  "recordedAt": "2026-09-15T05:35:41.6835343-04:00",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "boundary": {
+    "chatExecutionEnabled": false,
+    "ollamaMeaning": "ollama_cloud_only",
+    "ollamaServiceRoot": "https://ollama.com",
+    "internetProvider": "ollama_cloud",
+    "localOllamaAccepted": false,
+    "openAiInternetSearchEnabled": false,
+    "synologyDsmExecution": "deferred_to_C11"
+  },
+  "implementation": {
+    "migration": {
+      "path": "packages/server/migrations/000021_chat_configuration.sql",
+      "sha256": "b163fe25803e2ba443af57ae9523b8e46e14733389b1a81ceb28490c02d5a425"
+    },
+    "configurationPolicy": {
+      "path": "packages/server/src/chat/configuration.ts",
+      "sha256": "b486522420fcab96988448a80fa83b92796d152814f76506f79325345a17b708"
+    },
+    "storagePolicy": {
+      "path": "packages/server/src/chat/storage.ts",
+      "sha256": "7db67601ad17e92393a9e8edba9d158566db979f53dab62ecac814783db4e68e"
+    },
+    "routes": {
+      "path": "packages/server/src/api/chat-configuration-routes.ts",
+      "sha256": "07a2f8b7729f15dc67f395c6e56bc6aa5cb58e25f184c45126995b8f8492bc22",
+      "adminRouteCount": 6
+    },
+    "unitTest": {
+      "path": "packages/server/test/chat-configuration.unit.test.ts",
+      "sha256": "91ea6b9e6cc13c4784fb50fea4df51c78875213da10409adf2bcc5350c06dcf5"
+    },
+    "integrationTest": {
+      "path": "packages/server/test/chat-configuration.integration.test.ts",
+      "sha256": "2053898723992436102c36e8ca503f5d3dbf40787fcdc1d7f4eb4fd501727c6d"
+    },
+    "recoveryIntegrationTest": {
+      "path": "packages/server/test/recovery.integration.test.ts",
+      "sha256": "27d40f04169c8a1c3c61357ace889edcad05adea0ed6139b639097ebe53acad9"
+    },
+    "administrationUiSha256": "fd2be7cc12a4874dc77e17255960c642ff9d038ec2bb5f0876ebf8f3420edd4c",
+    "browserTestSha256": "90e54274be31a3c4df0ce5f8fa04e881d08077a257de1be0587bd9cef0dba3a8",
+    "operatorGuideSha256": "b8de4c6235a3e40be6ff87e172a25540b56e6cfd14706863ad861423f3a8a929",
+    "backupPolicySha256": "03aa249eaad909e8ebecf841ea2831944a77fa718ebf97aecc3441b3a7112b7b",
+    "routeAuthorizationSha256": "45f95deb5bf48c98deff2aab210fb91691c946dae1ae4ed4cf73ff58137cfa92",
+    "openApiSha256": "b74530916690f088754e83a7a2c5e38773f96a7e1a1980e130176906ce903b0a"
+  },
+  "capacity": {
+    "contextPrecedence": [
+      "administrator_override",
+      "provider_runtime",
+      "provider_configured",
+      "provider_advertised",
+      "known_model_table",
+      "unknown"
+    ],
+    "outputPrecedence": [
+      "administrator_override",
+      "provider_metadata",
+      "known_model_table",
+      "unknown"
+    ],
+    "versionedKnownModelTableExercised": true,
+    "catalogRefreshPreservesAdministratorOverrides": true
+  },
+  "verification": {
+    "focusedConfigurationIntegration": {
+      "result": "passed",
+      "tests": 5,
+      "environment": "Docker Linux/amd64 Node 22"
+    },
+    "providerIntegration": {
+      "result": "passed",
+      "tests": 13,
+      "environment": "Docker Linux/amd64 Node 22"
+    },
+    "recoveryIntegration": {
+      "result": "passed",
+      "tests": 4,
+      "environment": "Docker Linux/amd64 Node 22"
+    },
+    "fullBrowser": { "result": "passed", "tests": 23, "wcagAAndAA": "passed" },
+    "fullUnit": { "result": "passed", "files": 45, "tests": 186 },
+    "migrationInventory": { "result": "passed", "head": "000021_chat_configuration" },
+    "workspaceTypecheck": { "result": "passed", "projects": 6 },
+    "workspaceLint": { "result": "passed" },
+    "workspaceFormat": { "result": "passed" },
+    "dependencyBoundaries": { "result": "passed", "modules": 159, "dependencies": 293 },
+    "buildAndSmoke": { "result": "passed" },
+    "licenseInventory": { "result": "passed", "licenseClasses": 7 },
+    "sbom": { "result": "passed", "runtimePackages": 267 },
+    "secretScan": { "result": "passed" },
+    "combinedQualityGate": { "result": "passed" }
+  },
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "remaining": [
+    "C04 adds owner-scoped tool-free Chat execution.",
+    "C07 remains the only stage that exposes Ollama Cloud web search/fetch to Chat.",
+    "Real Synology DSM execution remains the C11 package gate."
+  ]
+}

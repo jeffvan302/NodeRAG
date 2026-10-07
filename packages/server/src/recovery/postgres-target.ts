@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import type { SecretVault } from '../identity/secrets.js';
 import { createChunkPartition } from '../store/silos.js';
@@ -5,7 +6,11 @@ import { databaseInteger, withTransaction } from '../store/database.js';
 import type { BackupDataClass, BackupInnerManifest } from './archive.js';
 import type { BackupClassificationPolicy } from './policy.js';
 import { includedTables } from './policy.js';
-import { resetInstallationLocalState, type RestoreDatabaseTarget } from './restore.js';
+import {
+  resetInstallationLocalState,
+  type RestoredChatStorage,
+  type RestoreDatabaseTarget,
+} from './restore.js';
 
 interface LogicalSecret {
   readonly sourceId: number;
@@ -34,6 +39,21 @@ const policyDataClass = (value: string): BackupDataClass => {
   throw new Error('restore-excluded-data-class');
 };
 
+const deferredRestoreReferences = [
+  {
+    child: 'chat_conversation',
+    parent: 'chat_research_attachment_revision',
+    column: 'current_research_attachment_revision_id',
+    key: 'id',
+  },
+  {
+    child: 'chat_context_compression_job',
+    parent: 'chat_run',
+    column: 'trigger_run_id',
+    key: 'id',
+  },
+] as const;
+
 const validatePolicyEntry = (
   policy: BackupClassificationPolicy,
   product: 'full' | 'portable',
@@ -54,6 +74,10 @@ const validatePolicyEntry = (
   }
   if (product === 'full' && /^models\//u.test(path)) {
     if (dataClass !== 'derived') throw new Error('restore-data-class-mismatch');
+    return;
+  }
+  if (product === 'full' && /^\.noderag-chat\//u.test(path)) {
+    if (dataClass !== 'source-of-truth') throw new Error('restore-data-class-mismatch');
     return;
   }
   if (product === 'full' && path === 'database/logical.dump') {
@@ -87,7 +111,10 @@ const topologicalTables = async (
     if (
       relation.child !== relation.parent &&
       tables.has(relation.child) &&
-      tables.has(relation.parent)
+      tables.has(relation.parent) &&
+      !deferredRestoreReferences.some(
+        (reference) => reference.child === relation.child && reference.parent === relation.parent,
+      )
     )
       dependencies.get(relation.child)?.add(relation.parent);
   }
@@ -117,11 +144,16 @@ export class PostgresFullRestoreTarget implements RestoreDatabaseTarget {
   #rows = new Map<string, number>();
   #secrets: LogicalSecret[] = [];
   #dumpPrefix = Buffer.alloc(0);
+  #restoredChatStorage: RestoredChatStorage | null = null;
 
   constructor(pool: Pool, policy: BackupClassificationPolicy, secretVault: SecretVault) {
     this.#pool = pool;
     this.#policy = policy;
     this.#secretVault = secretVault;
+  }
+
+  setRestoredChatStorage(storage: RestoredChatStorage): void {
+    this.#restoredChatStorage = storage;
   }
 
   validateEntry(path: string, dataClass: BackupDataClass): void {
@@ -232,6 +264,7 @@ export class PostgresFullRestoreTarget implements RestoreDatabaseTarget {
     const relationships: Array<readonly [string, string]> = [
       ['document', 'silo'],
       ['document_page', 'document'],
+      ['document_block', 'document'],
       ['document_image', 'document'],
       ['build', 'model_manifest'],
       ['silo_build_state', 'build'],
@@ -240,7 +273,9 @@ export class PostgresFullRestoreTarget implements RestoreDatabaseTarget {
     for (const [child, parent] of relationships) {
       if (!this.#tables.has(child) || !this.#tables.has(parent)) continue;
       const childColumns =
-        child === 'document_page' || child === 'document_image' ? ['document_id'] : [];
+        child === 'document_page' || child === 'document_block' || child === 'document_image'
+          ? ['document_id']
+          : [];
       if (childColumns.length === 0) continue;
       const invalid = await this.#pool.query<{ count: string }>(
         `SELECT count(*)::text AS count FROM ${this.#schema}.${child} child
@@ -248,6 +283,15 @@ export class PostgresFullRestoreTarget implements RestoreDatabaseTarget {
          WHERE parent.id IS NULL`,
       );
       brokenRelationships += Number(invalid.rows[0]?.count ?? '0');
+    }
+    if (this.#tables.has('document_block') && this.#tables.has('document_page')) {
+      const orphanedBlocks = await this.#pool.query<{ count: string }>(
+        `SELECT count(*)::text AS count FROM ${this.#schema}.document_block child
+         LEFT JOIN ${this.#schema}.document_page parent
+           ON parent.document_id=child.document_id AND parent.ordinal=child.page_ordinal
+         WHERE parent.document_id IS NULL`,
+      );
+      brokenRelationships += Number(orphanedBlocks.rows[0]?.count ?? '0');
     }
     if (brokenRelationships !== 0) throw new Error('restore-relationship-verification-failed');
     for (const [table, expected] of this.#rows) {
@@ -271,6 +315,7 @@ export class PostgresFullRestoreTarget implements RestoreDatabaseTarget {
     verification: Readonly<Record<string, unknown>>,
   ): Promise<void> {
     await withTransaction(this.#pool, async (database) => {
+      await database.query(`SELECT set_config('noderag.restore_mode','on',true)`);
       await database.query(`SELECT set_config('app.restore_mode','on',true)`);
       const siloIds = this.#tables.has('silo')
         ? await database.query<{ id: number }>(`SELECT id FROM ${this.#schema}.silo ORDER BY id`)
@@ -305,6 +350,14 @@ export class PostgresFullRestoreTarget implements RestoreDatabaseTarget {
         const columns = omitted.get(row.child) ?? new Set<string>();
         columns.add(row.column_name);
         omitted.set(row.child, columns);
+      }
+      const activeDeferredReferences = deferredRestoreReferences.filter(
+        ({ child, parent }) => this.#tables.has(child) && this.#tables.has(parent),
+      );
+      for (const reference of activeDeferredReferences) {
+        const columns = omitted.get(reference.child) ?? new Set<string>();
+        columns.add(reference.column);
+        omitted.set(reference.child, columns);
       }
       const localReferences = await database.query<{
         child: string;
@@ -342,6 +395,13 @@ export class PostgresFullRestoreTarget implements RestoreDatabaseTarget {
            WHERE ${safeIdentifier(reference.column_name)} IS NOT NULL`,
         );
       }
+      for (const reference of activeDeferredReferences) {
+        await database.query(
+          `UPDATE noderag.${safeIdentifier(reference.child)}
+           SET ${safeIdentifier(reference.column)}=NULL
+           WHERE ${safeIdentifier(reference.column)} IS NOT NULL`,
+        );
+      }
       for (const table of [...this.#order].reverse())
         await database.query(`DELETE FROM noderag.${safeIdentifier(table)}`);
       await database.query(`DELETE FROM noderag.encrypted_secret`);
@@ -368,6 +428,14 @@ export class PostgresFullRestoreTarget implements RestoreDatabaseTarget {
         await database.query(
           `INSERT INTO noderag.${safeIdentifier(table)} (${list})
            SELECT ${list} FROM ${this.#schema}.${safeIdentifier(table)}`,
+        );
+      }
+      for (const reference of activeDeferredReferences) {
+        await database.query(
+          `UPDATE noderag.${safeIdentifier(reference.child)} AS destination
+           SET ${safeIdentifier(reference.column)}=source.${safeIdentifier(reference.column)}
+           FROM ${this.#schema}.${safeIdentifier(reference.child)} AS source
+           WHERE destination.${safeIdentifier(reference.key)}=source.${safeIdentifier(reference.key)}`,
         );
       }
       const administrator = await database.query<{ principal_id: unknown }>(
@@ -434,6 +502,50 @@ export class PostgresFullRestoreTarget implements RestoreDatabaseTarget {
             [sequence.rows[0]?.sequence],
           );
       }
+      if (this.#restoredChatStorage !== null) {
+        const storage = this.#restoredChatStorage;
+        const rebound = await database.query<{ id: unknown }>(
+          `INSERT INTO noderag.chat_settings_revision (
+             revision_id,context_revision_id,default_connection_id,default_model,
+             default_reasoning_effort,default_context_mode,default_allow_research,
+             default_allow_rag,default_allow_internet,markdown_only,run_timeout_ms,
+             maximum_tool_calls,maximum_parallel_runs_per_user,daily_run_quota,
+             daily_input_token_quota,daily_output_token_quota,retention_days,
+             archive_after_days,storage_requested_path,storage_resolved_path,
+             storage_manifest_id,created_by,artifact_max_file_bytes,
+             artifact_chat_quota_bytes,markdown_external_images,log_segment_max_bytes,
+             log_segment_max_age_minutes,export_max_output_bytes,export_timeout_ms,
+             export_maximum_attempts
+           ) SELECT
+             $1,settings.context_revision_id,settings.default_connection_id,
+             settings.default_model,settings.default_reasoning_effort,
+             settings.default_context_mode,settings.default_allow_research,
+             settings.default_allow_rag,settings.default_allow_internet,
+             settings.markdown_only,settings.run_timeout_ms,settings.maximum_tool_calls,
+             settings.maximum_parallel_runs_per_user,settings.daily_run_quota,
+             settings.daily_input_token_quota,settings.daily_output_token_quota,
+             settings.retention_days,settings.archive_after_days,$2,$3,$4,NULL,
+             settings.artifact_max_file_bytes,settings.artifact_chat_quota_bytes,
+             settings.markdown_external_images,settings.log_segment_max_bytes,
+             settings.log_segment_max_age_minutes,settings.export_max_output_bytes,
+             settings.export_timeout_ms,settings.export_maximum_attempts
+           FROM noderag.chat_configuration_current current
+           JOIN noderag.chat_settings_revision settings ON settings.id=current.settings_revision_id
+           WHERE current.singleton=true
+           RETURNING id`,
+          [randomUUID(), storage.requestedPath, storage.resolvedPath, storage.manifestId],
+        );
+        const settingsId = databaseInteger(
+          rebound.rows[0]?.id,
+          'restored chat settings revision id',
+        );
+        await database.query(
+          `UPDATE noderag.chat_configuration_current
+           SET settings_revision_id=$1,updated_at=now(),updated_by=NULL
+           WHERE singleton=true`,
+          [settingsId],
+        );
+      }
       await resetInstallationLocalState(database);
       const completed = await database.query(
         `UPDATE noderag.restore_operation
@@ -444,10 +556,12 @@ export class PostgresFullRestoreTarget implements RestoreDatabaseTarget {
       if (completed.rowCount !== 1) throw new Error('restore-operation-missing');
     });
     this.#secrets = [];
+    this.#restoredChatStorage = null;
   }
 
   async rollback(): Promise<void> {
     this.#secrets = [];
+    this.#restoredChatStorage = null;
   }
 
   async cleanup(retainStaging: boolean): Promise<void> {
@@ -528,7 +642,13 @@ export class PostgresPortableImportTarget implements RestoreDatabaseTarget {
     const unexpected = [...this.#tables].filter((table) => !permitted.has(table));
     if (unexpected.length > 0)
       throw new Error(`restore-table-not-permitted:${unexpected.join(',')}`);
-    for (const required of ['silo', 'document', 'document_page', 'document_image'])
+    for (const required of [
+      'silo',
+      'document',
+      'document_page',
+      'document_block',
+      'document_image',
+    ])
       if (!this.#tables.has(required))
         throw new Error(`portable-required-table-missing:${required}`);
     await withTransaction(this.#pool, async (database) => {
@@ -620,6 +740,15 @@ export class PostgresPortableImportTarget implements RestoreDatabaseTarget {
          LEFT JOIN ${this.#schema}.document parent ON parent.id=child.document_id
          WHERE parent.id IS NULL
        ) + (
+         SELECT count(*) FROM ${this.#schema}.document_block child
+         LEFT JOIN ${this.#schema}.document parent ON parent.id=child.document_id
+         WHERE parent.id IS NULL
+       ) + (
+         SELECT count(*) FROM ${this.#schema}.document_block child
+         LEFT JOIN ${this.#schema}.document_page parent
+           ON parent.document_id=child.document_id AND parent.ordinal=child.page_ordinal
+         WHERE parent.document_id IS NULL
+       ) + (
          SELECT count(*) FROM ${this.#schema}.document_image child
          LEFT JOIN ${this.#schema}.document parent ON parent.id=child.document_id
          WHERE parent.id IS NULL
@@ -643,6 +772,7 @@ export class PostgresPortableImportTarget implements RestoreDatabaseTarget {
       destinationSiloId: this.#destinationSiloId,
       documents: this.#rows.get('document') ?? 0,
       pages: this.#rows.get('document_page') ?? 0,
+      blocks: this.#rows.get('document_block') ?? 0,
       images: this.#rows.get('document_image') ?? 0,
       sourceModelDigests: provenance.rows[0]?.model_digests ?? [],
       sourceBuildProfiles: provenance.rows[0]?.build_profiles ?? [],
@@ -668,7 +798,7 @@ export class PostgresPortableImportTarget implements RestoreDatabaseTarget {
         `{${String(this.#destinationSiloId)}}`,
       ]);
       const insertMapped = async (
-        table: 'document' | 'document_page' | 'document_image',
+        table: 'document' | 'document_page' | 'document_block' | 'document_image',
       ): Promise<void> => {
         const columns = await database.query<{ column_name: string }>(
           `SELECT column_name FROM information_schema.columns
@@ -696,6 +826,7 @@ export class PostgresPortableImportTarget implements RestoreDatabaseTarget {
       };
       await insertMapped('document');
       await insertMapped('document_page');
+      await insertMapped('document_block');
       await insertMapped('document_image');
       const activeBuild = await database.query<{ build_id: number }>(
         `SELECT build_id FROM noderag.silo_build_state

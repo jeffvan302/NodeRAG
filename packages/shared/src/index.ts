@@ -24,10 +24,12 @@ export {
   embedderModelSchema,
   embedderRequestSchema,
   embedderResponseSchema,
+  embedderRuntimeStatusSchema,
   type Embedder,
   type EmbedderModel,
   type EmbedderRequest,
   type EmbedderResponse,
+  type EmbedderRuntimeStatus,
   type EmbeddingBatch,
 } from './embedder.js';
 export {

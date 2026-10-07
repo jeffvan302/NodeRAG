@@ -1,7 +1,34 @@
 #!/bin/sh
 set -eu
-: "${SYNOPKG_PKGVAR:?SYNOPKG_PKGVAR is required}"
+
+fail() {
+  message="NodeRag installation failed: $1"
+  if [ -n "${SYNOPKG_TEMP_LOGFILE:-}" ]; then
+    printf '%s\n' "${message}" >"${SYNOPKG_TEMP_LOGFILE}" 2>/dev/null || true
+  fi
+  printf '%s\n' "${message}" >&2
+  exit 1
+}
+progress() {
+  if [ -n "${SYNOPKG_PKG_PROGRESS_PATH:-}" ]; then
+    printf '%s\n' "$1" >"${SYNOPKG_PKG_PROGRESS_PATH}" 2>/dev/null || true
+  fi
+}
+report_failure() {
+  status="$?"
+  if [ "${status}" -ne 0 ] && [ -n "${SYNOPKG_TEMP_LOGFILE:-}" ] &&
+     [ ! -s "${SYNOPKG_TEMP_LOGFILE}" ]; then
+    printf '%s\n' \
+      "NodeRag installation failed while preparing its private data or database runtime." \
+      >"${SYNOPKG_TEMP_LOGFILE}" 2>/dev/null || true
+  fi
+}
+trap report_failure 0
+
+[ -n "${SYNOPKG_PKGVAR:-}" ] || fail "DSM did not provide the permanent package-data directory"
+[ -n "${SYNOPKG_PKGDEST:-}" ] || fail "DSM did not provide the installed package directory"
 umask 077
+progress 0.10
 mkdir -p "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log" "${SYNOPKG_PKGVAR}/data" \
   "${SYNOPKG_PKGVAR}/secrets" "${SYNOPKG_PKGVAR}/runtime" \
   "${SYNOPKG_PKGVAR}/postgres/data" "${SYNOPKG_PKGVAR}/postgres/wal" \
@@ -13,6 +40,21 @@ chmod 700 "${SYNOPKG_PKGVAR}" "${SYNOPKG_PKGVAR}/run" "${SYNOPKG_PKGVAR}/log" \
   "${SYNOPKG_PKGVAR}/postgres/data" "${SYNOPKG_PKGVAR}/postgres/wal" \
   "${SYNOPKG_PKGVAR}/postgres/socket" "${SYNOPKG_PKGVAR}/postgres/config" \
   "${SYNOPKG_PKGVAR}/models" "${SYNOPKG_PKGVAR}/cache"
+
+setup_token_file="${SYNOPKG_PKGVAR}/secrets/setup.token"
+if [ -n "${wizard_setup_token:-}" ] && [ ! -e "${setup_token_file}" ]; then
+  if [ "${#wizard_setup_token}" -ne 70 ] ||
+     ! printf '%s' "${wizard_setup_token}" | grep -Eq '^setup_[a-f0-9]{64}$'; then
+    fail "the setup key supplied by DSM is invalid"
+  fi
+  temporary_setup_token="${setup_token_file}.new"
+  printf '%s\n' "${wizard_setup_token}" >"${temporary_setup_token}"
+  chmod 600 "${temporary_setup_token}"
+  mv "${temporary_setup_token}" "${setup_token_file}"
+fi
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+"${script_dir}/preflight"
+progress 0.25
 secret_root="${SYNOPKG_PKGVAR}/secrets/root.key"
 if [ ! -e "${secret_root}" ]; then
   temporary_root="${secret_root}.new"
@@ -40,13 +82,18 @@ if [ -L "${database_password}" ] || [ ! -f "${database_password}" ] || \
   exit 1
 fi
 chmod 600 "${database_password}"
+progress 0.45
 
-runtime_archive="${SYNOPKG_PKGDEST:-}/runtime/postgresql-runtime.tar.gz"
+runtime_archive="${SYNOPKG_PKGDEST}/runtime/postgresql-runtime.tar.gz"
 runtime_root="${SYNOPKG_PKGVAR}/runtime/postgresql"
-if [ -f "${runtime_archive}" ] && [ ! -x "${runtime_root}/bin/postgres" ]; then
+if [ ! -f "${runtime_archive}" ]; then
+  fail "the bundled PostgreSQL runtime archive is missing"
+fi
+if [ ! -x "${runtime_root}/bin/postgres" ]; then
   checksum_file="${runtime_archive}.sha256"
-  [ -f "${checksum_file}" ] || { echo "PostgreSQL runtime checksum is missing." >&2; exit 1; }
-  (cd "$(dirname "${runtime_archive}")" && sha256sum -c "$(basename "${checksum_file}")")
+  [ -f "${checksum_file}" ] || fail "the PostgreSQL runtime checksum is missing"
+  (cd "$(dirname "${runtime_archive}")" &&
+    sha256sum -c "$(basename "${checksum_file}")") || fail "the PostgreSQL runtime checksum did not match"
   tar -tzf "${runtime_archive}" | while IFS= read -r entry; do
     case "${entry}" in /*|../*|*/../*|*/..) echo "Unsafe PostgreSQL runtime archive path." >&2; exit 65;; esac
   done
@@ -54,6 +101,7 @@ if [ -f "${runtime_archive}" ] && [ ! -x "${runtime_root}/bin/postgres" ]; then
   rm -rf -- "${temporary_runtime}"
   mkdir -p "${temporary_runtime}"
   tar -xzf "${runtime_archive}" -C "${temporary_runtime}"
-  [ -x "${temporary_runtime}/bin/postgres" ] || { echo "PostgreSQL runtime is incomplete." >&2; exit 1; }
+  [ -x "${temporary_runtime}/bin/postgres" ] || fail "the PostgreSQL runtime is incomplete"
   mv "${temporary_runtime}" "${runtime_root}"
 fi
+progress 1.00

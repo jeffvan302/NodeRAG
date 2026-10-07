@@ -1,10 +1,35 @@
 import { z } from 'zod';
-import { visionKinds, type VisionKind, type VisionRevisions } from '../extract/contract.js';
+import {
+  extractedBlockKinds,
+  visionKinds,
+  type VisionKind,
+  type VisionRevisions,
+} from '../extract/contract.js';
 
-export const VISION_PROVIDER_CONTRACT_VERSION = 'vision-provider.v1';
-export const VISION_PROMPT_REVISION = 'vision-transcription.v1';
-export const VISION_SCHEMA_REVISION = 'vision-result.v1';
+export const VISION_PROVIDER_CONTRACT_VERSION = 'vision-provider.v2';
+export const VISION_PROMPT_REVISION = 'vision-transcription.v3-layout';
+export const VISION_SCHEMA_REVISION = 'vision-result.v3-layout-blocks';
 export const VISION_PREPROCESSING_REVISION = 'vision-preprocess.v1';
+
+export const visionLayoutBlockSchema = z
+  .object({
+    kind: z.enum(extractedBlockKinds),
+    markdown: z.string().max(200_000),
+    text: z.string().max(200_000),
+    confidence: z.number().min(0).max(1),
+    sourceImageIndex: z.number().int().positive(),
+    bounds: z
+      .object({
+        x: z.number().min(0).max(1),
+        y: z.number().min(0).max(1),
+        width: z.number().positive().max(1),
+        height: z.number().positive().max(1),
+      })
+      .strict()
+      .refine(({ x, width }) => x + width <= 1.0001, 'x + width must be at most 1')
+      .refine(({ y, height }) => y + height <= 1.0001, 'y + height must be at most 1'),
+  })
+  .strict();
 
 export const visionResponseSchema = z
   .object({
@@ -12,15 +37,25 @@ export const visionResponseSchema = z
     markdown: z.string().max(200_000),
     alt: z.string().min(1).max(2_000),
     confidence: z.number().min(0).max(1),
+    layoutBlocks: z.array(visionLayoutBlockSchema).min(1).max(256).optional(),
   })
   .strict();
 
+export const layoutVisionResponseSchema = visionResponseSchema.refine(
+  ({ layoutBlocks }) => layoutBlocks !== undefined && layoutBlocks.length > 0,
+  'PDF layout responses require at least one layout block.',
+);
+
 export type ValidatedVisionResponse = z.infer<typeof visionResponseSchema>;
+
+export interface IndexedVisionResponse extends ValidatedVisionResponse {
+  readonly imageIndex: number;
+}
 
 export interface VisionProviderRequest {
   readonly bytes: Uint8Array;
   readonly mediaType: 'image/png';
-  readonly sourceKind: 'pdf-page' | 'document-image' | 'worksheet-image';
+  readonly sourceKind: 'pdf-page' | 'pdf-region' | 'document-image' | 'worksheet-image';
   readonly pageNumber: number | null;
   readonly imageId: string;
   readonly prompt: string;
@@ -34,6 +69,9 @@ export interface VisionProvider {
   readonly modelRevision: string;
   readonly contractVersion: typeof VISION_PROVIDER_CONTRACT_VERSION;
   analyse(request: VisionProviderRequest): Promise<ValidatedVisionResponse>;
+  analyseMany(
+    requests: readonly VisionProviderRequest[],
+  ): Promise<readonly ValidatedVisionResponse[]>;
 }
 
 export type VisionErrorClass = 'transient' | 'permanent';
@@ -74,8 +112,70 @@ export const ollamaVisionJsonSchema = {
     markdown: { type: 'string' },
     alt: { type: 'string', minLength: 1, maxLength: 2000 },
     confidence: { type: 'number', minimum: 0, maximum: 1 },
+    layoutBlocks: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 256,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['kind', 'markdown', 'text', 'confidence', 'sourceImageIndex', 'bounds'],
+        properties: {
+          kind: { type: 'string', enum: [...extractedBlockKinds] },
+          markdown: { type: 'string' },
+          text: { type: 'string' },
+          confidence: { type: 'number', minimum: 0, maximum: 1 },
+          sourceImageIndex: { type: 'integer', minimum: 1 },
+          bounds: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['x', 'y', 'width', 'height'],
+            properties: {
+              x: { type: 'number', minimum: 0, maximum: 1 },
+              y: { type: 'number', minimum: 0, maximum: 1 },
+              width: { type: 'number', exclusiveMinimum: 0, maximum: 1 },
+              height: { type: 'number', exclusiveMinimum: 0, maximum: 1 },
+            },
+          },
+        },
+      },
+    },
   },
 } as const;
+
+export const layoutVisionJsonSchema = {
+  ...ollamaVisionJsonSchema,
+  required: [...ollamaVisionJsonSchema.required, 'layoutBlocks'],
+} as const;
+
+export const ollamaVisionBatchJsonSchema = (imageCount: number, requireLayoutBlocks = false) => ({
+  type: 'object',
+  additionalProperties: false,
+  required: ['results'],
+  properties: {
+    results: {
+      type: 'array',
+      minItems: imageCount,
+      maxItems: imageCount,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'imageIndex',
+          'kind',
+          'markdown',
+          'alt',
+          'confidence',
+          ...(requireLayoutBlocks ? ['layoutBlocks'] : []),
+        ],
+        properties: {
+          imageIndex: { type: 'integer', minimum: 1, maximum: imageCount },
+          ...ollamaVisionJsonSchema.properties,
+        },
+      },
+    },
+  },
+});
 
 export const visionProvenance = (input: {
   readonly imageSha256: string;

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "stage": "C04",
+  "name": "Durable Chat Core and Two-Panel UI",
+  "recordedAt": "2026-09-15T06:25:24.1759309-04:00",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "boundary": {
+    "chatExecutionEnabled": true,
+    "toolsEnabled": false,
+    "contextMode": "rolling",
+    "ollamaMeaning": "ollama_cloud_only",
+    "ollamaServiceRoot": "https://ollama.com",
+    "ollamaChatEndpoint": "https://ollama.com/api/chat",
+    "internetEnabled": false,
+    "futureInternetProvider": "ollama_cloud",
+    "localOllamaAccepted": false,
+    "openAiInternetSearchEnabled": false,
+    "synologyDsmExecution": "deferred_to_C11"
+  },
+  "implementation": {
+    "migration": {
+      "path": "packages/server/migrations/000022_chat_core.sql",
+      "sha256": "bd57efd2914b46211b4588e27d5906f619519ab0bbb2d85c365a31a266354f96"
+    },
+    "routesSha256": "0d3f0c275f1b7c9b80476fd8c0007a7a25d688d038ccdf479e5ceae6daa8a9da",
+    "runnerSha256": "a9c50f94fd8dee655fdf287220459ace33e9a00b170811a2e6c53122cdf1c067",
+    "logStoreSha256": "cc0814b99195c598c52c4ac7e9ed94f604a8e467dabee317c6e81985a707a959",
+    "ollamaCloudAdapterSha256": "62b87aea3659fac639a80242961d2fa1819a8ac80460ee280d475572321f4ae6",
+    "openAiAdapterSha256": "0d6a04f33e80bf172925dcb616af58def9a60bb4b2fccb2cd30869272c92911a",
+    "integrationTestSha256": "2b0b207a40f27a225c22039d07c8e2205f55f074d0323e6b07198bb9d9cd13d4",
+    "providerUnitTestSha256": "e47eba43702064dd11a8bcce97d36cf529bc6a99251989ee3872364430af9cd9",
+    "chatUiSha256": "631d55a09ef919ebfcdb889109f947bbc4780b7b978916600086a32305116671",
+    "workspaceUiSha256": "804c8ea847b12532da83578b6e0c576650373d7fb1f5699613eb792ce98a2aad",
+    "browserTestSha256": "1368cd72f3486e068620619e6cb07a6ea0ef86425afc6c31cf4bc38568e350b6",
+    "routeAuthorizationSha256": "f5f701cc788ccb1e7599c1f709340f76ff7522820bf74ab75a99a68c76a12f70",
+    "openApiSha256": "5ce0cdeb125c81a489e26141b1a12782aa326396fb0cae9a33c5eccf3cf0d827",
+    "backupPolicySha256": "096a192add4b8a76febff0738fc8f47a2231f868632f3229df2c69b832742b20"
+  },
+  "verification": {
+    "chatCoreIntegration": {
+      "result": "passed",
+      "tests": 8,
+      "environment": "Docker Linux/amd64 Node 22"
+    },
+    "combinedChatAndRecoveryIntegration": {
+      "result": "passed",
+      "files": 4,
+      "tests": 30,
+      "environment": "Docker Linux/amd64 Node 22"
+    },
+    "fullBrowser": { "result": "passed", "tests": 24, "wcagAAndAA": "passed" },
+    "fullUnit": { "result": "passed", "files": 47, "tests": 191 },
+    "migrationInventory": { "result": "passed", "head": "000022_chat_core" },
+    "workspaceTypecheck": { "result": "passed", "projects": 6 },
+    "workspaceLint": { "result": "passed" },
+    "workspaceFormat": { "result": "passed" },
+    "dependencyBoundaries": { "result": "passed", "modules": 167, "dependencies": 318 },
+    "buildAndSmoke": { "result": "passed" },
+    "licenseInventory": { "result": "passed", "licenseClasses": 7 },
+    "sbom": { "result": "passed", "runtimePackages": 267 },
+    "secretScan": { "result": "passed" },
+    "combinedQualityGate": { "result": "passed" }
+  },
+  "faultEvidence": [
+    "owner isolation and API-key denial",
+    "concurrent send conflict",
+    "API restart and SSE replay",
+    "worker lease expiry and partial-response replacement",
+    "provider timeout and repeated-event rejection",
+    "running cancellation without lock-order deadlock",
+    "interrupted NDJSON append recovery and hash-chain validation"
+  ],
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "remaining": [
+    "C05 adds permission-checked Research attachments and citations.",
+    "C07 remains the only stage that exposes Ollama Cloud web search/fetch to Chat.",
+    "Real Synology DSM execution remains the C11 package gate."
+  ]
+}

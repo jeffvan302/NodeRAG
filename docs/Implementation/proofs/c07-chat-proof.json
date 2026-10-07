@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "stage": "C07",
+  "name": "Ollama Cloud Internet Search and Web Provenance",
+  "recordedAt": "2026-09-15T08:31:59.8250624-04:00",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "boundary": {
+    "internetProvider": "ollama_cloud",
+    "ollamaServiceRoot": "https://ollama.com",
+    "searchEndpoint": "https://ollama.com/api/web_search",
+    "fetchEndpoint": "https://ollama.com/api/web_fetch",
+    "localOllamaAccepted": false,
+    "selfHostedOllamaAccepted": false,
+    "customOllamaAccepted": false,
+    "openAiBrowsingAccepted": false,
+    "openAiGenerationMayUseOllamaCloudWeb": true,
+    "directBinaryDownloads": false,
+    "synologyDsmExecution": "deferred_to_C11"
+  },
+  "implementation": {
+    "migration": {
+      "path": "packages/server/migrations/000025_chat_web.sql",
+      "sha256": "594502253560f0d41bc89abd49c090552816193e532ab3ee2172d1024cbbf3c7"
+    },
+    "webServiceSha256": "c53cb7386068bb8a6d3c30cb31c12d2a1752dedf89bc16d3a48f8cef8622ba2c",
+    "runnerSha256": "699a23f4a00a3ddf45aad3c8ef30159608bd36673cdb85f2ae6b5a29c92c4e9e",
+    "chatRoutesSha256": "66139c5956c459049167025208d487968798b0eb5ef05beb8ffa1d141f185459",
+    "providerRoutesSha256": "4eafed2345dd49986877d93339525670758c8c35b92020121759698c8d694628",
+    "appSha256": "1e5d49ba91eafd7687e5097535ea9c09825ed7c7464d9ac77008d4d75ba0dd32",
+    "workerSha256": "172759eee77ce7687b0211fd0324d821a1b3a6cddd9f069c2e1edd73ddf48cca",
+    "unitTestSha256": "ccb8b71042cb5c4683d17f348fe4840d40f07ed37b271c18f01931c9c018ffed",
+    "integrationTestSha256": "e656310cc6672855091b62d2269cb9614da71c70e71eb13b89831cb3654454e9",
+    "chatUiSha256": "1a7c78c7e166e72c1cd4490efa69ab06ff8bc46bbb1719d214dc07d55642bb6e",
+    "administrationUiSha256": "a85b1ee609a7fb910eb2f6e42b7e250560390e3d8a7c3bf32008fcab09336bb4",
+    "browserTestSha256": "88076129d7f04ee63b40d2417faf2c3433780dea34c668d7e1417164e798dfbb",
+    "routeAuthorizationSha256": "9855abe0c6274f08e6944ed506870bcca87e7a0c56e6c9fd8b6378d9bf705bce",
+    "openApiSha256": "b1af82c05e9fa49cc830b8b5888fb7acd053ac126eaccca9052430ccba12417a",
+    "backupPolicySha256": "08595e38aa8ebd9b7be1e36bd93642dee7f317f20ab387b35873ebff465445b2",
+    "migrationInventorySha256": "e97c8152a345a1e7c216fb83ce9da6147cd75c7f225881be5f6980b44566a3ce"
+  },
+  "limits": {
+    "maximumSearchResults": 10,
+    "defaultSearchResults": 5,
+    "maximumSearchSnippetCharacters": 8000,
+    "maximumFetchedPageCharacters": 120000,
+    "maximumWebToolCallsPerRun": 6,
+    "defaultWebRequestsPerMinute": 60,
+    "defaultRequestTimeoutMilliseconds": 30000,
+    "maximumRequestTimeoutMilliseconds": 120000,
+    "usageRetentionHours": 48,
+    "maximumEncodedToolResultBytes": 524288
+  },
+  "verification": {
+    "chatWebUnit": { "result": "passed", "tests": 6 },
+    "chatWebIntegration": {
+      "result": "passed",
+      "tests": 5,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "providerAndWebIntegration": {
+      "result": "passed",
+      "files": 2,
+      "tests": 19,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "combinedChatAndRecoveryIntegration": {
+      "result": "passed",
+      "files": 7,
+      "tests": 46,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "fullBrowser": { "result": "passed", "tests": 27, "wcagAAndAA": "passed" },
+    "fullUnit": { "result": "passed", "files": 48, "tests": 201 },
+    "migrationInventory": { "result": "passed", "head": "000025_chat_web" },
+    "workspaceTypecheck": { "result": "passed", "projects": 6 },
+    "workspaceLint": { "result": "passed" },
+    "workspaceFormat": { "result": "passed" },
+    "dependencyBoundaries": { "result": "passed", "modules": 170, "dependencies": 334 },
+    "buildAndSmoke": { "result": "passed" },
+    "licenseInventory": { "result": "passed", "licenseClasses": 7 },
+    "sbom": { "result": "passed", "runtimePackages": 267 },
+    "secretScan": { "result": "passed" },
+    "combinedQualityGate": { "result": "passed" }
+  },
+  "faultEvidence": [
+    "private, local, credentialed, and unusual-port URLs are rejected",
+    "OpenAI response generation still receives only Ollama Cloud web tools",
+    "prompt-injection text remains untrusted evidence and cannot alter policy",
+    "raw search text is absent from durable tool arguments and events",
+    "identical web requests are suppressed before a second Cloud request",
+    "arbitrary URL fetch is rejected because a same-run search citation is required",
+    "loss of either Cloud web capability removes tools and rejects new opt-in chats",
+    "per-minute quota is shared through PostgreSQL and returns a retryable safe error",
+    "malformed, oversized, timed-out, cancelled, and credential-rejected requests fail safely",
+    "owner isolation and search-only credential denial protect exact web citations"
+  ],
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "remaining": [
+    "C08 adds contained Chat files, Markdown authoring, revisions, and previews.",
+    "C09 adds deterministic DOCX and PDF exports.",
+    "C10 adds artifact ingestion, managed context, archives, and reconciliation.",
+    "Real Synology DSM execution and a new SPK remain the C11 package gate."
+  ]
+}

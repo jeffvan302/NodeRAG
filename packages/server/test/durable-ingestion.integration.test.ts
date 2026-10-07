@@ -25,6 +25,7 @@ import {
 } from '../src/store/jobs.js';
 import { runMigrations } from '../src/store/migrations.js';
 import { createDatabaseReadinessProbe } from '../src/store/readiness.js';
+import { CURRENT_SCHEMA_REVISION } from '../src/store/schema-revision.js';
 import { createSilo } from '../src/store/silos.js';
 import { continueDocumentPurge, purgeDocument, startDocumentPurge } from '../src/store/purge.js';
 import { coordinatedEmbedder, withHnswBuildResource } from '../src/store/resources.js';
@@ -57,6 +58,25 @@ class CountingEmbedder implements Embedder {
 
   async embed(texts: readonly string[], maxTokens: number): Promise<EmbeddingBatch> {
     this.embeddedTexts += texts.length;
+    return this.runtime.embed(texts, maxTokens);
+  }
+}
+
+class FailSecondBatchEmbedder implements Embedder {
+  private readonly runtime = createDeterministicRuntime();
+  private calls = 0;
+
+  countTokens(texts: readonly string[]) {
+    return this.runtime.countTokens(texts);
+  }
+
+  async embed(texts: readonly string[], maxTokens: number): Promise<EmbeddingBatch> {
+    this.calls += 1;
+    if (this.calls === 2) {
+      const error = new Error('Synthetic connection reset after one completed group');
+      Object.assign(error, { code: 'ECONNRESET' });
+      throw error;
+    }
     return this.runtime.embed(texts, maxTokens);
   }
 }
@@ -206,7 +226,9 @@ describe.sequential('M05 durable ingestion, sources, verification, and purge', (
     );
     const first = await claimNextJob(pool, 'm05-worker-stale', 1000);
     expect(first).toMatchObject({ id: jobId, leaseEpoch: 1, logicalAttempt: 1, attempts: 1 });
-    expect(first?.frozenConfig).toMatchObject({ schemaRevision: '000011_recovery_hardening' });
+    expect(first?.frozenConfig).toMatchObject({
+      schemaRevision: CURRENT_SCHEMA_REVISION,
+    });
     await pool.query(
       `UPDATE noderag.job SET leased_until = now() - interval '1 second' WHERE id = $1`,
       [jobId],
@@ -234,8 +256,9 @@ describe.sequential('M05 durable ingestion, sources, verification, and purge', (
       lease_epoch: string;
       result: Record<string, unknown>;
       checkpoint: Record<string, unknown>;
+      progress: Record<string, unknown>;
     }>(
-      'SELECT state, logical_attempt, lease_epoch, result, checkpoint FROM noderag.job WHERE id=$1',
+      'SELECT state, logical_attempt, lease_epoch, result, checkpoint, progress FROM noderag.job WHERE id=$1',
       [jobId],
     );
     expect(settled.rows[0]).toMatchObject({
@@ -243,6 +266,7 @@ describe.sequential('M05 durable ingestion, sources, verification, and purge', (
       logical_attempt: 1,
       result: { verified: true },
       checkpoint: { row: 12 },
+      progress: { stage: 'complete', percent: 100 },
     });
     const events = await pool.query<{ sequence: number; event_type: string }>(
       `SELECT sequence, event_type FROM noderag.job_event WHERE job_id=$1 ORDER BY sequence`,
@@ -358,6 +382,56 @@ describe.sequential('M05 durable ingestion, sources, verification, and purge', (
     await pool.query('DELETE FROM noderag.document WHERE id = ANY($1::bigint[])', [
       [firstDocumentId, secondDocumentId],
     ]);
+  });
+
+  it('retains the prior searchable document state when an enhanced re-index fails', async () => {
+    const document = await pool.query<{ id: unknown }>(
+      `INSERT INTO noderag.document
+         (silo_id, name, extension, byte_count, original_sha256, uploaded_by, state)
+       VALUES ($1, 'enhanced-failure.pdf', 'pdf', 1, $2, $3, 'ready')
+       RETURNING id`,
+      [siloId, Buffer.alloc(32, 51), administratorId],
+    );
+    const documentId = databaseInteger(document.rows[0]?.id, 'enhanced failure document id');
+    const queued = await pool.query<{ id: unknown }>(
+      `INSERT INTO noderag.job
+         (kind, document_id, silo_id, priority, max_attempts, payload)
+       VALUES ('extract', $1, $2, 0, 1,
+               jsonb_build_object(
+                 'reason', 'enhanced-pdf-reindex',
+                 'replaceExisting', true,
+                 'previousDocumentState', 'ready'))
+       RETURNING id`,
+      [documentId, siloId],
+    );
+    const jobId = databaseInteger(queued.rows[0]?.id, 'enhanced failure job id');
+    const claimed = required(
+      await claimNextJob(pool, 'm05-enhanced-failure'),
+      'enhanced failure claim missing',
+    );
+    expect(claimed.id).toBe(jobId);
+    await failJob(
+      pool,
+      claimed,
+      new ClassifiedJobError('enhanced-layout-rejected', 'permanent', 'fixture rejection'),
+    );
+    const retained = await pool.query<{
+      state: string;
+      error_code: string | null;
+      metadata: { enhancedReindex?: { state?: string; errorCode?: string; retryable?: boolean } };
+    }>('SELECT state,error_code,metadata FROM noderag.document WHERE id=$1', [documentId]);
+    expect(retained.rows[0]).toMatchObject({
+      state: 'ready',
+      error_code: null,
+      metadata: {
+        enhancedReindex: {
+          state: 'failed',
+          errorCode: 'enhanced-layout-rejected',
+          retryable: true,
+        },
+      },
+    });
+    await pool.query('DELETE FROM noderag.document WHERE id=$1', [documentId]);
   });
 
   it('rolls back an uncommitted terminal settlement across a database restart', async () => {
@@ -555,17 +629,40 @@ describe.sequential('M05 durable ingestion, sources, verification, and purge', (
         uri: watchedRoot,
         includeGlobs: ['**/*.md'],
         excludeGlobs: ['ignored.md'],
-        scheduleIntervalMinutes: 60,
-        operatorNote: 'manual test crawl; unattended schedule remains disabled',
+        scheduleIntervalMinutes: 1,
+        operatorNote: 'one-minute watched source',
       },
     });
     expect(created.statusCode, created.body).toBe(201);
     const sourceId = created.json<{ id: number }>().id;
-    const sourceRow = await pool.query<{ schedule_enabled: boolean }>(
-      'SELECT schedule_enabled FROM noderag.source WHERE id=$1',
+    const sourceRow = await pool.query<{
+      schedule_enabled: boolean;
+      schedule_interval_minutes: number;
+      next_crawl_at: Date;
+    }>(
+      `SELECT schedule_enabled, schedule_interval_minutes, next_crawl_at
+       FROM noderag.source WHERE id=$1`,
       [sourceId],
     );
-    expect(sourceRow.rows[0]?.schedule_enabled).toBe(false);
+    expect(sourceRow.rows[0]).toMatchObject({
+      schedule_enabled: true,
+      schedule_interval_minutes: 1,
+      next_crawl_at: expect.any(Date),
+    });
+    const duplicate = await app.inject({
+      method: 'POST',
+      url: '/v1/sources',
+      headers: mutationHeaders(administrator, 'm05-source-create-duplicate-001'),
+      payload: {
+        siloId,
+        uri: watchedRoot,
+        includeGlobs: ['**/*.md'],
+        excludeGlobs: ['ignored.md'],
+        scheduleIntervalMinutes: 1,
+      },
+    });
+    expect(duplicate.statusCode, duplicate.body).toBe(409);
+    expect(duplicate.json()).toMatchObject({ code: 'source-already-connected' });
 
     const crawl = async (key: string) => {
       const response = await app.inject({
@@ -688,12 +785,26 @@ describe.sequential('M05 durable ingestion, sources, verification, and purge', (
       method: 'PATCH',
       url: `/v1/sources/${String(sourceId)}`,
       headers: mutationHeaders(administrator, 'm05-source-schedule-001'),
-      payload: { siloId, scheduleEnabled: true, scheduleIntervalMinutes: 120 },
+      payload: {
+        siloId,
+        includeGlobs: ['**/*.md', '**/*.pdf'],
+        excludeGlobs: ['ignored.md', '**/~$*'],
+        scheduleEnabled: true,
+        scheduleIntervalMinutes: 120,
+      },
     });
     expect(enabledSchedule.statusCode, enabledSchedule.body).toBe(200);
     expect(enabledSchedule.json()).toMatchObject({
       scheduleEnabled: true,
       scheduleIntervalMinutes: 120,
+    });
+    const updatedSource = await pool.query<{
+      include_glob: string[];
+      exclude_glob: string[];
+    }>('SELECT include_glob, exclude_glob FROM noderag.source WHERE id=$1', [sourceId]);
+    expect(updatedSource.rows[0]).toEqual({
+      include_glob: ['**/*.md', '**/*.pdf'],
+      exclude_glob: ['ignored.md', '**/~$*'],
     });
     await pool.query(
       "UPDATE noderag.source SET next_crawl_at=now() - interval '1 minute' WHERE id=$1",
@@ -770,6 +881,52 @@ describe.sequential('M05 durable ingestion, sources, verification, and purge', (
       headers: { cookie: administrator.cookie },
     });
     expect(healthy.json<{ status: string }>().status).toBe('ok');
+  });
+
+  it('shows administrators a structured rolling 24-hour ingestion log', async () => {
+    const inserted = await pool.query<{ id: string }>(
+      `INSERT INTO noderag.job
+         (kind, silo_id, state, logical_attempt, max_attempts, last_error_code,
+          last_error_detail, error_class, structured_error, finished_at)
+       VALUES ('extract', $1, 'failed', 1, 5, '23514',
+               'new row violates a check constraint', 'permanent',
+               '{"code":"23514","message":"new row violates a check constraint","class":"permanent","detail":{"table":"document_block","constraint":"document_block_check"}}'::jsonb,
+               now()) RETURNING id`,
+      [siloId],
+    );
+    const jobId = required(inserted.rows[0]?.id, 'log fixture job missing');
+    await pool.query(
+      `INSERT INTO noderag.job_event (job_id, sequence, event_type, detail)
+       VALUES ($1, 0, 'failed',
+               '{"attempt":1,"code":"23514","message":"new row violates a check constraint","detail":{"table":"document_block","constraint":"document_block_check"}}'::jsonb)`,
+      [jobId],
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/admin/logs?limit=50',
+      headers: { cookie: administrator.cookie },
+    });
+    expect(response.statusCode, response.body).toBe(200);
+    expect(response.json()).toMatchObject({
+      windowHours: 24,
+      itemCount: expect.any(Number),
+      items: expect.arrayContaining([
+        expect.objectContaining({
+          jobId,
+          kind: 'extract',
+          state: 'failed',
+          eventType: 'failed',
+          error: expect.objectContaining({
+            code: '23514',
+            detail: expect.objectContaining({
+              table: 'document_block',
+              constraint: 'document_block_check',
+            }),
+          }),
+        }),
+      ]),
+    });
   });
 
   it('resumes document purge after interruption at every destructive boundary', async () => {
@@ -1019,5 +1176,147 @@ describe.sequential('M05 durable ingestion, sources, verification, and purge', (
       [`noderag.chunk_s${String(extra.id)}`],
     );
     expect(partition.rows[0]?.name).toBeNull();
+  });
+
+  it('identifies the document being processed in the live job queue', async () => {
+    const documentId = await upload(
+      administrator,
+      'queue-visible.md',
+      '# Queue visibility\n\nThis document proves the active filename is visible.',
+      'm05-queue-visible-upload-001',
+    );
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/jobs',
+      headers: { cookie: administrator.cookie },
+    });
+    expect(response.statusCode, response.body).toBe(200);
+    const jobs = response.json<{ items: Array<Record<string, unknown>> }>().items;
+    expect(jobs.find((job) => Number(job['documentId']) === documentId)).toMatchObject({
+      documentName: 'queue-visible.md',
+    });
+    await drain('m05-queue-visible-worker');
+    const progressEvents = await pool.query<{ detail: Record<string, unknown> }>(
+      `SELECT event.detail
+       FROM noderag.job job
+       JOIN noderag.job_event event ON event.job_id = job.id
+       WHERE job.document_id = $1 AND job.kind = 'embed' AND event.event_type = 'progress'
+       ORDER BY event.sequence`,
+      [documentId],
+    );
+    const stageStarts = progressEvents.rows
+      .map((row) => row.detail)
+      .filter((detail) => detail['percent'] === 0)
+      .map((detail) => ({
+        stage: detail['stage'],
+        percent: detail['percent'],
+        stageStartedAt: detail['stageStartedAt'],
+      }));
+    expect(stageStarts).toEqual([
+      { stage: 'chunking', percent: 0, stageStartedAt: expect.any(String) },
+      { stage: 'embedding', percent: 0, stageStartedAt: expect.any(String) },
+    ]);
+    expect(progressEvents.rows.map((row) => row.detail)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ stage: 'chunking', percent: 100 }),
+        expect.objectContaining({
+          stage: 'embedding',
+          operation: 'checking-embedding-cache',
+          cacheChecked: 1,
+          cacheTotal: 1,
+        }),
+        expect.objectContaining({
+          stage: 'embedding',
+          operation: 'generating-embeddings',
+          embedded: 1,
+          cached: 0,
+          completed: 1,
+          remaining: 0,
+          total: 1,
+        }),
+        expect.objectContaining({
+          stage: 'embedding',
+          operation: 'saving-search-index',
+          percent: 90,
+          completed: 1,
+          remaining: 0,
+        }),
+      ]),
+    );
+    const quality = await pool.query<{ ingestion_quality: Record<string, unknown> }>(
+      `SELECT metadata->'ingestionQuality' AS ingestion_quality
+       FROM noderag.document WHERE id = $1`,
+      [documentId],
+    );
+    expect(quality.rows[0]?.ingestion_quality).toMatchObject({
+      suspectedNoisyPassages: 0,
+      warningCodes: [],
+    });
+  });
+
+  it('resumes embedding from completed passage groups after a temporary model failure', async () => {
+    const unique = crypto.randomUUID();
+    const markdown = Array.from(
+      { length: 160 },
+      (_, index) =>
+        `## Section ${String(index)} ${unique}\n\nRevenue evidence ${String(index)} ${'supporting detail '.repeat(18)}`,
+    ).join('\n\n');
+    const documentId = await upload(
+      administrator,
+      'resumable-embedding.md',
+      markdown,
+      'm05-resumable-embedding-upload-001',
+    );
+    const zeroBefore = await pool.query<{ count: string }>(
+      'SELECT count(*)::text AS count FROM noderag.embedding_cache WHERE refcount = 0',
+    );
+    await drainMarkdownJobs({
+      pool,
+      files,
+      embedder: new FailSecondBatchEmbedder(),
+      leaseOwner: 'm05-resumable-failing-worker',
+      sourceRoots: [sourceBase],
+    });
+    const failedPass = await pool.query<{ state: string }>(
+      `SELECT state FROM noderag.job WHERE document_id = $1 AND kind = 'embed'`,
+      [documentId],
+    );
+    expect(failedPass.rows[0]?.state).toBe('retry_wait');
+    const zeroDuring = await pool.query<{ count: string }>(
+      'SELECT count(*)::text AS count FROM noderag.embedding_cache WHERE refcount = 0',
+    );
+    expect(Number(zeroDuring.rows[0]?.count)).toBeGreaterThanOrEqual(
+      Number(zeroBefore.rows[0]?.count) + 2,
+    );
+
+    await pool.query(
+      `UPDATE noderag.job SET run_after = now(), retry_at = now()
+       WHERE document_id = $1 AND kind = 'embed'`,
+      [documentId],
+    );
+    const recoveryEmbedder = new CountingEmbedder();
+    await drainMarkdownJobs({
+      pool,
+      files,
+      embedder: recoveryEmbedder,
+      leaseOwner: 'm05-resumable-recovery-worker',
+      sourceRoots: [sourceBase],
+    });
+    const completed = await pool.query<{ state: string; chunks: string }>(
+      `SELECT document.state, count(chunk.id)::text AS chunks
+       FROM noderag.document document
+       LEFT JOIN noderag.chunk chunk ON chunk.document_id = document.id
+       WHERE document.id = $1 GROUP BY document.id`,
+      [documentId],
+    );
+    expect(completed.rows[0]?.state).toBe('ready');
+    const chunkCount = Number(completed.rows[0]?.chunks);
+    expect(chunkCount).toBeGreaterThan(2);
+    expect(recoveryEmbedder.embeddedTexts).toBeGreaterThan(0);
+    expect(recoveryEmbedder.embeddedTexts).toBeLessThan(chunkCount);
+    const zeroAfter = await pool.query<{ count: string }>(
+      'SELECT count(*)::text AS count FROM noderag.embedding_cache WHERE refcount = 0',
+    );
+    expect(Number(zeroAfter.rows[0]?.count)).toBe(Number(zeroBefore.rows[0]?.count));
   });
 });

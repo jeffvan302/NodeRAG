@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "stage": "C01",
+  "name": "Ollama Cloud provider persistence and Administration",
+  "recordedAt": "2026-09-15T03:51:37.3025039-04:00",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "boundary": {
+    "provider": "ollama_cloud",
+    "serviceRoot": "https://ollama.com",
+    "customAddressAccepted": false,
+    "localOllamaAccepted": false,
+    "internetProvider": "ollama_cloud",
+    "sharedEncryptedCredential": true,
+    "independentCapabilities": ["model_catalog", "generation", "web_search", "web_fetch"],
+    "userChatEnabled": false
+  },
+  "implementation": {
+    "migrationPath": "packages/server/migrations/000019_chat_provider_foundation.sql",
+    "migrationSha256": "58c0570e01f666a08f2b77d7f5fadb4f4003d33fca0bfeac9b5e55f6e60e959f",
+    "adapterPath": "packages/server/src/chat/ollama-cloud.ts",
+    "adapterSha256": "247e4fb36ae80442d512e22523c05ab19aa5e6af970bb96f97451f6aab446349",
+    "routesPath": "packages/server/src/api/chat-provider-routes.ts",
+    "routesSha256": "fc219eab32a4d6b30bc4f43ab32e634f38685606513e642ed888feb9acfe08af",
+    "integrationTestPath": "packages/server/test/chat-provider.integration.test.ts",
+    "integrationTestSha256": "7d989044696e7ce0735e152f874d41d2958bb6bb6e6853bfe2fa3d8f046e8dba",
+    "unitTestPath": "packages/server/test/ollama-cloud.unit.test.ts",
+    "unitTestSha256": "3c016d05de1f778b6b8ee466df31a5353d474cc473c2356dd027c024ed0bf6b7",
+    "administrationUiPath": "packages/ui/src/workspace.tsx",
+    "administrationUiSha256": "b19825a5b12edcf488fe03080fd853b87d3c1a8c39b7a9aca47c34f233399156",
+    "backupPolicySha256": "9fec73df6edfaa8d4c2ffda781fdedfd70c683594a189fe46b92e0617d720123",
+    "routeAuthorizationSha256": "1e5606740707034e21449c4192a1e2ad4623552d3f4dbec534250a385367dbd3",
+    "openApiSha256": "01942caa91efb3ddf8183be599c9c6e205b886253d5d957766304c3d484db5cf",
+    "adminRouteCount": 7
+  },
+  "persistence": {
+    "blankKeySubmission": "retains encrypted key",
+    "candidateTestKey": "never persisted",
+    "explicitDisable": "stops Cloud use and retains key",
+    "explicitClear": "disables Cloud use and removes key",
+    "apiRestart": "passed",
+    "encryptedBackupRestore": "passed",
+    "restoredProviderState": "disabled_pending_revalidation",
+    "portableExportIncludesProvider": false
+  },
+  "verification": {
+    "focusedUnit": { "result": "passed", "files": 3, "tests": 21 },
+    "providerIntegration": { "result": "passed", "tests": 9, "environment": "Docker Linux/amd64" },
+    "recoveryIntegration": { "result": "passed", "tests": 4, "environment": "Docker Linux/amd64" },
+    "focusedBrowser": { "result": "passed", "tests": 1, "wcagAAndAA": "passed" },
+    "fullBrowser": { "result": "passed", "tests": 21 },
+    "fullUnit": { "result": "passed", "files": 42, "tests": 163 },
+    "dependencyBoundaries": { "result": "passed", "modules": 153, "dependencies": 273 },
+    "migrationInventory": { "result": "passed", "head": "000019_chat_provider_foundation" },
+    "openApiInventory": { "result": "passed" },
+    "workspaceTypecheck": { "result": "passed", "projects": 6 },
+    "workspaceLint": { "result": "passed" },
+    "workspaceFormat": { "result": "passed" },
+    "buildAndSmoke": { "result": "passed" },
+    "licenseInventory": { "result": "passed", "licenseClasses": 7 },
+    "sbom": { "result": "passed", "runtimePackages": 267 },
+    "secretScan": { "result": "passed" },
+    "combinedQualityGate": { "result": "passed" },
+    "optionalLiveOllamaCloud": { "result": "not_run", "requiredForDeterministicGate": false }
+  },
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "remaining": [
+    "C02 adds OpenAI OAuth Administration while Chat remains disabled.",
+    "C07 turns the tested Ollama Cloud web-search and web-fetch capabilities into bounded Chat tools.",
+    "Real Synology DSM provider execution and resource acceptance remain deferred to C11."
+  ]
+}

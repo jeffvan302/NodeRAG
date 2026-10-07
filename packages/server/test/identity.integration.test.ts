@@ -147,6 +147,7 @@ describe.sequential('M03 identity and authorization foundation', () => {
       'build',
       'chunk',
       'document',
+      'document_block',
       'document_image',
       'document_page',
       'embedding_cache',
@@ -175,7 +176,7 @@ describe.sequential('M03 identity and authorization foundation', () => {
     const head = await state.pool.query<{ name: string }>(
       'SELECT name FROM public.noderag_migrations ORDER BY id DESC LIMIT 1',
     );
-    expect(head.rows[0]?.name).toBe('000011_recovery_hardening');
+    expect(head.rows[0]?.name).toBe('000029_chat_files');
     const cacheType = await state.pool.query<{ formatted: string }>(
       `SELECT format_type(a.atttypid, a.atttypmod) AS formatted
        FROM pg_attribute a
@@ -316,6 +317,17 @@ describe.sequential('M03 identity and authorization foundation', () => {
         [documentId, siloId],
       );
       await state.pool.query(
+        `INSERT INTO noderag.document_block
+           (document_id, silo_id, page_ordinal, ordinal, kind, source, native_text, markdown,
+            reading_order, character_start, character_end, byte_start, byte_end,
+            text_confidence, reading_order_confidence, structure_confidence,
+            combined_confidence, parser_revision, layout_policy_revision,
+            confidence_policy_revision)
+         VALUES ($1, $2, 0, 0, 'paragraph', 'text', 'test', 'test',
+                 0, 0, 4, 0, 4, 1, 1, 1, 1, 'test', 'test', 'test')`,
+        [documentId, siloId],
+      );
+      await state.pool.query(
         `INSERT INTO noderag.document_image
            (document_id, silo_id, page_ordinal, sequence, image_sha256)
          VALUES ($1, $2, 0, 0, decode(repeat('02', 32), 'hex'))`,
@@ -340,7 +352,14 @@ describe.sequential('M03 identity and authorization foundation', () => {
       await client.query("SELECT set_config('app.silo_ids', $1, true)", [
         `{${String(state.defaultSiloId)}}`,
       ]);
-      for (const table of ['source', 'document', 'document_page', 'document_image', 'chunk']) {
+      for (const table of [
+        'source',
+        'document',
+        'document_page',
+        'document_block',
+        'document_image',
+        'chunk',
+      ]) {
         const count = await client.query<{ count: string }>(
           `SELECT count(*)::text AS count FROM noderag.${table}`,
         );

@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "milestone": "M1",
+  "recordedAt": "2026-09-02T23:55:00-04:00",
+  "milestoneCommit": "the commit containing this proof",
+  "reviewer": "automated-manifest-v2-gate",
+  "rolloutMode": "disabled",
+  "activationEpoch": 0,
+  "workerClaimsEnabled": false,
+  "publicationEnabled": false,
+  "migrationHead": "20260902000400_template_manifest_v2_assessments",
+  "migrationCount": 124,
+  "contracts": {
+    "pipeline": 2,
+    "manifest": 2,
+    "evidenceLocator": 1,
+    "workerProtocol": 1
+  },
+  "evidence": {
+    "specification": "docs/Templates/Work-Order Pipeline - draft1.md",
+    "manifestCompiler": "packages/rag-core/src/template-persistent-data.ts",
+    "digestCompiler": "packages/rag-core/src/template-work-order-contracts.ts",
+    "ingestionModel": "apps/worker/src/template-ingestion-model.ts",
+    "ingestionPublisher": "apps/worker/src/template-manifest-v2-assessment.ts",
+    "assessmentMigration": "supabase/migrations/20260902000400_template_manifest_v2_assessments.sql",
+    "inspectionEndpoint": "apps/web/src/app/api/templates/[id]/inspection-bundle/route.ts",
+    "catalogProjection": "apps/web/src/lib/document-templates.ts"
+  },
+  "invariants": {
+    "legacyManifestInspectableButIneligible": true,
+    "missingSemanticsNeverInferred": true,
+    "redoCreatesImmutableChildVersion": true,
+    "retryResumesExistingVersion": true,
+    "deferredRuntimeReachable": false,
+    "v1RuntimeAuthoritative": true
+  },
+  "tests": {
+    "docsCheck": "passed",
+    "phase9Check": "passed_contract_check_portable_evidence_remains_intentionally_uncertified",
+    "ragCore": "passed_25_files_303_tests_and_typecheck",
+    "worker": "passed_93_tests_and_typecheck",
+    "web": "passed_103_files_518_tests_and_typecheck",
+    "railwayPostgres": "passed_125_ordered_migrations_and_manifest_v2_isolation",
+    "railwayPostgrest": "passed_signed_runtime_and_125_checksum_verification",
+    "repositoryTypecheck": "passed",
+    "repositoryTests": "passed",
+    "repositoryBuild": "passed"
+  },
+  "gate": "passed"
+}

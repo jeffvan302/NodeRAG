@@ -2,7 +2,12 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { chunkCanonicalMarkdown, type Embedder } from '@noderag/shared';
 import type { Pool } from 'pg';
-import { extractDocument, type DocumentFormat, type InjectedVision } from '../extract/index.js';
+import {
+  extractDocument,
+  type DocumentFormat,
+  type ExtractionProgress,
+  type InjectedVision,
+} from '../extract/index.js';
 import { enforceTokenGuard, type GuardedChunk } from './token-guard.js';
 import { runIntegrityJob } from './integrity.js';
 import { crawlSource } from './sources.js';
@@ -24,6 +29,120 @@ const setWorkerScope = async (database: SqlClient, siloId: number): Promise<void
 
 const supportedFormats = new Set<DocumentFormat>(['md', 'txt', 'pdf', 'docx', 'xlsx']);
 
+const payloadRecord = (payload: unknown): Readonly<Record<string, unknown>> =>
+  typeof payload === 'object' && payload !== null && !Array.isArray(payload)
+    ? (payload as Readonly<Record<string, unknown>>)
+    : {};
+
+const replacesSearchableDocument = (job: ClaimedJob): boolean =>
+  payloadRecord(job.payload)['replaceExisting'] === true;
+
+const initialEmbeddingBatchSize = 2;
+const maximumEmbeddingBatchSize = 16;
+const targetEmbeddingBatchMilliseconds = 20_000;
+const activeEmbeddingHeartbeatMilliseconds = 20_000;
+
+const waitWithProgress = async <Value>(
+  operation: Promise<Value>,
+  onProgress: () => Promise<void>,
+): Promise<Value> => {
+  type Outcome =
+    | { readonly state: 'resolved'; readonly value: Value }
+    | { readonly state: 'rejected'; readonly error: unknown };
+  const settled: Promise<Outcome> = operation.then(
+    (value) => ({ state: 'resolved', value }),
+    (error: unknown) => ({ state: 'rejected', error }),
+  );
+  for (;;) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const outcome = await Promise.race([
+      settled,
+      new Promise<null>((resolve) => {
+        timer = setTimeout(resolve, activeEmbeddingHeartbeatMilliseconds, null);
+      }),
+    ]);
+    if (timer !== undefined) clearTimeout(timer);
+    if (outcome === null) {
+      await onProgress();
+      continue;
+    }
+    if (outcome.state === 'rejected') throw outcome.error;
+    return outcome.value;
+  }
+};
+
+export const nextEmbeddingBatchSize = (
+  currentSize: number,
+  elapsedMilliseconds: number,
+  remainingPassages: number,
+): number => {
+  if (remainingPassages <= 0) return 0;
+  const current = Math.max(1, Math.min(maximumEmbeddingBatchSize, Math.round(currentSize)));
+  if (!Number.isFinite(elapsedMilliseconds) || elapsedMilliseconds <= 0) {
+    return Math.min(current, remainingPassages);
+  }
+  const projected = Math.max(
+    1,
+    Math.min(
+      maximumEmbeddingBatchSize,
+      Math.round((current * targetEmbeddingBatchMilliseconds) / elapsedMilliseconds),
+    ),
+  );
+  const next =
+    elapsedMilliseconds > targetEmbeddingBatchMilliseconds * 1.25
+      ? Math.min(current - 1, projected)
+      : elapsedMilliseconds < targetEmbeddingBatchMilliseconds * 0.6
+        ? Math.max(current + 1, projected)
+        : current;
+  return Math.max(1, Math.min(maximumEmbeddingBatchSize, remainingPassages, next));
+};
+
+export interface MarkdownQualityAssessment {
+  readonly replacementCharacters: number;
+  readonly controlCharacters: number;
+  readonly mojibakeIndicators: number;
+  readonly noisyLines: number;
+  readonly repeatedLinePatterns: number;
+  readonly warningCodes: readonly string[];
+}
+
+export const assessMarkdownQuality = (markdown: string): MarkdownQualityAssessment => {
+  const lines = markdown.split(/\r?\n/u);
+  const repeatedLines = new Map<string, number>();
+  let noisyLines = 0;
+  for (const line of lines) {
+    const normalized = line.trim().replace(/\s+/gu, ' ');
+    if (normalized.length >= 16 && normalized.length <= 240) {
+      repeatedLines.set(normalized, (repeatedLines.get(normalized) ?? 0) + 1);
+    }
+    const nonWhitespace = normalized.match(/\S/gu)?.length ?? 0;
+    const alphanumeric = normalized.match(/[\p{L}\p{N}]/gu)?.length ?? 0;
+    if (nonWhitespace >= 24 && alphanumeric / nonWhitespace < 0.2) noisyLines += 1;
+  }
+  const replacementCharacters = markdown.match(/\uFFFD/gu)?.length ?? 0;
+  const controlCharacters = [...markdown].filter((character) => {
+    const code = character.codePointAt(0) ?? 0;
+    return code < 32 && character !== '\n' && character !== '\r' && character !== '\t';
+  }).length;
+  const mojibakeIndicators = markdown.match(/(?:Ã.|Â.|â€|ï¿½)/gu)?.length ?? 0;
+  const repeatedLinePatterns = [...repeatedLines.values()].filter((count) => count >= 5).length;
+  const warningCodes: string[] = [];
+  if (replacementCharacters > 0) warningCodes.push('replacement-characters');
+  if (controlCharacters > 0) warningCodes.push('unexpected-control-characters');
+  if (mojibakeIndicators > 0) warningCodes.push('possible-mojibake');
+  if (noisyLines >= Math.max(3, Math.ceil(lines.length * 0.05)))
+    warningCodes.push('symbol-heavy-lines');
+  if (repeatedLinePatterns > 0) warningCodes.push('repeated-lines');
+  return {
+    replacementCharacters,
+    controlCharacters,
+    mojibakeIndicators,
+    noisyLines,
+    repeatedLinePatterns,
+    warningCodes,
+  };
+};
+
 const documentFormat = (value: string): DocumentFormat => {
   if (!supportedFormats.has(value as DocumentFormat))
     throw new Error('unsupported-document-format');
@@ -37,14 +156,50 @@ const extractCanonicalDocument = async (
   vision?: InjectedVision,
 ): Promise<void> => {
   if (job.documentId === null || job.siloId === null) throw new Error('extract-job-missing-scope');
-  await heartbeatJob(pool, job, 60_000, { stage: 'read-original' }, { stage: 'extract' });
+  const progressStartedAt = Date.now();
+  let lastProgressPercent = -1;
+  let lastProgressAt = 0;
+  const reportExtractionProgress = async (progress: ExtractionProgress): Promise<void> => {
+    const [base, span] =
+      progress.stage === 'extracting-pages'
+        ? [5, 45]
+        : progress.stage === 'classifying-layout'
+          ? [50, 15]
+          : progress.stage === 'analysing-pages'
+            ? [65, 10]
+            : [75, 5];
+    const percent = Math.min(
+      base + span,
+      base + Math.round((span * progress.completed) / Math.max(1, progress.total)),
+    );
+    const now = Date.now();
+    if (percent === lastProgressPercent && now - lastProgressAt < 2_000) return;
+    lastProgressPercent = percent;
+    lastProgressAt = now;
+    await heartbeatJob(pool, job, 60_000, {
+      stage: progress.stage,
+      percent,
+      pagesCompleted: progress.completed,
+      pagesTotal: progress.total,
+      elapsedMs: now - progressStartedAt,
+      ...(progress.routing ?? {}),
+    });
+  };
+  await heartbeatJob(
+    pool,
+    job,
+    60_000,
+    { stage: 'read-original', percent: 1, stageStartedAt: new Date().toISOString() },
+    { stage: 'extract' },
+  );
   const document = await withTransaction(pool, async (database) => {
     await setWorkerScope(database, job.siloId ?? 0);
     const found = await database.query<{
       extension: string;
       original_sha256: Buffer;
+      state: string;
     }>(
-      `SELECT extension, original_sha256 FROM noderag.document
+      `SELECT extension, original_sha256, state FROM noderag.document
        WHERE id = $1 AND silo_id = $2 FOR UPDATE`,
       [job.documentId, job.siloId],
     );
@@ -53,11 +208,30 @@ const extractCanonicalDocument = async (
     return row;
   });
   const format = documentFormat(document.extension);
+  const replaceExisting = replacesSearchableDocument(job);
   const original = await readFile(files.paths(job.documentId, format).originalAbsolute);
+  await heartbeatJob(pool, job, 60_000, {
+    stage: 'validating-original',
+    percent: 5,
+    bytesTotal: original.byteLength,
+    elapsedMs: Date.now() - progressStartedAt,
+  });
   const actualOriginalHash = createHash('sha256').update(original).digest();
   if (!actualOriginalHash.equals(document.original_sha256))
     throw new Error('original-hash-mismatch');
-  const extracted = await extractDocument(original, format, {}, vision);
+  const extracted = await extractDocument(
+    original,
+    format,
+    { onProgress: reportExtractionProgress },
+    vision,
+  );
+  await heartbeatJob(pool, job, 60_000, {
+    stage: 'assembling-document',
+    percent: 85,
+    pagesCompleted: extracted.pages.length,
+    pagesTotal: extracted.pages.length,
+    elapsedMs: Date.now() - progressStartedAt,
+  });
   const awaitingVision =
     extracted.pages.some((page) =>
       page.images.some((image) => image.disposition === 'pending_vision'),
@@ -81,7 +255,13 @@ const extractCanonicalDocument = async (
       imagePaths.set(`${String(page.ordinal)}:${String(image.sequence)}`, storagePath);
     }
   }
-  await heartbeatJob(pool, job, 60_000, { stage: 'commit-canonical' });
+  await heartbeatJob(pool, job, 60_000, {
+    stage: 'saving-extraction',
+    percent: 90,
+    pagesCompleted: extracted.pages.length,
+    pagesTotal: extracted.pages.length,
+    elapsedMs: Date.now() - progressStartedAt,
+  });
 
   let retryVision = false;
   await withTransaction(pool, async (database) => {
@@ -107,7 +287,7 @@ const extractCanonicalDocument = async (
         extracted.offsetsMatchOriginal,
         extracted.encoding,
         extracted.encodingConfidence,
-        awaitingVision ? 'awaiting_vision' : 'extracting',
+        replaceExisting ? document.state : awaitingVision ? 'awaiting_vision' : 'extracting',
         canonical.bytes,
         JSON.stringify(extracted.warnings),
         JSON.stringify(extracted.metadata),
@@ -151,6 +331,61 @@ const extractCanonicalDocument = async (
           page.confidence,
         ],
       );
+      for (const block of page.blocks) {
+        await database.query(
+          `INSERT INTO noderag.document_block
+             (document_id, silo_id, page_ordinal, ordinal, kind, source, native_text, markdown,
+              reading_order, bound_x, bound_y, bound_width, bound_height,
+              character_start, character_end, byte_start, byte_end,
+              text_confidence, reading_order_confidence, structure_confidence,
+              combined_confidence, warning_codes, confidence_components,
+              parser_revision, layout_policy_revision, confidence_policy_revision,
+              vision_prompt_revision, vision_schema_revision, preprocessing_revision,
+              model_revision)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+                   $14, $15, $16, $17, $18, $19, $20, $21, $22, $23::jsonb,
+                   $24, $25, $26, $27, $28, $29, $30)`,
+          [
+            job.documentId,
+            job.siloId,
+            page.ordinal,
+            block.ordinal,
+            block.kind,
+            block.source,
+            block.text,
+            block.markdown,
+            block.readingOrder,
+            block.bounds?.x ?? null,
+            block.bounds?.y ?? null,
+            block.bounds?.width ?? null,
+            block.bounds?.height ?? null,
+            block.characterStart,
+            block.characterEnd,
+            block.byteStart,
+            block.byteEnd,
+            block.confidence.text,
+            block.confidence.readingOrder,
+            block.confidence.structure,
+            block.confidence.combined,
+            block.warnings,
+            JSON.stringify({
+              scores: block.confidence,
+              components: block.confidence.components ?? {},
+              routing: block.routing ?? {
+                disposition: 'native-safe',
+                reasons: ['legacy-compatible-default'],
+              },
+            }),
+            block.revisions.parser,
+            block.revisions.layout,
+            block.revisions.confidence,
+            block.revisions.visionPrompt ?? null,
+            block.revisions.visionSchema ?? null,
+            block.revisions.preprocessing ?? null,
+            block.revisions.model ?? null,
+          ],
+        );
+      }
       for (const image of page.images) {
         await database.query(
           `INSERT INTO noderag.document_image
@@ -217,7 +452,10 @@ const extractCanonicalDocument = async (
       [job.siloId],
     );
     const buildId = databaseInteger(build.rows[0]?.id, 'active build id');
-    if ((job.kind === 'vision' && !awaitingVision) || job.kind === 'extract') {
+    if (
+      !replaceExisting &&
+      ((job.kind === 'vision' && !awaitingVision) || job.kind === 'extract')
+    ) {
       const removed = await database.query<{ count: string }>(
         `WITH deleted AS (
            DELETE FROM noderag.chunk
@@ -251,12 +489,19 @@ const extractCanonicalDocument = async (
     if (extracted.markdown.length > 0 && (!awaitingVision || job.kind === 'extract')) {
       await database.query(
         `INSERT INTO noderag.job (kind, document_id, silo_id, build_id, priority, payload)
-         VALUES ('embed', $1, $2, $3, 4, jsonb_build_object('format', $4::text))
+         VALUES ('embed', $1, $2, $3, 4,
+                 jsonb_build_object(
+                   'format', $4::text,
+                   'replaceExisting', $5::boolean,
+                   'reason', CASE WHEN $5::boolean
+                                  THEN 'enhanced-pdf-reindex' ELSE 'ingestion' END,
+                   'previousDocumentState', $6::text))
          ON CONFLICT (document_id, kind)
            WHERE document_id IS NOT NULL
              AND state IN ('pending', 'leased', 'retry_wait', 'paused')
-         DO NOTHING`,
-        [job.documentId, job.siloId, buildId, format],
+         DO UPDATE SET payload = EXCLUDED.payload, state = 'pending', run_after = now(),
+                       retry_at = NULL, updated_at = now()`,
+        [job.documentId, job.siloId, buildId, format, replaceExisting, document.state],
       );
     }
     if (awaitingVision && job.kind === 'extract' && vision !== undefined) {
@@ -264,12 +509,18 @@ const extractCanonicalDocument = async (
         `INSERT INTO noderag.job
            (kind, document_id, silo_id, build_id, priority, max_attempts, payload)
          VALUES ('vision', $1, $2, $3, 3, 5,
-                 jsonb_build_object('format', $4::text, 'reason', 'pending-vision'))
+                 jsonb_build_object(
+                   'format', $4::text,
+                   'reason', CASE WHEN $5::boolean
+                                  THEN 'enhanced-pdf-reindex' ELSE 'pending-vision' END,
+                   'replaceExisting', $5::boolean,
+                   'previousDocumentState', $6::text))
          ON CONFLICT (document_id, kind)
            WHERE document_id IS NOT NULL
              AND state IN ('pending', 'leased', 'retry_wait', 'paused')
-         DO NOTHING`,
-        [job.documentId, job.siloId, buildId, format],
+         DO UPDATE SET payload = EXCLUDED.payload, state = 'pending', run_after = now(),
+                       retry_at = NULL, updated_at = now()`,
+        [job.documentId, job.siloId, buildId, format, replaceExisting, document.state],
       );
     }
     if (job.kind === 'vision' && awaitingVision) {
@@ -356,8 +607,16 @@ const embedMarkdown = async (
     typeof configuredTarget === 'string' && /^chunk_stage_b\d+_s\d+$/u.test(configuredTarget)
       ? configuredTarget
       : null;
+  const replaceExisting = targetTable === null && replacesSearchableDocument(job);
   const chunkRelation = targetTable === null ? 'noderag.chunk' : `noderag.${targetTable}`;
-  await heartbeatJob(pool, job, 60_000, { stage: 'prepare-embedding' }, { stage: 'embed' });
+  const progressStartedAt = Date.now();
+  await heartbeatJob(
+    pool,
+    job,
+    60_000,
+    { stage: 'chunking', percent: 0, stageStartedAt: new Date().toISOString() },
+    { stage: 'embed' },
+  );
   const profile = await withTransaction(pool, async (database) => {
     await setWorkerScope(database, job.siloId ?? 0);
     const found = await database.query<BuildProfileRow>(
@@ -377,6 +636,12 @@ const embedMarkdown = async (
   const markdown = await readFile(files.paths(job.documentId).markdownAbsolute, 'utf8');
   const markdownSha256 = createHash('sha256').update(markdown, 'utf8').digest();
   if (!markdownSha256.equals(profile.markdown_sha256)) throw new Error('markdown-hash-mismatch');
+  await heartbeatJob(pool, job, 60_000, {
+    stage: 'chunking',
+    percent: 20,
+    operation: 'reading-canonical-markdown',
+    elapsedMs: Date.now() - progressStartedAt,
+  });
   const buildId = databaseInteger(profile.build_id, 'build id');
   const modelManifestId = databaseInteger(profile.model_manifest_id, 'model manifest id');
   const pageRanges = await withTransaction(pool, async (database) => {
@@ -404,18 +669,69 @@ const embedMarkdown = async (
     embed: (texts, maximumTokens, priority) =>
       activeEmbedder.embed(texts, maximumTokens, priority, selectedModel),
   };
+  const markdownQuality = assessMarkdownQuality(markdown);
   const candidates = chunkCanonicalMarkdown(markdown, {
     targetCharacters: profile.target_chars,
     overlapCharacters: profile.overlap_chars,
     snapWindow: Number(profile.snap_window),
     headingPrefix: profile.heading_prefix,
   });
+  await heartbeatJob(pool, job, 60_000, {
+    stage: 'chunking',
+    percent: 55,
+    operation: 'forming-passages',
+    chunksCompleted: candidates.length,
+    chunksTotal: candidates.length,
+    elapsedMs: Date.now() - progressStartedAt,
+  });
   const guarded = await enforceTokenGuard(markdown, candidates, profile.max_tokens, buildEmbedder);
   if (guarded.length === 0) throw new Error('no-chunks-produced');
+  const suspectedNoisyPassages = guarded.filter(
+    (chunk) =>
+      chunk.embeddingText.length >= 100 &&
+      chunk.tokenCount / Math.max(1, chunk.embeddingText.length) >= 0.65,
+  ).length;
+  const qualityWarningCodes = [
+    ...markdownQuality.warningCodes,
+    ...(suspectedNoisyPassages > 0 ? ['token-dense-passages'] : []),
+  ];
+  const ingestionQuality = {
+    ...markdownQuality,
+    suspectedNoisyPassages,
+    warningCodes: [...new Set(qualityWarningCodes)],
+  };
+  await heartbeatJob(pool, job, 60_000, {
+    stage: 'chunking',
+    percent: 100,
+    operation: 'passages-ready',
+    chunksCompleted: guarded.length,
+    chunksTotal: guarded.length,
+    suspectedNoisyPassages,
+    qualityWarningCodes: ingestionQuality.warningCodes,
+    elapsedMs: Date.now() - progressStartedAt,
+  });
+  await heartbeatJob(pool, job, 60_000, {
+    stage: 'embedding',
+    percent: 0,
+    operation: 'checking-embedding-cache',
+    stageStartedAt: new Date().toISOString(),
+    chunksCompleted: null,
+    chunksTotal: null,
+    cacheChecked: 0,
+    cacheTotal: guarded.length,
+    embedded: 0,
+    cached: 0,
+    completed: 0,
+    remaining: guarded.length,
+    total: guarded.length,
+    estimatedRemainingMs: null,
+    elapsedMs: 0,
+  });
+  const embeddingStartedAt = Date.now();
 
   const prepared: PreparedChunk[] = [];
   const misses: Array<{ readonly chunk: GuardedChunk; readonly sha256: Buffer }> = [];
-  for (const chunk of guarded) {
+  for (const [chunkIndex, chunk] of guarded.entries()) {
     const sha256 = createHash('sha256').update(chunk.embeddingText, 'utf8').digest();
     const cached = await pool.query<{ embedding: string }>(
       `SELECT embedding::text AS embedding FROM noderag.embedding_cache
@@ -430,14 +746,103 @@ const embedMarkdown = async (
         sha256,
         vector: parseVector(row.embedding, profile.dimensions),
       });
+    if ((chunkIndex + 1) % 25 === 0 || chunkIndex + 1 === guarded.length) {
+      await heartbeatJob(pool, job, 60_000, {
+        stage: 'embedding',
+        percent: Math.round((15 * (chunkIndex + 1)) / guarded.length),
+        operation: 'checking-embedding-cache',
+        cacheChecked: chunkIndex + 1,
+        cacheTotal: guarded.length,
+        cached: prepared.length,
+        completed: prepared.length,
+        remaining: guarded.length - prepared.length,
+        total: guarded.length,
+        elapsedMs: Date.now() - embeddingStartedAt,
+      });
+    }
   }
-  for (let offset = 0; offset < misses.length; offset += 16) {
-    const batch = misses.slice(offset, offset + 16);
-    const result = await buildEmbedder.embed(
-      batch.map((item) => item.chunk.embeddingText),
-      profile.max_tokens,
-      4,
+  const cachedPassages = prepared.length;
+  if (misses.length === 0) {
+    await heartbeatJob(pool, job, 60_000, {
+      stage: 'embedding',
+      percent: 85,
+      operation: 'using-cached-embeddings',
+      embedded: 0,
+      cached: cachedPassages,
+      completed: guarded.length,
+      remaining: 0,
+      total: guarded.length,
+      estimatedRemainingMs: 0,
+      elapsedMs: Date.now() - embeddingStartedAt,
+    });
+  }
+  let embeddedPassages = 0;
+  let embeddedTokens = 0;
+  const totalEmbeddingTokens = misses.reduce((total, item) => total + item.chunk.tokenCount, 0);
+  const modelEmbeddingStartedAt = Date.now();
+  let adaptiveBatchSize = Math.min(initialEmbeddingBatchSize, misses.length);
+  while (embeddedPassages < misses.length) {
+    const batchSize = Math.min(adaptiveBatchSize, misses.length - embeddedPassages);
+    const batch = misses.slice(embeddedPassages, embeddedPassages + batchSize);
+    const elapsedBeforeBatch = Date.now() - modelEmbeddingStartedAt;
+    const millisecondsPerToken = embeddedTokens > 0 ? elapsedBeforeBatch / embeddedTokens : null;
+    const estimatedRemainingMilliseconds =
+      millisecondsPerToken === null
+        ? null
+        : Math.ceil((totalEmbeddingTokens - embeddedTokens) * millisecondsPerToken);
+    await heartbeatJob(pool, job, 60_000, {
+      stage: 'embedding',
+      percent: 15 + Math.round((70 * embeddedPassages) / misses.length),
+      operation: 'generating-embeddings',
+      chunksCompleted: null,
+      chunksTotal: null,
+      embedded: embeddedPassages,
+      cached: cachedPassages,
+      completed: cachedPassages + embeddedPassages,
+      remaining: misses.length - embeddedPassages,
+      total: guarded.length,
+      currentBatchStart: embeddedPassages + 1,
+      currentBatchEnd: embeddedPassages + batch.length,
+      currentBatchTotal: misses.length,
+      batchSize: batch.length,
+      tokensCompleted: embeddedTokens,
+      tokensTotal: totalEmbeddingTokens,
+      estimatedRemainingMs: estimatedRemainingMilliseconds,
+      expectedHeartbeatMs: 90_000,
+      elapsedMs: Date.now() - embeddingStartedAt,
+    });
+    const batchStartedAt = Date.now();
+    const result = await waitWithProgress(
+      buildEmbedder.embed(
+        batch.map((item) => item.chunk.embeddingText),
+        profile.max_tokens,
+        4,
+      ),
+      async () =>
+        heartbeatJob(pool, job, 60_000, {
+          stage: 'embedding',
+          percent: 15 + Math.round((70 * embeddedPassages) / misses.length),
+          operation: 'generating-embeddings',
+          chunksCompleted: null,
+          chunksTotal: null,
+          embedded: embeddedPassages,
+          cached: cachedPassages,
+          completed: cachedPassages + embeddedPassages,
+          remaining: misses.length - embeddedPassages,
+          total: guarded.length,
+          currentBatchStart: embeddedPassages + 1,
+          currentBatchEnd: embeddedPassages + batch.length,
+          currentBatchTotal: misses.length,
+          batchSize: batch.length,
+          tokensCompleted: embeddedTokens,
+          tokensTotal: totalEmbeddingTokens,
+          activeBatchElapsedMs: Date.now() - batchStartedAt,
+          estimatedRemainingMs: estimatedRemainingMilliseconds,
+          expectedHeartbeatMs: 90_000,
+          elapsedMs: Date.now() - embeddingStartedAt,
+        }),
     );
+    const generated: PreparedChunk[] = [];
     for (let index = 0; index < batch.length; index += 1) {
       const item = batch[index];
       const vector = result.vectors[index];
@@ -446,15 +851,103 @@ const embedMarkdown = async (
         throw new Error('embedder-batch-cardinality-mismatch');
       }
       if (tokenCount > profile.max_tokens) throw new Error('TOKEN_LIMIT');
-      prepared.push({ ...item.chunk, tokenCount, sha256: item.sha256, vector });
+      generated.push({ ...item.chunk, tokenCount, sha256: item.sha256, vector });
     }
+    const persisted = await withTransaction(pool, async (database) => {
+      const values: PreparedChunk[] = [];
+      for (const item of generated) {
+        const stored = await database.query<{ embedding: string }>(
+          `INSERT INTO noderag.embedding_cache
+             (chunk_sha256, model_manifest_id, dimensions, embedding, refcount)
+           VALUES ($1, $2, $3, $4::halfvec, 0)
+           ON CONFLICT (chunk_sha256, model_manifest_id)
+           DO UPDATE SET last_used_at = now()
+           RETURNING embedding::text AS embedding`,
+          [
+            item.sha256,
+            modelManifestId,
+            profile.dimensions,
+            vectorLiteral(item.vector, profile.dimensions),
+          ],
+        );
+        const storedVector = stored.rows[0]?.embedding;
+        if (storedVector === undefined) throw new Error('embedding-cache-write-failed');
+        values.push({
+          ...item,
+          vector: parseVector(storedVector, profile.dimensions),
+        });
+      }
+      return values;
+    });
+    prepared.push(...persisted);
+    const batchElapsedMilliseconds = Math.max(1, Date.now() - batchStartedAt);
+    embeddedPassages += batch.length;
+    embeddedTokens += generated.reduce((total, item) => total + item.tokenCount, 0);
+    const modelElapsedMilliseconds = Math.max(1, Date.now() - modelEmbeddingStartedAt);
+    const remainingPassages = misses.length - embeddedPassages;
+    const measuredMillisecondsPerToken = modelElapsedMilliseconds / Math.max(1, embeddedTokens);
+    const estimatedRemainingMs = Math.ceil(
+      (totalEmbeddingTokens - embeddedTokens) * measuredMillisecondsPerToken,
+    );
+    adaptiveBatchSize = nextEmbeddingBatchSize(
+      batch.length,
+      batchElapsedMilliseconds,
+      remainingPassages,
+    );
     await heartbeatJob(pool, job, 60_000, {
       stage: 'embedding',
-      embedded: Math.min(offset + batch.length, misses.length),
-      total: misses.length,
+      percent: 15 + Math.round((70 * embeddedPassages) / misses.length),
+      operation: 'generating-embeddings',
+      embedded: embeddedPassages,
+      cached: cachedPassages,
+      completed: cachedPassages + embeddedPassages,
+      remaining: remainingPassages,
+      total: guarded.length,
+      currentBatchStart: null,
+      currentBatchEnd: null,
+      currentBatchTotal: misses.length,
+      batchSize: adaptiveBatchSize,
+      lastBatchSize: batch.length,
+      lastBatchElapsedMs: batchElapsedMilliseconds,
+      tokensCompleted: embeddedTokens,
+      tokensTotal: totalEmbeddingTokens,
+      tokensPerSecond: Number((embeddedTokens / (modelElapsedMilliseconds / 1000)).toFixed(1)),
+      passagesPerMinute: Number(
+        ((embeddedPassages * 60_000) / modelElapsedMilliseconds).toFixed(1),
+      ),
+      estimatedRemainingMs,
+      expectedHeartbeatMs: Math.max(
+        90_000,
+        Math.min(
+          600_000,
+          Math.ceil(
+            batchElapsedMilliseconds *
+              (Math.max(1, adaptiveBatchSize) / Math.max(1, batch.length)) *
+              3,
+          ) + 30_000,
+        ),
+      ),
+      elapsedMs: Date.now() - embeddingStartedAt,
     });
   }
   prepared.sort((left, right) => left.ordinal - right.ordinal);
+
+  await heartbeatJob(pool, job, 60_000, {
+    stage: 'embedding',
+    percent: 90,
+    operation: 'saving-search-index',
+    chunksCompleted: null,
+    chunksTotal: null,
+    embedded: embeddedPassages,
+    cached: cachedPassages,
+    completed: prepared.length,
+    remaining: 0,
+    total: prepared.length,
+    currentBatchStart: null,
+    currentBatchEnd: null,
+    estimatedRemainingMs: 0,
+    elapsedMs: Date.now() - embeddingStartedAt,
+  });
 
   await withTransaction(pool, async (database) => {
     await setWorkerScope(database, job.siloId ?? 0);
@@ -463,7 +956,30 @@ const embedMarkdown = async (
        WHERE silo_id = $1 AND document_id = $2 AND build_id = $3 LIMIT 1`,
       [job.siloId, job.documentId, buildId],
     );
-    if ((existing.rowCount ?? 0) > 0) throw new Error('document-build-already-indexed');
+    if ((existing.rowCount ?? 0) > 0 && !replaceExisting)
+      throw new Error('document-build-already-indexed');
+    let replacedChunkCount = 0;
+    if (replaceExisting) {
+      const removed = await database.query<{ count: string }>(
+        `WITH deleted AS (
+           DELETE FROM noderag.chunk
+           WHERE silo_id = $1 AND document_id = $2 AND build_id = $3
+           RETURNING chunk_sha256
+         ), decremented AS (
+           UPDATE noderag.embedding_cache cache
+           SET refcount = GREATEST(0, cache.refcount - grouped.uses)
+           FROM (
+             SELECT chunk_sha256, count(*)::integer AS uses
+             FROM deleted GROUP BY chunk_sha256
+           ) grouped
+           WHERE cache.chunk_sha256 = grouped.chunk_sha256
+             AND cache.model_manifest_id = $4
+         )
+         SELECT count(*)::text AS count FROM deleted`,
+        [job.siloId, job.documentId, buildId, modelManifestId],
+      );
+      replacedChunkCount = Number(removed.rows[0]?.count ?? 0);
+    }
     const activeReferenceIncrement = targetTable === null ? 1 : 0;
     for (const chunk of prepared) {
       const embedding = vectorLiteral(chunk.vector, profile.dimensions);
@@ -523,9 +1039,19 @@ const embedMarkdown = async (
                SELECT 1 FROM noderag.document_image image
                WHERE image.document_id = $1 AND image.state = 'pending_vision'
              ) THEN 'awaiting_vision' ELSE 'ready' END,
-             indexed_at = now()
+             indexed_at = now(),
+             metadata = metadata || jsonb_build_object(
+               'ingestionQuality', $3::jsonb,
+               'enhancedReindex', CASE WHEN $4::boolean
+                 THEN jsonb_build_object(
+                   'state', 'active',
+                   'pdfExtractionVersion', metadata #>>
+                     '{extractionMetadata,pdfExtractionVersion}',
+                   'activatedAt', now())
+                 ELSE COALESCE(metadata->'enhancedReindex', 'null'::jsonb)
+               END)
          WHERE id = $1 AND silo_id = $2`,
-        [job.documentId, job.siloId],
+        [job.documentId, job.siloId, JSON.stringify(ingestionQuality), replaceExisting],
       );
     } else {
       const embeddedTextDigest = createHash('sha256')
@@ -564,9 +1090,9 @@ const embedMarkdown = async (
     }
     await database.query(
       `UPDATE noderag.build
-       SET chunk_count = COALESCE(chunk_count, 0) + $2
+       SET chunk_count = GREATEST(0, COALESCE(chunk_count, 0) - $3) + $2
        WHERE id = $1`,
-      [buildId, prepared.length],
+      [buildId, prepared.length, replacedChunkCount],
     );
     await completeJob(database, job, { chunks: prepared.length, buildId });
     await database.query(

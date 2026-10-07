@@ -1,5 +1,6 @@
 import type { Pool } from 'pg';
 import { databaseInteger, withTransaction, type SqlClient } from './database.js';
+import { CURRENT_SCHEMA_REVISION } from './schema-revision.js';
 
 export type JobErrorClass = 'transient' | 'permanent' | 'cancelled' | 'indeterminate';
 
@@ -41,6 +42,7 @@ export class JobCancellationError extends ClassifiedJobError {
 }
 
 const permanentErrorCodes = new Set([
+  '23514',
   'active-build-or-markdown-missing',
   'document-build-already-indexed',
   'document-not-found',
@@ -61,6 +63,17 @@ const errorCode = (error: unknown): string => {
     return error.code;
   if (error instanceof Error && error.message.length > 0) return error.message.slice(0, 160);
   return 'unknown-worker-failure';
+};
+
+const databaseErrorDetail = (error: unknown): Readonly<Record<string, unknown>> => {
+  if (typeof error !== 'object' || error === null) return {};
+  const source = error as Readonly<Record<string, unknown>>;
+  const detail: Record<string, string> = {};
+  for (const field of ['schema', 'table', 'column', 'dataType', 'constraint'] as const) {
+    const value = source[field];
+    if (typeof value === 'string' && value.length > 0) detail[field] = value.slice(0, 240);
+  }
+  return detail;
 };
 
 export const classifyJobError = (
@@ -89,7 +102,7 @@ export const classifyJobError = (
         ? 'transient'
         : 'indeterminate',
     message: error instanceof Error ? error.message.slice(0, 2000) : 'Unknown worker failure',
-    detail: {},
+    detail: databaseErrorDetail(error),
   };
 };
 
@@ -166,8 +179,11 @@ export const claimNextJob = async (
            lease_epoch = j.lease_epoch + 1, retry_at = NULL,
            frozen_config = CASE WHEN j.frozen_config = '{}'::jsonb THEN
              jsonb_build_object(
-               'schemaRevision', '000011_recovery_hardening',
-               'parserRevision', 2,
+               'schemaRevision', $3::text,
+               'parserRevision', 3,
+               'pdfExtractionVersion', 'pdf-layout.v3-hybrid',
+               'layoutPolicyRevision', 'native-layout.v1',
+               'confidencePolicyRevision', 'pdf-confidence.v1',
                'settings', COALESCE((
                  SELECT to_jsonb(settings) - 'updated_by'
                  FROM noderag.settings settings WHERE settings.id = 1
@@ -189,7 +205,7 @@ export const claimNextJob = async (
                  j.build_id, j.attempts, j.logical_attempt, j.max_attempts,
                  j.lease_epoch, j.leased_until, j.frozen_config, j.checkpoint,
                  candidate.reclaimed`,
-      [leaseOwner, leaseMilliseconds],
+      [leaseOwner, leaseMilliseconds, CURRENT_SCHEMA_REVISION],
     );
     const row = claimed.rows[0];
     if (row === undefined) return null;
@@ -271,7 +287,9 @@ export const completeJob = async (
     `UPDATE noderag.job
      SET state = 'succeeded', lease_owner = NULL, leased_until = NULL,
          heartbeat_at = NULL, result = $4, error_class = NULL,
-         structured_error = NULL, finished_at = now(), updated_at = now()
+         structured_error = NULL,
+         progress = progress || jsonb_build_object('stage', 'complete', 'percent', 100),
+         finished_at = now(), updated_at = now()
      WHERE id = $1 AND state = 'leased' AND lease_owner = $2 AND lease_epoch = $3
        AND cancel_requested_at IS NULL`,
     [job.id, job.leaseOwner, job.leaseEpoch, detail],
@@ -313,6 +331,16 @@ export const failJob = async (pool: Pool, job: ClaimedJob, error: unknown): Prom
     return;
   }
   await withTransaction(pool, async (database) => {
+    const payload =
+      typeof job.payload === 'object' && job.payload !== null && !Array.isArray(job.payload)
+        ? (job.payload as Readonly<Record<string, unknown>>)
+        : {};
+    const previousDocumentState =
+      payload['replaceExisting'] === true &&
+      typeof payload['previousDocumentState'] === 'string' &&
+      ['ready', 'source_missing', 'awaiting_vision'].includes(payload['previousDocumentState'])
+        ? payload['previousDocumentState']
+        : null;
     const terminal =
       failure.errorClass === 'permanent' || job.logicalAttempt >= job.maximumAttempts;
     const delayMilliseconds = Math.min(60_000, 1000 * 2 ** Math.max(0, job.logicalAttempt - 1));
@@ -349,15 +377,29 @@ export const failJob = async (pool: Pool, job: ClaimedJob, error: unknown): Prom
       delayMilliseconds: terminal ? null : delayMilliseconds,
       errorClass: failure.errorClass,
       code: failure.code,
+      message: failure.message,
+      detail: failure.detail,
     });
-    if (terminal && job.documentId !== null && job.kind !== 'vision') {
+    if (
+      terminal &&
+      job.documentId !== null &&
+      (job.kind !== 'vision' || previousDocumentState !== null)
+    ) {
       await database.query(`SELECT set_config('app.silo_ids', $1, true)`, [
         job.siloId === null ? '{}' : `{${String(job.siloId)}}`,
       ]);
       await database.query(
-        `UPDATE noderag.document SET state = 'failed', error_code = $2, error_detail = $3
+        `UPDATE noderag.document
+         SET state = COALESCE($5::text, 'failed'),
+             error_code = CASE WHEN $5::text IS NULL THEN $2 ELSE NULL END,
+             error_detail = CASE WHEN $5::text IS NULL THEN $3 ELSE NULL END,
+             metadata = CASE WHEN $5::text IS NULL THEN metadata ELSE
+               metadata || jsonb_build_object(
+                 'enhancedReindex', jsonb_build_object(
+                   'state', 'failed', 'errorCode', $2::text,
+                   'retryable', true, 'failedAt', now())) END
          WHERE id = $1 AND ($4::smallint IS NULL OR silo_id = $4)`,
-        [job.documentId, failure.code, failure.message, job.siloId],
+        [job.documentId, failure.code, failure.message, job.siloId, previousDocumentState],
       );
     }
   });

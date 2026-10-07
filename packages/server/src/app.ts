@@ -14,6 +14,14 @@ import { registerVisionRoutes } from './api/vision-routes.js';
 import { registerRetrievalRoutes } from './api/retrieval-routes.js';
 import { registerAdminRoutes, type GatewayControl } from './api/admin-routes.js';
 import { registerMcpRoutes } from './api/mcp-routes.js';
+import { registerResearchRoutes } from './api/research-routes.js';
+import { registerChatProviderRoutes } from './api/chat-provider-routes.js';
+import { registerChatOpenAiRoutes } from './api/chat-openai-routes.js';
+import { registerChatConfigurationRoutes } from './api/chat-configuration-routes.js';
+import { registerChatRoutes } from './api/chat-routes.js';
+import { registerChatArtifactRoutes } from './api/chat-artifact-routes.js';
+import { registerChatFileRoutes } from './api/chat-file-routes.js';
+import { registerChatExportRoutes } from './api/chat-export-routes.js';
 import { RequestAuthenticationError } from './api/authentication.js';
 import { sendProblem } from './api/problem.js';
 import { ZodError } from 'zod';
@@ -25,8 +33,10 @@ const contentTypes: Readonly<Record<string, string>> = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
+  '.wasm': 'application/wasm',
 };
 
 const isProblemPayload = (payload: unknown): payload is Record<string, unknown> =>
@@ -151,6 +161,62 @@ export const buildApp = (options: BuildAppOptions): FastifyInstance => {
     registerMcpRoutes(app, options.content, options.gatewayId);
     if (options.gatewaySurface !== true) {
       registerContentRoutes(app, options.content);
+      registerResearchRoutes(app, options.content);
+      registerChatProviderRoutes(app, {
+        pool: options.content.pool,
+        authenticate: options.content.authenticate,
+        ...(options.content.secretVault === undefined
+          ? {}
+          : { secretVault: options.content.secretVault }),
+        enabled: options.content.chatFeatureFlags?.['chat.providers.enabled'] ?? false,
+      });
+      registerChatOpenAiRoutes(app, {
+        pool: options.content.pool,
+        authenticate: options.content.authenticate,
+        enabled: options.content.chatFeatureFlags?.['chat.providers.enabled'] ?? false,
+        ...(options.content.openAiOAuth === undefined
+          ? {}
+          : { manager: options.content.openAiOAuth }),
+      });
+      registerChatConfigurationRoutes(app, {
+        pool: options.content.pool,
+        authenticate: options.content.authenticate,
+        enabled: options.content.chatFeatureFlags?.['chat.context.enabled'] ?? false,
+        importEnabled: options.content.chatFeatureFlags?.['chat.import.enabled'] ?? false,
+      });
+      registerChatRoutes(app, {
+        pool: options.content.pool,
+        authenticate: options.content.authenticate,
+        enabled: options.content.chatFeatureFlags?.['chat.ui.enabled'] ?? false,
+        researchEnabled: options.content.chatFeatureFlags?.['chat.tools.research.enabled'] ?? false,
+        ragEnabled: options.content.chatFeatureFlags?.['chat.tools.rag.enabled'] ?? false,
+        webEnabled: options.content.chatFeatureFlags?.['chat.tools.web.enabled'] ?? false,
+        artifactsEnabled: options.content.chatFeatureFlags?.['chat.artifacts.enabled'] ?? false,
+        exportsEnabled: options.content.chatFeatureFlags?.['chat.exports.enabled'] ?? false,
+        files: options.content.files,
+      });
+      registerChatArtifactRoutes(app, {
+        pool: options.content.pool,
+        authenticate: options.content.authenticate,
+        enabled: options.content.chatFeatureFlags?.['chat.artifacts.enabled'] ?? false,
+      });
+      registerChatFileRoutes(app, {
+        pool: options.content.pool,
+        authenticate: options.content.authenticate,
+        enabled: options.content.chatFeatureFlags?.['chat.artifacts.enabled'] ?? false,
+      });
+      registerChatExportRoutes(app, {
+        pool: options.content.pool,
+        authenticate: options.content.authenticate,
+        files: options.content.files,
+        enabled: options.content.chatFeatureFlags?.['chat.exports.enabled'] ?? false,
+        ...(options.content.maximumUploadBytes === undefined
+          ? {}
+          : { maximumUploadBytes: options.content.maximumUploadBytes }),
+        ...(options.content.minimumFreeBytes === undefined
+          ? {}
+          : { minimumFreeBytes: options.content.minimumFreeBytes }),
+      });
       registerAdminRoutes(app, options.content, options.gatewayControl);
       registerDurabilityRoutes(app, {
         pool: options.content.pool,

@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "name": "Town Manager deferred work-order seed corpus",
+  "status": "frozen_m0_seed",
+  "template": {
+    "path": "docs/Templates/Fincentiv_Town_Manager_Report_Template_v1.docx",
+    "sha256": "af9fc473cf323b7a001d263f26a38b0f09db202a7d744b89e41c2ce3eed764f1",
+    "bytes": 72181,
+    "labels": [
+      "binding",
+      "layout",
+      "comment_removal",
+      "repeating_collection",
+      "source_register"
+    ]
+  },
+  "documents": [
+    {
+      "path": "samples/smyrna/1. Town of Smyrna Financial Statements for December 31, 2024.pdf",
+      "sha256": "7b450d6c1af0a9839e91557f19e4cd08dc66f84e24ed6809d8bf722711a8b3f5",
+      "bytes": 1283413,
+      "labels": ["financial", "temporal", "extraction", "evidence"]
+    },
+    {
+      "path": "samples/smyrna/2. 2020 Smyrna Comp Plan FINAL.pdf",
+      "sha256": "f4735813ce31ab8e15017f6a9404a06520b64b093e238e552079630d2a325630",
+      "bytes": 3642054,
+      "labels": ["planning", "high_cardinality", "extraction", "evidence"]
+    },
+    {
+      "path": "samples/smyrna/3. Comp Plan Town Council Presentation1 September 30 2020_1.pdf",
+      "sha256": "6be00013d1d1d825df03029c789e6f5e3500b7f940681cf34a71e8b1c2596d31",
+      "bytes": 1660879,
+      "labels": ["planning", "duplicate_topic", "source_selection"]
+    },
+    {
+      "path": "samples/smyrna/4. Town-of-Smyrna-Performance-Audit-Report-2022-2023-1.pdf",
+      "sha256": "f8ded76d5226d49aca85154c081320f1779e69526535477cf91299b5fc2f3f37",
+      "bytes": 6117266,
+      "labels": ["performance", "temporal", "extraction", "evidence"]
+    }
+  ],
+  "referenceOutput": {
+    "path": "samples/smyrna/Fincentiv_Illustrative_Smyrna_Town_Manager_Report_Aug2026.pdf",
+    "sha256": "78640dacb3285e7ba896514899ec795b270b84999f81713d0fde02fa6d9d73d8",
+    "bytes": 1038307,
+    "labels": ["binding", "layout", "source_register", "presentation"]
+  },
+  "sourceSelectionCases": [
+    {
+      "caseKey": "financial_position",
+      "query": "audited financial position, revenues, expenditures, debt, and material findings",
+      "expectedDocumentIndexes": [0],
+      "allowedAdditionalDocumentIndexes": [3]
+    },
+    {
+      "caseKey": "comprehensive_plan_initiatives",
+      "query": "comprehensive plan goals, strategic initiatives, land use, and implementation progress",
+      "expectedDocumentIndexes": [1],
+      "allowedAdditionalDocumentIndexes": [2]
+    },
+    {
+      "caseKey": "performance_findings",
+      "query": "performance audit findings, recommendations, corrective actions, and status",
+      "expectedDocumentIndexes": [3],
+      "allowedAdditionalDocumentIndexes": []
+    },
+    {
+      "caseKey": "credible_no_match",
+      "query": "current airport runway snow-removal inspection log",
+      "expectedDocumentIndexes": [],
+      "allowedAdditionalDocumentIndexes": []
+    }
+  ],
+  "contractFixtures": {
+    "location": "packages/rag-core/src/template-work-order-contracts.test.ts",
+    "positive": [
+      "manifest_v2",
+      "planner_input_and_result_v1",
+      "full_document_envelope_and_records_v1",
+      "shard_envelope_and_no_records_v1",
+      "report_snapshot_v1",
+      "progress_webhook_v1"
+    ],
+    "negative": [
+      "duplicate_or_unknown_query",
+      "invalid_selection_temporal_combination",
+      "data_blind_planner_unknown_field",
+      "non_allowlisted_planner_selection",
+      "invalid_evidence_offsets",
+      "empty_records",
+      "full_shard_outcome_mismatch",
+      "required_gap_publication",
+      "unsafe_rollout_policy"
+    ]
+  }
+}

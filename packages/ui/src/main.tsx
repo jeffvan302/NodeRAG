@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import {
   api,
+  authenticationRequiredEvent,
   displayError,
   forgetSession,
   type JsonRecord,
@@ -9,6 +10,7 @@ import {
   type SetupStatus,
   type Silo,
 } from './api.js';
+import { appUrl } from './url.js';
 import { Notice, Spinner, StatusPill } from './components.js';
 import { FirstRun, Login, SetupWizard } from './setup.js';
 import { Workspace } from './workspace.js';
@@ -30,7 +32,7 @@ type BootState =
 
 const Loading = () => (
   <main class="boot-screen">
-    <a class="brand" href="/">
+    <a class="brand" href={appUrl('/')}>
       <span>N</span>NodeRag
     </a>
     <div>
@@ -80,8 +82,18 @@ const App = () => {
     void load();
   }, [load]);
   useEffect(() => {
+    const requireAuthentication = () => {
+      forgetSession();
+      void api<SetupStatus>('/v1/setup/status')
+        .then((status) => setBoot({ kind: 'login', status }))
+        .catch((error) => setBoot({ kind: 'error', message: displayError(error) }));
+    };
+    window.addEventListener(authenticationRequiredEvent, requireAuthentication);
+    return () => window.removeEventListener(authenticationRequiredEvent, requireAuthentication);
+  }, []);
+  useEffect(() => {
     if (boot.kind !== 'setup' && boot.kind !== 'first-run') return;
-    const source = new EventSource('/v1/setup/events');
+    const source = new EventSource(appUrl('/v1/setup/events'));
     const update = (event: MessageEvent<string>) => {
       try {
         const status = JSON.parse(event.data) as SetupStatus;
@@ -101,7 +113,7 @@ const App = () => {
   if (boot.kind === 'error')
     return (
       <main class="state-screen">
-        <a class="brand" href="/">
+        <a class="brand" href={appUrl('/')}>
           <span>N</span>NodeRag
         </a>
         <section>
@@ -117,7 +129,7 @@ const App = () => {
   if (boot.kind === 'maintenance')
     return (
       <main class="state-screen">
-        <a class="brand" href="/">
+        <a class="brand" href={appUrl('/')}>
           <span>N</span>NodeRag
         </a>
         <section>

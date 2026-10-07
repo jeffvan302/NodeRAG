@@ -4,10 +4,42 @@ import { lstat, mkdir, readFile, realpath, rename, rm } from 'node:fs/promises';
 import { basename, resolve, sep } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 
-const sha256File = async (path: string): Promise<string> => {
+export const sha256File = async (path: string): Promise<string> => {
   const hash = createHash('sha256');
   await pipeline(createReadStream(path), hash);
   return hash.digest('hex');
+};
+
+export const modelDownloadHostAllowed = (
+  hostname: string,
+  allowedHosts: readonly string[],
+): boolean =>
+  allowedHosts.some(
+    (allowed) => hostname === allowed || (allowed.startsWith('.') && hostname.endsWith(allowed)),
+  );
+
+const fetchWithAllowedRedirects = async (
+  initial: URL,
+  allowedHosts: readonly string[],
+  headers: Record<string, string>,
+  fetcher: typeof fetch,
+): Promise<Response> => {
+  let current = initial;
+  for (let redirect = 0; redirect <= 5; redirect += 1) {
+    if (
+      current.protocol !== 'https:' ||
+      !modelDownloadHostAllowed(current.hostname, allowedHosts)
+    ) {
+      throw new Error('model_download_url_forbidden');
+    }
+    const response = await fetcher(current, { redirect: 'manual', headers });
+    if (![301, 302, 303, 307, 308].includes(response.status)) return response;
+    const location = response.headers.get('location');
+    if (location === null) throw new Error('model_download_redirect_invalid');
+    if (redirect === 5) throw new Error('model_download_redirect_limit');
+    current = new URL(location, current);
+  }
+  throw new Error('model_download_redirect_limit');
 };
 
 const safeName = (name: string): string => {
@@ -81,14 +113,12 @@ export const downloadModelArtifact = async (options: {
   let lastError: unknown = new Error('model_download_failed');
   for (const raw of options.urls) {
     try {
-      const url = new URL(raw);
-      if (url.protocol !== 'https:' || !options.allowedHosts.includes(url.hostname)) {
-        throw new Error('model_download_url_forbidden');
-      }
-      const response = await fetcher(url, {
-        redirect: 'error',
-        headers: existing > 0 ? { Range: `bytes=${String(existing)}-` } : {},
-      });
+      const response = await fetchWithAllowedRedirects(
+        new URL(raw),
+        options.allowedHosts,
+        existing > 0 ? { Range: `bytes=${String(existing)}-` } : {},
+        fetcher,
+      );
       if (!response.ok || response.body === null)
         throw new Error(`model_download_http_${response.status}`);
       const append = existing > 0 && response.status === 206;

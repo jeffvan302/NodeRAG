@@ -2,20 +2,20 @@
 
 **A self-contained RAG database for Synology DSM 7, packaged as a single `.spk`.**
 
-| | |
-|---|---|
-| Status | Draft v0.2 — WSL/Docker-first testing amendment, design only |
-| Date | 2026-09-03 |
-| Target | Synology DSM 7.2+, x86_64, 8 GB+ RAM (Ryzen R1600 / V1500B / Atom C3538 class) |
-| Runtime | Node.js 22 (Synology `Node.js_v22` Package Center package) |
-| Store | PostgreSQL 17 + pgvector, **bundled inside our own SPK** |
-| Embeddings | Qwen3-Embedding-0.6B, ONNX, **on-device CPU only** |
-| Documents | `.txt` `.md` `.docx` `.pdf` `.xlsx` → page-scoped Markdown |
-| Chunking | 2 000 chars / 300 overlap — system-wide, adjustable, rebuildable |
-| Silos | Access control only: `read` / `upload` per principal |
-| Vision | Remote Ollama VLM for images, tables and figures |
-| Install UX | One `.spk`, DSM volume picker at install, web setup wizard on a port |
-| Test sequence | M0–M14 in `docker-testbed/`, then one final live DSM certification |
+|               |                                                                                |
+| ------------- | ------------------------------------------------------------------------------ |
+| Status        | Draft v0.2 — WSL/Docker-first testing amendment, design only                   |
+| Date          | 2026-09-03                                                                     |
+| Target        | Synology DSM 7.2+, x86_64, 8 GB+ RAM (Ryzen R1600 / V1500B / Atom C3538 class) |
+| Runtime       | Node.js 22 (Synology `Node.js_v22` Package Center package)                     |
+| Store         | PostgreSQL 17 + pgvector, **bundled inside our own SPK**                       |
+| Embeddings    | Qwen3-Embedding-0.6B, ONNX, **on-device CPU only**                             |
+| Documents     | `.txt` `.md` `.docx` `.pdf` `.xlsx` → page-scoped Markdown                     |
+| Chunking      | 2 000 chars / 300 overlap — system-wide, adjustable, rebuildable               |
+| Silos         | Access control only: `read` / `upload` per principal                           |
+| Vision        | Remote Ollama VLM for images, tables and figures                               |
+| Install UX    | One `.spk`, DSM volume picker at install, web setup wizard on a port           |
+| Test sequence | M0–M14 in `docker-testbed/`, then one final live DSM certification             |
 
 ---
 
@@ -26,20 +26,20 @@ These came out of the planning conversation and everything below assumes them:
 1. **Primary target is an x86_64 NAS with 8 GB+ RAM.** aarch64 (DS223/DS423 class) is explicitly out of scope for v1 — see §17.1 for what it would cost to add later.
 2. **PostgreSQL ships inside our SPK.** No dependency on the SynoCommunity PostgreSQL package, no Container Manager. One package, one install.
 3. **Embedding runs locally on the NAS CPU.** No external endpoint in v1. This is the biggest performance constraint in the whole design — see §9.5.
-4. **Silos, users and API keys from the start.** One database holds N isolated **silos** — bodies of documents with their own access lists, so one person's legal files and another's personal files stay separate. Users and API keys are the same kind of thing (a *principal*) and are granted `read` or `upload` per silo. `silo_id` is a partition key and cannot be retrofitted cheaply, which is why it is in migration 1 (§6).
-   *This supersedes the earlier database-per-instance design: a user who needs access to more than one silo cannot be served by separate databases.*
+4. **Silos, users and API keys from the start.** One database holds N isolated **silos** — bodies of documents with their own access lists, so one person's legal files and another's personal files stay separate. Users and API keys are the same kind of thing (a _principal_) and are granted `read` or `upload` per silo. `silo_id` is a partition key and cannot be retrofitted cheaply, which is why it is in migration 1 (§6).
+   _This supersedes the earlier database-per-instance design: a user who needs access to more than one silo cannot be served by separate databases._
 5. **Five input formats, one canonical form.** `.txt`, `.md`, `.docx`, `.pdf` and `.xlsx` in; page-scoped **Markdown** out. One Excel sheet is one page (§10.8). Page numbers are carried for PDF, DOCX and XLSX, honestly labelled by how they were derived (§10.1). Nothing else is accepted in v1.
 6. **Images go off-box to an Ollama vision model.** Tables and figures embedded as images become Markdown in the document body, so they are searchable text. This is the one component that needs a machine other than the NAS (§12).
 7. **The web UI is a client of the public REST API and nothing else.** Full parity is a design rule, not a goal (§14).
 8. **Chunking is character-based**, not token-based: 2 000 characters with 300 overlap by default, adjustable per silo within enforced limits, with a token ceiling as a guard. Boundaries stop depending on the tokenizer, so swapping embedding models re-embeds the same chunks instead of re-cutting the corpus (§11).
-9. **Every chunk records both locators.** A page *range* (`page_start`…`page_end`, since chunks flow across page breaks) and a document-level character range (`char_start`…`char_end`). The character range is the one that always works — it is the only locator a `.txt` or `.md` file has (§11.6).
+9. **Every chunk records both locators.** A page _range_ (`page_start`…`page_end`, since chunks flow across page breaks) and a document-level character range (`char_start`…`char_end`). The character range is the one that always works — it is the only locator a `.txt` or `.md` file has (§11.6).
 10. **v1.0 is the full system.** Silos, users, API keys, grants, sessions, audit and gateways all ship in 1.0 — nothing deferred, nothing retrofitted. The trade accepted with this: the longest path to something usable, so §18's milestones are ordered to produce a working vertical slice early rather than finishing layers in sequence.
 11. **Distribution is manual `.spk` install.** No package repository, no SynoCommunity submission, no auto-update. The spksrc layout stays upstream-compatible so a repo remains possible later, but nothing is designed around it.
 12. **Private / internal.** Not open source. Every bundled component — PostgreSQL, pgvector, ONNX Runtime — permits redistribution in a closed product, but dependency licences are catalogued from the first commit so that stays true.
 13. **Silos are access control only.** Chunk size, overlap, embedding model, CPU threads, vision settings and search defaults are all **system-wide** (§7.8). A silo has a name, a description and a list of who can read it and who can upload to it (§6).
 14. **Two permissions per silo: `read` and `upload`.** `read` searches and retrieves; `upload` adds, re-indexes and deletes. A `server_admin` flag covers everything that isn't silo-scoped. API keys can be narrowed below `read` to search-only (§6.3).
 15. **Delete always purges.** The document, its pages, its chunks and vectors, its original file, its Markdown file, and every cache row reachable only from it. No soft delete, no recycle bin (§7.6).
-16. **Re-chunking and re-embedding are first-class.** A *build* is one chunk profile plus one embedding model; changing either populates staging partitions in the background and swaps them in, so search never goes down (§7.5).
+16. **Re-chunking and re-embedding are first-class.** A _build_ is one chunk profile plus one embedding model; changing either populates staging partitions in the background and swaps them in, so search never goes down (§7.5).
 17. **This document is the deliverable.** Implementation strategy lives in `IMPLEMENTATION.md`.
 
 ---
@@ -50,18 +50,18 @@ Before the architecture, three constraints that are non-negotiable on DSM 7 and 
 
 ### 1.1 You cannot choose the user the service runs as
 
-DSM 7 removed `run-as system` and `run-as root` for third-party packages. Every package must ship `conf/privilege` declaring `"run-as": "package"`, and DSM creates a *system internal user* for it (`NodeRag`, or `sc-noderag` if built through the SynoCommunity toolchain). That account is what the service runs as, always.
+DSM 7 removed `run-as system` and `run-as root` for third-party packages. Every package must ship `conf/privilege` declaring `"run-as": "package"`, and DSM creates a _system internal user_ for it (`NodeRag`, or `sc-noderag` if built through the SynoCommunity toolchain). That account is what the service runs as, always.
 
 So the setup wizard **cannot** offer "run as user X." What it can — and should — offer instead is **which shared folders NodeRag is allowed to read**, which is the thing the original requirement was actually reaching for. Two mechanisms:
 
 - `conf/resource` → `data-share`: the package declares shared folders it needs and DSM grants the package user access at install time.
-- Control Panel → Shared Folder → Permissions → *System internal user*: the admin ticks `NodeRag` on whichever folders they want indexed, after install. File Station's Properties dialog does the same per-folder, recursively.
+- Control Panel → Shared Folder → Permissions → _System internal user_: the admin ticks `NodeRag` on whichever folders they want indexed, after install. File Station's Properties dialog does the same per-folder, recursively.
 
 This is strictly better than a run-as setting: permissions are visible and revocable in the DSM UI, and they survive package upgrades.
 
 **One convenient side effect:** PostgreSQL refuses to run as root anyway. Running as a dedicated package user is exactly what it wants.
 
-### 1.2 The volume picker is free, the *data* location is not
+### 1.2 The volume picker is free, the _data_ location is not
 
 DSM's Package Center already asks which volume to install to when more than one exists, and lays the package out as:
 
@@ -72,15 +72,15 @@ DSM's Package Center already asks which volume to install to when more than one 
 /var/packages/NodeRag/home    ->  /volumeX/@apphome/NodeRag     0700 private
 ```
 
-That covers "the user picks the storage drive" for free — but it ties the *database* to the same volume as the binaries. For a RAG corpus that may reach tens of GB, that is often wrong: people want the app on the fast SSD volume and the data on the big HDD volume.
+That covers "the user picks the storage drive" for free — but it ties the _database_ to the same volume as the binaries. For a RAG corpus that may reach tens of GB, that is often wrong: people want the app on the fast SSD volume and the data on the big HDD volume.
 
-**Design:** treat the DSM-chosen volume as the default, then let the setup wizard place the *bulk* of the data wherever the user wants — including on an ordinary shared folder. The mechanism is a PostgreSQL tablespace for the large tables and indexes plus plain relocation for the model and extraction caches, while PGDATA itself stays somewhere with clean POSIX permissions. §5 works this through, including the four ways a shared folder can bite and the probe the wizard runs to catch them.
+**Design:** treat the DSM-chosen volume as the default, then let the setup wizard place the _bulk_ of the data wherever the user wants — including on an ordinary shared folder. The mechanism is a PostgreSQL tablespace for the large tables and indexes plus plain relocation for the model and extraction caches, while PGDATA itself stays somewhere with clean POSIX permissions. §5 works this through, including the four ways a shared folder can bite and the probe the wizard runs to catch them.
 
 > **Final DSM certification:** confirm exactly what triggers Package Center's volume selector on the target DSM build and run the §5.4 permission probe against a real ACL-enabled shared folder. Until then, the storage adapter and package metadata are tested by contract, fixtures, static validation, and the non-root package simulator.
 
 ### 1.3 Native modules must match Synology's Node
 
-Depending on Synology's official `Node.js_v22` package (rather than bundling our own Node build) is the right call for install simplicity — it's in the stock Package Center, no third-party repo to add. The cost is that our native modules must load against *their* Node binary and *DSM's* glibc/libstdc++.
+Depending on Synology's official `Node.js_v22` package (rather than bundling our own Node build) is the right call for install simplicity — it's in the stock Package Center, no third-party repo to add. The cost is that our native modules must load against _their_ Node binary and _DSM's_ glibc/libstdc++.
 
 We get lucky here: both critical native modules use **Node-API**, which is ABI-stable across Node majors.
 
@@ -134,7 +134,7 @@ Everything is one SPK, one package user, and a small process tree supervised by 
 
 Content is divided into **silos** (§6). Every request — from the SPA, an API key, or MCP — resolves to a principal whose grants determine which silos it can touch; the SPA has no privileged path, it is a client of the same REST API (§14). PostgreSQL, the embedder and the ingest worker are single shared processes, and what varies per request is the silo scope plus which network gateway it arrived on.
 
-**One boundary is worth noticing on the diagram:** the only thing that leaves the NAS is *images*, and only to the Ollama host. Document text, embeddings, queries and results never go anywhere. If that host is unreachable, ingest continues and images are marked `pending_vision` (§12.3) — the system degrades rather than stopping.
+**One boundary is worth noticing on the diagram:** the only thing that leaves the NAS is _images_, and only to the Ollama host. Document text, embeddings, queries and results never go anywhere. If that host is unreachable, ingest continues and images are marked `pending_vision` (§12.4) — the system degrades rather than stopping.
 
 ---
 
@@ -237,24 +237,24 @@ This is the part of the brief that needs the most care, because "put it on a sha
 
 ### 5.1 What DSM gives you for free, and what it doesn't
 
-| Granularity | Mechanism | User-selectable? |
-|---|---|---|
-| **Which volume** | Package Center's install-time volume picker; `@appstore`/`@appdata` follow it | **Yes**, free, reliable |
-| **A dedicated shared folder** | `conf/resource` → `data-share` creates a share at package start and grants our package user `rw` | Name is **hard-coded by us**; volume is **not** user-selectable |
-| **An arbitrary existing shared folder** | Nothing built in — we implement it | **Yes**, but we own the validation |
+| Granularity                             | Mechanism                                                                                        | User-selectable?                                                |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| **Which volume**                        | Package Center's install-time volume picker; `@appstore`/`@appdata` follow it                    | **Yes**, free, reliable                                         |
+| **A dedicated shared folder**           | `conf/resource` → `data-share` creates a share at package start and grants our package user `rw` | Name is **hard-coded by us**; volume is **not** user-selectable |
+| **An arbitrary existing shared folder** | Nothing built in — we implement it                                                               | **Yes**, but we own the validation                              |
 
-So `data-share` is not the answer to "let the user pick the folder." It is useful as a *default*: declare a share named `NodeRag` with `rw` for the package user only, and the user gets a visible, File-Station-manageable home for their RAG data without doing anything. But if they want it on volume 2, they have to point us there themselves.
+So `data-share` is not the answer to "let the user pick the folder." It is useful as a _default_: declare a share named `NodeRag` with `rw` for the package user only, and the user gets a visible, File-Station-manageable home for their RAG data without doing anything. But if they want it on volume 2, they have to point us there themselves.
 
 ### 5.2 The three-way split
 
 Rather than one monolithic "data root," split it, because the three pieces have very different requirements:
 
-| Piece | Size | Requirements | Default | User-relocatable? |
-|---|---|---|---|---|
-| **PGDATA** — catalogs, WAL, control files | 1–3 GB | POSIX 0700, local fs, low-latency, never touched by anything else | `@appdata` on the install volume | Advanced option, heavily validated |
-| **`chunk` partitions** — text, vectors, HNSW + GIN indexes | **The multi-GB part** — roughly 8–10 GB per million chunks | Local fs, capacity | Same volume as PGDATA | **Yes — this is the one that matters** |
-| **Document files** — originals + canonical Markdown (§7.1) | Whatever the corpus weighs | Local fs, capacity | Same volume as PGDATA | Yes |
-| **`models/` + `cache/extracted/`** | ~1–5 GB | Plain files, no permission drama | `@appdata` | **Yes, freely** |
+| Piece                                                      | Size                                                       | Requirements                                                      | Default                          | User-relocatable?                      |
+| ---------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------- | -------------------------------------- |
+| **PGDATA** — catalogs, WAL, control files                  | 1–3 GB                                                     | POSIX 0700, local fs, low-latency, never touched by anything else | `@appdata` on the install volume | Advanced option, heavily validated     |
+| **`chunk` partitions** — text, vectors, HNSW + GIN indexes | **The multi-GB part** — roughly 8–10 GB per million chunks | Local fs, capacity                                                | Same volume as PGDATA            | **Yes — this is the one that matters** |
+| **Document files** — originals + canonical Markdown (§7.1) | Whatever the corpus weighs                                 | Local fs, capacity                                                | Same volume as PGDATA            | Yes                                    |
+| **`models/` + `cache/extracted/`**                         | ~1–5 GB                                                    | Plain files, no permission drama                                  | `@appdata`                       | **Yes, freely**                        |
 
 A PostgreSQL **tablespace** is the right tool here and it's exactly what tablespaces are for:
 
@@ -266,7 +266,7 @@ CREATE TABLE chunk_s3 PARTITION OF chunk
   FOR VALUES IN (3) TABLESPACE ts_bulk;
 ```
 
-Silos carry no configuration of their own (§6.1), so storage is a **system-wide** setting: one bulk tablespace, applied to every partition as it is created, plus the document file store (§7.1) under the same data root. Per-silo placement remains *possible* — partitions can take individual tablespaces — but it is not offered as a setting, because "which volume is this silo on" is not a question anyone asked.
+Silos carry no configuration of their own (§6.1), so storage is a **system-wide** setting: one bulk tablespace, applied to every partition as it is created, plus the document file store (§7.1) under the same data root. Per-silo placement remains _possible_ — partitions can take individual tablespaces — but it is not offered as a setting, because "which volume is this silo on" is not a question anyone asked.
 
 This gets you the thing you actually want — app and catalogs on the fast SSD volume, the bulk of the vectors and indexes on the big HDD share — without putting the fragile parts of the cluster on a shared folder. It also keeps `pg_dump`/restore straightforward, and a lost tablespace is a recoverable situation in a way that a lost PGDATA is not.
 
@@ -282,7 +282,7 @@ Four things go wrong, in rough order of likelihood:
 
 **4. Users can see and delete it.** Anyone with access to that share sees `pgbulk/` in File Station. A dedicated share with only the package user granted mitigates this; a folder inside `Documents` does not.
 
-None of these make it impossible. They make it something the wizard has to *verify empirically* rather than assume.
+None of these make it impossible. They make it something the wizard has to _verify empirically_ rather than assume.
 
 ### 5.4 What the wizard actually does
 
@@ -379,10 +379,10 @@ An API key is not a second permission system bolted alongside the first. It is a
 
 ### 6.3 Two permissions
 
-| Permission | Can |
-|---|---|
-| `read` | Search the silo, read the Markdown of any document in it, download originals |
-| `upload` | `read` + add documents, re-index them, and delete them |
+| Permission | Can                                                                          |
+| ---------- | ---------------------------------------------------------------------------- |
+| `read`     | Search the silo, read the Markdown of any document in it, download originals |
+| `upload`   | `read` + add documents, re-index them, and delete them                       |
 
 Plus a `server_admin` flag on a user — not a per-silo grant — for everything that is not silo-scoped: creating silos, managing users and keys, system settings, storage, the embedder, rebuilds, upgrades.
 
@@ -396,7 +396,7 @@ Two notes on the edges:
 
 Three layers, in order of how much they're relied on:
 
-**1. One choke point, no exceptions.** Every query path takes a `SiloScope` — the resolved, permitted silo-id set for the current principal — as a *required constructor argument*, not an optional filter applied later. There is no code path that can build a query without one, because the query builder does not compile without it. Reviews and tests catch what's left; the type system catches most of it first.
+**1. One choke point, no exceptions.** Every query path takes a `SiloScope` — the resolved, permitted silo-id set for the current principal — as a _required constructor argument_, not an optional filter applied later. There is no code path that can build a query without one, because the query builder does not compile without it. Reviews and tests catch what's left; the type system catches most of it first.
 
 **2. Row-Level Security as a backstop.** Each request opens its transaction with `SET LOCAL app.silo_ids = '{1,3,7}'`, and RLS policies on `source`, `document` and `chunk` restrict to that set. A forgotten `WHERE` clause then returns nothing rather than everything. This is defence in depth for a system whose entire job is holding data people don't want leaked.
 
@@ -408,7 +408,7 @@ Three layers, in order of how much they're relied on:
 
 This is the single most important technical consequence of the silo model, and getting it wrong produces a system that looks correct and returns bad results.
 
-pgvector's own documentation is blunt about it: with an approximate index, **filtering happens after the index scan**. `ORDER BY embedding <=> $1 WHERE silo_id = 3 LIMIT 20` searches the whole HNSW graph across all silos, takes the global top ~40, and *then* throws away everything not in silo 3. If silo 3 is 5 % of the corpus, you get one or two results instead of twenty — and no error, just quietly terrible recall. pgvector's own documentation makes the same point about multi-tenancy: a single approximate index shared across tenants causes cross-tenant recall and speed problems, and the remedies it recommends are list partitioning or separate tables per tenant.
+pgvector's own documentation is blunt about it: with an approximate index, **filtering happens after the index scan**. `ORDER BY embedding <=> $1 WHERE silo_id = 3 LIMIT 20` searches the whole HNSW graph across all silos, takes the global top ~40, and _then_ throws away everything not in silo 3. If silo 3 is 5 % of the corpus, you get one or two results instead of twenty — and no error, just quietly terrible recall. pgvector's own documentation makes the same point about multi-tenancy: a single approximate index shared across tenants causes cross-tenant recall and speed problems, and the remedies it recommends are list partitioning or separate tables per tenant.
 
 So:
 
@@ -429,7 +429,7 @@ What this buys:
 
 The cost: a principal granted 20 silos triggers 20 partition scans per query. Postgres handles partition-wise scans well, but this is not free — cap silos per query, expose `hnsw.ef_search` per query, and set `hnsw.iterative_scan = relaxed_order` as a safety net for any residual post-filtering inside a partition.
 
-`document` is deliberately *not* partitioned — it is small, it is queried by id far more than by silo, and keeping it whole avoids a composite foreign key on everything that references a document.
+`document` is deliberately _not_ partitioned — it is small, it is queried by id far more than by silo, and keeping it whole avoids a composite foreign key on everything that references a document.
 
 ### 6.6 Deduplicate the expensive work, not the files
 
@@ -473,7 +473,7 @@ The `.sc` firewall constraint from the previous draft still applies — declare 
 nrag_<8-char prefix>_<32 bytes base62>
 ```
 
-- The token is high-entropy random, so **hash it with SHA-256, not argon2id.** Argon2 exists to make low-entropy guessing expensive; against 256 bits of randomness it buys nothing and would add ~100 ms to *every API request*. This distinction is worth writing down because "hash all secrets with argon2" is the kind of correct-sounding rule that quietly makes an API unusable.
+- The token is high-entropy random, so **hash it with SHA-256, not argon2id.** Argon2 exists to make low-entropy guessing expensive; against 256 bits of randomness it buys nothing and would add ~100 ms to _every API request_. This distinction is worth writing down because "hash all secrets with argon2" is the kind of correct-sounding rule that quietly makes an API unusable.
 - The `prefix` is stored in clear, indexed, and shown in the UI, so a key is identifiable without being recoverable.
 - Shown **once**, at creation. Never retrievable.
 - Per-key: optional expiry, optional CIDR allow-list, per-key rate limit, `last_used_at`, and `created_by`.
@@ -490,15 +490,15 @@ nrag_<8-char prefix>_<32 bytes base62>
 
 ### 6.10 What this changes elsewhere
 
-| Section | Change |
-|---|---|
-| §4 install | Wizard creates the admin user + first silo; per-silo folder mapping replaces "which folders to index" |
-| §5 storage | Per-**silo** partition tablespaces replace the single `noderag_bulk` tablespace |
-| §7 data model | `silo_id` on `source`, `document` and `chunk`; LIST partitioning on `chunk`; identity tables; refcounted caches |
-| §8 tuning | One connection pool again (one database) — `max_connections` back to ~20; partition count affects planning time, so cap silos (~64) |
-| §9 embedding | Embedder is silo-agnostic; fair-share scheduling is now across **silos** rather than instances |
-| §13 API | Every route is silo-scoped; `POST /v1/search` takes an optional `silos` array intersected with the principal's grants |
-| §18 roadmap | Identity and silos move into Phase 2 — `silo_id` and the partition boundary cannot be retrofitted cheaply |
+| Section       | Change                                                                                                                              |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| §4 install    | Wizard creates the admin user + first silo; per-silo folder mapping replaces "which folders to index"                               |
+| §5 storage    | Per-**silo** partition tablespaces replace the single `noderag_bulk` tablespace                                                     |
+| §7 data model | `silo_id` on `source`, `document` and `chunk`; LIST partitioning on `chunk`; identity tables; refcounted caches                     |
+| §8 tuning     | One connection pool again (one database) — `max_connections` back to ~20; partition count affects planning time, so cap silos (~64) |
+| §9 embedding  | Embedder is silo-agnostic; fair-share scheduling is now across **silos** rather than instances                                      |
+| §13 API       | Every route is silo-scoped; `POST /v1/search` takes an optional `silos` array intersected with the principal's grants               |
+| §18 roadmap   | Identity and silos move into Phase 2 — `silo_id` and the partition boundary cannot be retrofitted cheaply                           |
 
 ---
 
@@ -508,11 +508,11 @@ One PostgreSQL database. **Configuration is system-wide; silos carry access cont
 
 ### 7.1 What lives where
 
-| | Where | Why |
-|---|---|---|
-| Originals | **Files**, `<data root>/documents/<bucket>/<id>.<ext>` | Named by document id, so purge is unambiguous |
-| Canonical Markdown | **Files**, `<data root>/documents/<bucket>/<id>.md` | Large, blob-like, and precious (§10) |
-| Page boundaries, chunks, vectors, identity | **PostgreSQL** | Everything that is queried, joined or partitioned |
+|                                            | Where                                                  | Why                                               |
+| ------------------------------------------ | ------------------------------------------------------ | ------------------------------------------------- |
+| Originals                                  | **Files**, `<data root>/documents/<bucket>/<id>.<ext>` | Named by document id, so purge is unambiguous     |
+| Canonical Markdown                         | **Files**, `<data root>/documents/<bucket>/<id>.md`    | Large, blob-like, and precious (§10)              |
+| Page boundaries, chunks, vectors, identity | **PostgreSQL**                                         | Everything that is queried, joined or partitioned |
 
 ```
 <data root>/documents/
@@ -686,10 +686,10 @@ DROP TABLE chunk_s7;
 
 **One rule that matters, and it falls out of the design:**
 
-| Change | Flip granularity | Why |
-|---|---|---|
-| Chunk size / overlap / snapper, **same model** | Per silo, as each finishes | Vectors are still comparable, so a mix of old and new silos still ranks correctly |
-| **Embedding model** (or its revision) | **All silos in one transaction** | Scores from two models are not comparable. A half-flipped corpus silently mis-ranks every cross-silo search |
+| Change                                         | Flip granularity                 | Why                                                                                                         |
+| ---------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Chunk size / overlap / snapper, **same model** | Per silo, as each finishes       | Vectors are still comparable, so a mix of old and new silos still ranks correctly                           |
+| **Embedding model** (or its revision)          | **All silos in one transaction** | Scores from two models are not comparable. A half-flipped corpus silently mis-ranks every cross-silo search |
 
 **Cost:** a rebuild roughly doubles chunk storage until the swap. For 200 000 chunks that is ~400 MB of vectors plus text — cheap. Time is the real cost, and it is the §9.5 number: a full re-embed of a large corpus is days. So the UI shows the projected hours from measured throughput **before** starting, the job is resumable across restarts, and a rebuild can be paused.
 
@@ -822,10 +822,14 @@ CREATE TABLE settings (
   ts_config         regconfig NOT NULL DEFAULT 'english',
 
   -- vision (§12)
-  ollama_base_url   text,
-  ollama_token      text,                  -- Ollama Cloud / reverse proxy only
+  ollama_base_url   text NOT NULL DEFAULT 'http://localhost:11434',
+  ollama_api_style  text NOT NULL DEFAULT 'native'
+                    CHECK (ollama_api_style IN ('native','openai')),
+  ollama_api_key    text NOT NULL DEFAULT 'ollama',   -- ignored by self-hosted
   ollama_model      text,
   ollama_parallel   int  NOT NULL DEFAULT 2,
+  ollama_images_per_call int NOT NULL DEFAULT 5,
+  ollama_keep_alive text NOT NULL DEFAULT '30m',
   ollama_timeout_ms int  NOT NULL DEFAULT 60000,
   vision_enabled    bool NOT NULL DEFAULT true,
   max_image_px      int  NOT NULL DEFAULT 1600,
@@ -899,7 +903,7 @@ CREATE TABLE document_image (               -- what was found, and what became o
 
 ### 7.10 Five deliberate choices
 
-**The vector lives on the chunk row.** One table, one row per chunk, read as one row by the retrieval path. The earlier two-table design existed so two models' vectors could coexist during a swap; the build mechanism in §7.5 does that better, by keeping whole *sets* consistent instead of interleaving them, and it covers chunk-size changes too — which the two-table design never did.
+**The vector lives on the chunk row.** One table, one row per chunk, read as one row by the retrieval path. The earlier two-table design existed so two models' vectors could coexist during a swap; the build mechanism in §7.5 does that better, by keeping whole _sets_ consistent instead of interleaving them, and it covers chunk-size changes too — which the two-table design never did.
 
 **`silo_id` is denormalised onto `chunk`.** It could be joined from `document`. It must not be: it is the partition key, and a partition key cannot be a join result. Every access-control predicate must also be answerable from the row itself.
 
@@ -939,7 +943,7 @@ random_page_cost          = 1.1          # SSD volume; 4.0 if the wizard detects
 hnsw.ef_search            = 100          # per-session, tuned at query time
 ```
 
-**The memory trap:** an HNSW build with `maintenance_work_mem = 1GB` running *at the same time* as an ONNX session holding ~1 GB of weights and activations will push an 8 GB NAS into swap and make the whole DSM UI unresponsive. The ingest worker must therefore hold a **global mutex**: either the embedder is running or an index build is running, never both. Index maintenance is scheduled for after a batch completes, or nightly.
+**The memory trap:** an HNSW build with `maintenance_work_mem = 1GB` running _at the same time_ as an ONNX session holding ~1 GB of weights and activations will push an 8 GB NAS into swap and make the whole DSM UI unresponsive. The ingest worker must therefore hold a **global mutex**: either the embedder is running or an index build is running, never both. Index maintenance is scheduled for after a batch completes, or nightly.
 
 ### 8.4 The upgrade problem — call this out now
 
@@ -962,19 +966,19 @@ This is the single largest long-term maintenance cost of the "bundle it" decisio
 
 **Qwen3-Embedding-0.6B**, ONNX build (`onnx-community/Qwen3-Embedding-0.6B-ONNX` or an equivalent conversion), int8 (`q8`) by default.
 
-| Property | Value |
-|---|---|
+| Property         | Value                                      |
+| ---------------- | ------------------------------------------ |
 | Output dimension | 1024 (Matryoshka — truncatable to 32…1024) |
-| Context | 32 K tokens (we will use ≤ 1024) |
-| Pooling | **last token**, not mean |
-| Normalisation | L2, then cosine / inner product |
-| Query format | `Instruct: {task}\nQuery: {query}` |
-| Document format | raw text, **no prefix** |
-| q8 file size | ~600 MB |
+| Context          | 32 K tokens (we will use ≤ 1024)           |
+| Pooling          | **last token**, not mean                   |
+| Normalisation    | L2, then cosine / inner product            |
+| Query format     | `Instruct: {task}\nQuery: {query}`         |
+| Document format  | raw text, **no prefix**                    |
+| q8 file size     | ~600 MB                                    |
 
 The asymmetric query/document convention is easy to get wrong and silently degrades recall by a lot. It belongs in `embedding_model.query_prefix` (§7) so that the retrieval path can never drift from the ingest path.
 
-Matryoshka truncation reduces *storage*, not *compute* — the forward pass is identical. Worth exposing (768 or 512 dims cuts index size by 25–50 %) but don't expect it to speed up ingest.
+Matryoshka truncation reduces _storage_, not _compute_ — the forward pass is identical. Worth exposing (768 or 512 dims cuts index size by 25–50 %) but don't expect it to speed up ingest.
 
 ### 9.2 Runtime
 
@@ -1005,12 +1009,12 @@ One session, created once, held for the process lifetime. Creating and destroyin
 
 An omission worth correcting before implementation starts. §9.2 sets `intraOpNumThreads` to the physical core count, which quietly assumes the embedder owns the machine. It does not. On a 4-core NAS, five things want CPU:
 
-| Claimant | Appetite |
-|---|---|
-| ONNX embedder | All of it, happily |
-| PDF/DOCX/XLSX extraction | 1 core, bursty, genuinely CPU-bound |
-| PostgreSQL (queries, autovacuum, HNSW builds) | 1–4 cores |
-| API server + front end | ~0.2 cores, but latency-sensitive |
+| Claimant                                           | Appetite                                                               |
+| -------------------------------------------------- | ---------------------------------------------------------------------- |
+| ONNX embedder                                      | All of it, happily                                                     |
+| PDF/DOCX/XLSX extraction                           | 1 core, bursty, genuinely CPU-bound                                    |
+| PostgreSQL (queries, autovacuum, HNSW builds)      | 1–4 cores                                                              |
+| API server + front end                             | ~0.2 cores, but latency-sensitive                                      |
 | **DSM itself** — Photos, indexing, SMB, the web UI | Whatever's left, and the user notices immediately when it isn't enough |
 
 The failure mode is not a crash. It is a NAS that feels broken while indexing: File Station stalls, Photos stops thumbnailing, DSM takes ten seconds to paint a page — and the user disables NodeRag rather than filing a bug.
@@ -1027,7 +1031,7 @@ A "limit background work while I'm using the NAS" toggle in the UI, which simply
 
 ### 9.4 Model delivery
 
-Shipping a 600 MB model *inside* the SPK makes an enormous package and forces a full re-download on every app update. Instead:
+Shipping a 600 MB model _inside_ the SPK makes an enormous package and forces a full re-download on every app update. Instead:
 
 - SPK ships the tokenizer, config, and a manifest with the model's SHA-256 and a list of mirror URLs.
 - First-run wizard downloads the model into `<data root>/models/`, verifies the hash, shows a progress bar.
@@ -1044,17 +1048,17 @@ Rough arithmetic for one chunk. The default profile is 2 000 characters (§11), 
 
 Against an achievable int8 throughput of perhaps 30–80 GFLOPS on a 4-core Zen-based NAS CPU with AVX2:
 
-| | estimate |
-|---|---|
-| Per chunk (2 000 chars ≈ 500 tokens of English) | **~6–15 seconds** |
+|                                                     | estimate          |
+| --------------------------------------------------- | ----------------- |
+| Per chunk (2 000 chars ≈ 500 tokens of English)     | **~6–15 seconds** |
 | 500-page PDF (~1 000 chunks — arithmetic in §11.10) | **1.7–4.2 hours** |
-| 10 000 mixed documents (~200 000 chunks) | **days** |
+| 10 000 mixed documents (~200 000 chunks)            | **days**          |
 
-**These are order-of-magnitude estimates and must be measured, not trusted.** But the shape of the answer is not in doubt: local Qwen3-0.6B on NAS silicon is an *overnight batch* technology, not an interactive one. The design has to absorb that rather than fight it:
+**These are order-of-magnitude estimates and must be measured, not trusted.** But the shape of the answer is not in doubt: local Qwen3-0.6B on NAS silicon is an _overnight batch_ technology, not an interactive one. The design has to absorb that rather than fight it:
 
 - Ingest is a **background queue with a visible ETA**, resumable across restarts and package upgrades.
 - **Nothing is ever re-embedded without cause.** Content-hash the chunk text; if the hash exists for this model, reuse the vector. Editing one paragraph of a document re-embeds one chunk.
-- The wizard runs a **calibration benchmark** on ~20 real chunks and reports actual seconds-per-chunk, plus a projected completion time for the folders the user selected, *before* they commit.
+- The wizard runs a **calibration benchmark** on ~20 real chunks and reports actual seconds-per-chunk, plus a projected completion time for the folders the user selected, _before_ they commit.
 - A **schedule window** ("index only between 01:00 and 07:00") and a nice-level throttle, so indexing doesn't make Photos and File Station crawl.
 - Search-time embedding is one short query — ~0.3–1 s. That's acceptable interactively, but the API should still expose a "query embedding cache" for repeated queries.
 
@@ -1089,23 +1093,23 @@ That asymmetry is the whole reason the middle artefact exists, and it has one op
 
 It is stored in `document_page.markdown` — in PostgreSQL, not as loose files — so it is transactionally consistent with the chunks and offsets that address it, backed up by the same `pg_dump`, and incapable of drifting out of sync with the database. An **export action** writes real `.md` files per document or per silo for anyone who wants to grep or diff them; that export is a copy, never the source of truth.
 
-"Representative" has a quality bar, and it is about *content*, not appearance: headings, lists, tables, reading order, page boundaries and image transcriptions must survive. Fonts, colours, margins and exact layout deliberately do not.
+"Representative" has a quality bar, and it is about _content_, not appearance: headings, lists, tables, reading order, page boundaries and image transcriptions must survive. Fonts, colours, margins and exact layout deliberately do not.
 
 ### 10.1 Supported formats, and what page numbers mean for each
 
-| Format | Page basis | How |
-|---|---|---|
-| `.txt` | **none** | One synthetic page. `page_no` is NULL — do not invent one |
-| `.md` | **none** | Passed through, structure preserved. `page_no` NULL |
-| `.pdf` | **exact** | Real page boundaries from the file itself |
-| `.docx` | **best available** — see below | `rendered`, `explicit`, or `none` |
-| `.xlsx` | **sheet** | One sheet = one page. Exact, and the only format where the page boundary is unarguable (§10.9) |
+| Format  | Page basis                     | How                                                                                            |
+| ------- | ------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `.txt`  | **none**                       | One synthetic page. `page_no` is NULL — do not invent one                                      |
+| `.md`   | **none**                       | Passed through, structure preserved. `page_no` NULL                                            |
+| `.pdf`  | **exact**                      | Real page boundaries from the file itself                                                      |
+| `.docx` | **best available** — see below | `rendered`, `explicit`, or `none`                                                              |
+| `.xlsx` | **sheet**                      | One sheet = one page. Exact, and the only format where the page boundary is unarguable (§10.9) |
 
 Nothing else. Refusing `.pptx`, `.html`, `.eml`, `.csv` and images-as-documents in v1 is a feature: each is a different extraction problem with its own failure modes, and five formats done properly beats twelve done badly.
 
 **The uncomfortable truth about DOCX page numbers.** OOXML has no concept of a page. Pagination is computed by the rendering engine from fonts, margins and layout, so a `.docx` does not carry page numbers the way a PDF does. Three things are available, in descending order of reliability:
 
-1. **`<w:lastRenderedPageBreak/>`** — Word writes these when it lays out the document and saves it. They record where *Word* last broke pages, which is the answer the user expects. Present in files saved by Word; **absent** in `.docx` produced by Google Docs export, pandoc, python-docx, and most generators.
+1. **`<w:lastRenderedPageBreak/>`** — Word writes these when it lays out the document and saves it. They record where _Word_ last broke pages, which is the answer the user expects. Present in files saved by Word; **absent** in `.docx` produced by Google Docs export, pandoc, python-docx, and most generators.
 2. **Explicit breaks** — `<w:br w:type="page"/>` and section breaks. Always reliable when present, but they only mark deliberate breaks, not natural flow.
 3. **Nothing.** Then `page_basis = 'none'` and `page_no` stays NULL.
 
@@ -1157,7 +1161,7 @@ store        write the markdown file, fsync, then upsert page, image and chunk
              rows in one transaction (§7.1)
 ```
 
-**Why pages are still stored per page even though chunks ignore them.** Pagination and chunking answer different questions. `document_page` exists so that a page is addressable on its own — for the preview pane, for re-extracting one changed page, and for mapping any character offset back to a page number. Chunking then runs over the *assembled* document Markdown and flows freely across those boundaries, recording the page range it happens to cover (§11.6). Keeping the two independent is what lets a chunk be semantically whole while a citation is still able to say "pages 37–38".
+**Why pages are still stored per page even though chunks ignore them.** Pagination and chunking answer different questions. `document_page` exists so that a page is addressable on its own — for the preview pane, for re-extracting one changed page, and for mapping any character offset back to a page number. Chunking then runs over the _assembled_ document Markdown and flows freely across those boundaries, recording the page range it happens to cover (§11.6). Keeping the two independent is what lets a chunk be semantically whole while a citation is still able to say "pages 37–38".
 
 ### 10.3 Text → Markdown
 
@@ -1169,13 +1173,13 @@ store        write the markdown file, fsync, then upsert page, image and chunk
 
 ### 10.4 Encoding and normalisation — where complex character sets actually bite
 
-Choosing UTF-16 for offsets (§11.7) has **nothing** to do with which character sets NodeRag can handle. All three candidate units — UTF-16 code units, Unicode code points, UTF-8 bytes — address the whole of Unicode losslessly, and none is more capable than the others. Text is stored as UTF-8 in PostgreSQL and read from UTF-8 on disk regardless; the unit choice is about *arithmetic*, not capability.
+Choosing UTF-16 for offsets (§11.7) has **nothing** to do with which character sets NodeRag can handle. All three candidate units — UTF-16 code units, Unicode code points, UTF-8 bytes — address the whole of Unicode losslessly, and none is more capable than the others. Text is stored as UTF-8 in PostgreSQL and read from UTF-8 on disk regardless; the unit choice is about _arithmetic_, not capability.
 
 The things that genuinely break on Japanese, Arabic or emoji-bearing documents are these three, and they all live upstream in extraction.
 
 #### Encoding detection, for `.txt` and `.md` only
 
-A `.txt` file is a bag of bytes with no declared encoding. Guess wrong and you index mojibake — which is unsearchable *and* pollutes the vector space with garbage tokens that match nothing. `.docx` and `.xlsx` are XML with a declared encoding, and PDF carries its own encodings and CMaps, so this applies only to the two plain-text formats.
+A `.txt` file is a bag of bytes with no declared encoding. Guess wrong and you index mojibake — which is unsearchable _and_ pollutes the vector space with garbage tokens that match nothing. `.docx` and `.xlsx` are XML with a declared encoding, and PDF carries its own encodings and CMaps, so this applies only to the two plain-text formats.
 
 ```
 1. BOM wins.  EF BB BF → UTF-8;  FF FE → UTF-16LE;  FE FF → UTF-16BE;
@@ -1212,12 +1216,12 @@ Any normalisation applied after offsets are computed invalidates every one of th
 This also gives `offsets_match_original` (§11.6) a precise, one-line definition instead of a per-format assumption:
 
 ```js
-offsets_match_original = Buffer.from(canonicalMarkdown, 'utf8').equals(originalBytes)
+offsets_match_original = Buffer.from(canonicalMarkdown, 'utf8').equals(originalBytes);
 ```
 
 True for a plain UTF-8, LF, already-NFC `.md` file — which is most of them — and false the moment a BOM was stripped, CRLFs were converted or NFC changed anything. `byte_start`/`byte_end` are populated only when it is true. No heuristics, no per-format special cases, and it cannot drift.
 
-#### Grapheme clusters are a *display* concern, and only that
+#### Grapheme clusters are a _display_ concern, and only that
 
 What a person calls one character can be many code units: a flag emoji, a family emoji joined by ZWJs, an emoji with a skin-tone modifier, a Devanagari conjunct. The locator path never needs to know this — it slices at boundaries §11.4 already guarantees are ASCII whitespace or punctuation.
 
@@ -1233,24 +1237,24 @@ A `.txt` file is a bag of bytes whose encoding you must guess (§10.4). A PDF is
 
 - **Simple fonts** use single-byte codes 0–255, resolved through a base encoding (`WinAnsiEncoding`, `MacRomanEncoding`, `StandardEncoding`) plus an optional `/Differences` array.
 - **Composite (Type0/CID) fonts** use multi-byte codes — usually two bytes, which is what people see in a hex dump and reasonably mistake for UTF-16. With the common `/Identity-H` encoding those two bytes are **glyph indices inside that specific embedded font**, not Unicode at all. `0x0024` might be `g` in one PDF and `ł` in the next.
-- The bridge back to Unicode is the font's **`/ToUnicode` CMap**, and it is *optional*.
+- The bridge back to Unicode is the font's **`/ToUnicode` CMap**, and it is _optional_.
 
 The extraction library resolves all of this. `pdfjs-dist` (or MuPDF) hands back **JavaScript strings** — already decoded, already Unicode, and therefore already UTF-16 by definition of the language. The pipeline in §10.4 reflects this: `decode` is a TXT/MD-only step, because for PDF, DOCX and XLSX the format itself defines the mapping and the library has already applied it.
 
-So the encoding question is answered. The *fidelity* question is the real one, and it is where PDF→Markdown quality is won or lost.
+So the encoding question is answered. The _fidelity_ question is the real one, and it is where PDF→Markdown quality is won or lost.
 
 #### What actually goes wrong
 
-| Problem | Symptom | Handling |
-|---|---|---|
-| **Missing `/ToUnicode`** on a subset-embedded font — common in LaTeX output and some design tools | Extracted text is gibberish, or private-use-area characters, or empty | Detect and fail the page to the vision fallback below |
-| **Drawing order ≠ reading order** | A two-column paper extracts as interleaved half-sentences; headers and footnotes land mid-paragraph | Reconstruct reading order from glyph coordinates: column detection, then top-to-bottom within column. **The single biggest quality lever in PDF extraction** |
-| **No space characters** — some producers position every glyph individually | `Thequickbrownfox` | Infer word boundaries from inter-glyph x-gaps relative to the font's space width |
-| **Typographic ligatures** — `ﬁ` (U+FB01), `ﬂ`, `ﬀ`, `ﬃ`, `ﬄ` | Searching "file" misses `ﬁle`; "workflow" misses `workﬂow` | Fold the five Latin ligatures to their component letters at extraction. A pure presentation artefact — the author's text was always "fi" |
-| **Hyphenation across line breaks** | `develop-\nment` indexes as two fragments, matching neither "development" nor anything else | Join when a line ends in `-` and the next begins lowercase; keep the hyphen when both sides are capitalised or the joined form fails a dictionary check. Conservative, and flagged |
-| **Invisible text** — render mode 3, OCR layers under scans, watermarks | Duplicated or ghost content in the Markdown | Respect the text render mode; drop mode-3 runs unless the page has no visible text at all (in which case it *is* the OCR layer, and it's what you want) |
-| **Encrypted / permission-flagged PDFs** | Extraction refused or empty | Open with an empty user password where the format allows; otherwise fail the document with an honest message, never a silent empty result |
-| **No text layer at all** — a scan | Zero extracted characters | Vision fallback below |
+| Problem                                                                                           | Symptom                                                                                             | Handling                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Missing `/ToUnicode`** on a subset-embedded font — common in LaTeX output and some design tools | Extracted text is gibberish, or private-use-area characters, or empty                               | Detect and fail the page to the vision fallback below                                                                                                                              |
+| **Drawing order ≠ reading order**                                                                 | A two-column paper extracts as interleaved half-sentences; headers and footnotes land mid-paragraph | Reconstruct reading order from glyph coordinates: column detection, then top-to-bottom within column. **The single biggest quality lever in PDF extraction**                       |
+| **No space characters** — some producers position every glyph individually                        | `Thequickbrownfox`                                                                                  | Infer word boundaries from inter-glyph x-gaps relative to the font's space width                                                                                                   |
+| **Typographic ligatures** — `ﬁ` (U+FB01), `ﬂ`, `ﬀ`, `ﬃ`, `ﬄ`                                      | Searching "file" misses `ﬁle`; "workflow" misses `workﬂow`                                          | Fold the five Latin ligatures to their component letters at extraction. A pure presentation artefact — the author's text was always "fi"                                           |
+| **Hyphenation across line breaks**                                                                | `develop-\nment` indexes as two fragments, matching neither "development" nor anything else         | Join when a line ends in `-` and the next begins lowercase; keep the hyphen when both sides are capitalised or the joined form fails a dictionary check. Conservative, and flagged |
+| **Invisible text** — render mode 3, OCR layers under scans, watermarks                            | Duplicated or ghost content in the Markdown                                                         | Respect the text render mode; drop mode-3 runs unless the page has no visible text at all (in which case it _is_ the OCR layer, and it's what you want)                            |
+| **Encrypted / permission-flagged PDFs**                                                           | Extraction refused or empty                                                                         | Open with an empty user password where the format allows; otherwise fail the document with an honest message, never a silent empty result                                          |
+| **No text layer at all** — a scan                                                                 | Zero extracted characters                                                                           | Vision fallback below                                                                                                                                                              |
 
 Ligature folding and de-hyphenation both change the character count — which is fine, because they run **before** offsets are computed (§10.4's fixed pipeline order), and `offsets_match_original` is false for PDF regardless.
 
@@ -1270,7 +1274,7 @@ extraction_confidence per page, failing on any of:
 
 This is worth more than the sum of its parts. It handles the missing-`/ToUnicode` case, the scanned-page case and the pathological-producer case with one mechanism; it means a **scanned PDF simply works** rather than being a separate feature (open question #11 collapses into "it works, and it costs one vision call per page"); and every affected page is labelled, so a user seeing an odd result can tell whether they are reading extracted text or a model's transcription.
 
-The cost is the honest trade: a vision call per bad page instead of a few milliseconds of text extraction. Pages that fail the gate are counted per document and shown in the UI, because "this 400-page scan will need 400 vision calls" is something to see *before* starting, not after.
+The cost is the honest trade: a vision call per bad page instead of a few milliseconds of text extraction. Pages that fail the gate are counted per document and shown in the UI, because "this 400-page scan will need 400 vision calls" is something to see _before_ starting, not after.
 
 #### One addition back in §10.4
 
@@ -1295,10 +1299,12 @@ skip if  content hash is in the "decorative" set  learned per silo
 
 ```markdown
 <!-- noderag:image id=img_7f3a91 page=12 kind=table model=qwen3-vl:8b -->
-| Region | Q1    | Q2    |
-|--------|-------|-------|
-| EMEA   | 1.24  | 1.41  |
-| APAC   | 0.87  | 0.95  |
+
+| Region | Q1   | Q2   |
+| ------ | ---- | ---- |
+| EMEA   | 1.24 | 1.41 |
+| APAC   | 0.87 | 0.95 |
+
 <!-- /noderag:image -->
 ```
 
@@ -1317,7 +1323,7 @@ Both modes keep the extracted page Markdown regardless, so a missing original de
 
 ### 10.8 Excel: one sheet, one page
 
-Spreadsheets are the format where the page concept is *least* ambiguous — a workbook has sheets, sheets are ordered, and nobody argues about where one ends. `page_basis = 'sheet'`, `page_no` = the 1-based sheet index, and the sheet name is carried alongside so the UI can say **`Sheet: Q3 Detail`** rather than `p. 4` (§15.1).
+Spreadsheets are the format where the page concept is _least_ ambiguous — a workbook has sheets, sheets are ordered, and nobody argues about where one ends. `page_basis = 'sheet'`, `page_no` = the 1-based sheet index, and the sheet name is carried alongside so the UI can say **`Sheet: Q3 Detail`** rather than `p. 4` (§15.1).
 
 The conversion is straightforward. The traps are not.
 
@@ -1333,6 +1339,7 @@ The conversion is straightforward. The traps are not.
 
 ```markdown
 **Row 412**
+
 - Region: EMEA
 - Product: A-100
 - Units: 412
@@ -1365,22 +1372,22 @@ Re-ingesting a changed document reuses everything that didn't change: unchanged 
 
 There's no requirement for the database to "handle non-fixed-size vectors," because chunk size never changes the vector at all.
 
-An embedding model maps *any* input length to a **fixed-width** output. Qwen3-Embedding-0.6B emits 1 024 dimensions whether you hand it 50 characters or 5 000. So `halfvec(1024)` is a fixed-width column — 2 048 bytes per row, always — and it stores a 200-character chunk and a 3 000-character chunk identically. HNSW in fact *requires* fixed dimensionality; it cannot index a mixture, and it never has to.
+An embedding model maps _any_ input length to a **fixed-width** output. Qwen3-Embedding-0.6B emits 1 024 dimensions whether you hand it 50 characters or 5 000. So `halfvec(1024)` is a fixed-width column — 2 048 bytes per row, always — and it stores a 200-character chunk and a 3 000-character chunk identically. HNSW in fact _requires_ fixed dimensionality; it cannot index a mixture, and it never has to.
 
 So the two knobs are independent:
 
-| Knob | Set by | Effect |
-|---|---|---|
-| **Dimensions** (1 024) | The model. Not a choice, beyond MRL truncation | Index size, RAM, recall |
-| **Chunk size** (2 000 chars) | You, per silo | Retrieval granularity, embedding cost |
+| Knob                         | Set by                                         | Effect                                |
+| ---------------------------- | ---------------------------------------------- | ------------------------------------- |
+| **Dimensions** (1 024)       | The model. Not a choice, beyond MRL truncation | Index size, RAM, recall               |
+| **Chunk size** (2 000 chars) | You, per silo                                  | Retrieval granularity, embedding cost |
 
-Your 1 024 is right: it's Qwen3-Embedding-0.6B's native output width. MRL truncation to 768 or 512 stays available if index size becomes the binding constraint (§7.3), but that is a *corpus-wide* decision applied uniformly — never per chunk, because every vector in one HNSW index must have the same width.
+Your 1 024 is right: it's Qwen3-Embedding-0.6B's native output width. MRL truncation to 768 or 512 stays available if index size becomes the binding constraint (§7.3), but that is a _corpus-wide_ decision applied uniformly — never per chunk, because every vector in one HNSW index must have the same width.
 
 ### 11.2 Why characters beat tokens here
 
 The usual argument is that tokenizers are fiddly. True, but minor. The substantial reasons:
 
-**Chunk boundaries stop depending on the model.** This is the big one. With token-based chunking, boundaries are a function of the tokenizer — so swapping embedding models re-tokenizes, which shifts every boundary, which means new chunk rows, new `chunk_sha` values, a cold embedding cache and a full re-chunk of the corpus. With character boundaries, a model swap re-embeds the *same* chunks: the `chunk` rows, their page numbers, their character offsets and their identity all survive. Given that §7 was deliberately built so a second model can be embedded *alongside* the first and cut over when complete, character chunking is what makes that plan actually cheap.
+**Chunk boundaries stop depending on the model.** This is the big one. With token-based chunking, boundaries are a function of the tokenizer — so swapping embedding models re-tokenizes, which shifts every boundary, which means new chunk rows, new `chunk_sha` values, a cold embedding cache and a full re-chunk of the corpus. With character boundaries, a model swap re-embeds the _same_ chunks: the `chunk` rows, their page numbers, their character offsets and their identity all survive. Given that §7 was deliberately built so a second model can be embedded _alongside_ the first and cut over when complete, character chunking is what makes that plan actually cheap.
 
 **Offsets are already the unit the rest of the system uses.** `char_start`/`char_end` map straight onto the page Markdown for highlighting in the preview pane (§15.1), onto `document_page.markdown` for reconstruction, and onto the `<!-- noderag:image -->` spans for provenance. Token offsets would need converting at every one of those boundaries.
 
@@ -1388,7 +1395,7 @@ The usual argument is that tokenizers are fiddly. True, but minor. The substanti
 
 **It's deterministic and testable.** Given the same page Markdown and the same profile, the chunk boundaries are reproducible by inspection, in a unit test, without a 600 MB model.
 
-**The honest cost:** 2 000 characters is not a constant amount of *information*. English prose runs about 4 characters per token, CJK about 1.5, dense JSON or code about 2.5. So a 2 000-character chunk is ~500 tokens of English but ~1 300 tokens of Chinese — different embedding cost and different semantic density for the same nominal size. For a mostly-English document corpus this is a non-issue. For a CJK-heavy silo, lower `target_chars` rather than accepting the drift.
+**The honest cost:** 2 000 characters is not a constant amount of _information_. English prose runs about 4 characters per token, CJK about 1.5, dense JSON or code about 2.5. So a 2 000-character chunk is ~500 tokens of English but ~1 300 tokens of Chinese — different embedding cost and different semantic density for the same nominal size. For a mostly-English document corpus this is a non-issue. For a CJK-heavy silo, lower `target_chars` rather than accepting the drift.
 
 ### 11.3 The one thing characters can't guarantee — so guard it
 
@@ -1404,11 +1411,11 @@ max_tokens     1024     the guard; split at the nearest boundary if exceeded
 
 Tokenizing 2 000 characters is microseconds, and the tokenizer is already loaded for the query path — so this costs nothing and turns a silent failure mode into a boring one. `token_count` is stored on the chunk either way, because it's what the ingest ETA and the embedder queue are actually calculating from.
 
-Note the interaction: at 2 000 characters the *typical* English chunk is ~500 tokens, which is exactly the working assumption behind the §9.5 performance estimates. The guard exists for the tail of the distribution, not the middle of it.
+Note the interaction: at 2 000 characters the _typical_ English chunk is ~500 tokens, which is exactly the working assumption behind the §9.5 performance estimates. The guard exists for the tail of the distribution, not the middle of it.
 
 ### 11.4 Boundaries: never cut mid-word, never cut a table in half
 
-A raw `slice(i, i + 2000)` cuts through words, sentences and Markdown structures. So 2 000 is a *target*, and the chunker snaps to the nearest real boundary within ±15 % (1 700–2 300 characters), preferring, in order:
+A raw `slice(i, i + 2000)` cuts through words, sentences and Markdown structures. So 2 000 is a _target_, and the chunker snaps to the nearest real boundary within ±15 % (1 700–2 300 characters), preferring, in order:
 
 ```
 1. blank line   (paragraph break)      ← by far the best boundary
@@ -1431,10 +1438,11 @@ If an atomic unit is larger than `target_chars` but still inside `max_tokens`, i
 
 ```markdown
 <!-- noderag:table-part doc=4471 sheet="Q3 Detail" rows=241–380 of 5012 -->
+
 | Region | Product | Units | Revenue |
-|--------|---------|-------|---------|
+| ------ | ------- | ----- | ------- |
 | EMEA   | A-100   | 412   | 18 240  |
-…
+| …      |
 ```
 
 Each part carries the header, the row range and the total, so a retrieved fragment says what it is and where it sits. Code blocks split at line boundaries with a continuation marker. Both cases are flagged on the chunk so the UI can show "part 3 of 14" rather than pretending it's a whole.
@@ -1461,7 +1469,7 @@ The prefix goes into **what gets embedded**, not into what gets displayed — th
 - **Semantics.** A paragraph interrupted by a page break is one thought. Page-bounded chunking cut it in half at every boundary and produced a runt at the foot of all 500 pages of a 500-page document — 500 opportunities to sever a sentence from its conclusion.
 - **Cost.** Page-bounded chunking forced a fresh chunk at every page start regardless of remaining space. Flowing across pages drops a 500-page PDF from ~1 000 chunks to ~735 (§11.10) — roughly 27 % less of the slowest operation in the system.
 
-The price is that a chunk no longer has *a* page. It has a range, which is what gets stored:
+The price is that a chunk no longer has _a_ page. It has a range, which is what gets stored:
 
 ```
 page_start   the page the chunk's first character falls on
@@ -1485,11 +1493,11 @@ For `.txt` and `.md` the canonical Markdown is the original file with line endin
 
 > **What "character" means here, stated once:** a **UTF-16 code unit** — JavaScript's native string unit, so `char_start`/`char_end` are exactly what `.slice()` takes. This is not the "more correct" choice (code points would be), it is the one that removes every conversion boundary from the system. §11.7 explains why, and how the whole class of off-by-one-after-an-emoji bug is designed out rather than guarded against.
 
-**Runts** are now rare: with chunks flowing across pages, a short trailing chunk occurs once per *document* rather than once per page. The rule still holds — if the final remainder is under 25 % of `target_chars`, merge it into the previous chunk.
+**Runts** are now rare: with chunks flowing across pages, a short trailing chunk occurs once per _document_ rather than once per page. The rule still holds — if the final remainder is under 25 % of `target_chars`, merge it into the previous chunk.
 
 ### 11.7 Offsets: one producer, one unit, and a verifier
 
-The UTF-16-versus-code-point mismatch flagged earlier is real, but "count code points everywhere and add a lint rule" is a *discipline* mitigation, and discipline mitigations fail quietly on exactly the input nobody tested. The problem deserves a structural fix, and it has one — in four parts, none of which requires anybody to remember anything.
+The UTF-16-versus-code-point mismatch flagged earlier is real, but "count code points everywhere and add a lint rule" is a _discipline_ mitigation, and discipline mitigations fail quietly on exactly the input nobody tested. The problem deserves a structural fix, and it has one — in four parts, none of which requires anybody to remember anything.
 
 #### 1. One producer. Postgres stores offsets; it never interprets them.
 
@@ -1499,15 +1507,15 @@ The mismatch can only exist because two systems independently compute positions 
 
 This is a much narrower rule than "never use `.length`", and unlike that one it is mechanically checkable: a CI grep for `substring(`/`substr(` over `markdown` columns in the migrations and query modules, plus a code-review rule that offsets are never arguments to a SQL string function. One rule, one place, verifiable.
 
-Nothing in the design actually wants Postgres to do this anyway. Keyword search uses `ts_headline()`, which returns marked-up *text* rather than positions, so the retrieval path never needs an offset to cross the boundary.
+Nothing in the design actually wants Postgres to do this anyway. Keyword search uses `ts_headline()`, which returns marked-up _text_ rather than positions, so the retrieval path never needs an offset to cross the boundary.
 
 #### 2. One unit — and it should be UTF-16 code units, not code points.
 
 This reverses the earlier instruction, for a reason worth stating plainly: **code points are the more "correct" unit and the worse engineering choice here.**
 
-To be clear about what the choice is *not*: it has no bearing on which character sets NodeRag can ingest. UTF-16 code units, code points and UTF-8 bytes all address the whole of Unicode losslessly — text is stored as UTF-8 in PostgreSQL either way, and every script, emoji and combining mark survives all three. The unit only decides how positions are *counted*. What actually determines whether a Japanese or Arabic document survives ingestion is encoding detection and NFC normalisation, which live in §10.4.
+To be clear about what the choice is _not_: it has no bearing on which character sets NodeRag can ingest. UTF-16 code units, code points and UTF-8 bytes all address the whole of Unicode losslessly — text is stored as UTF-8 in PostgreSQL either way, and every script, emoji and combining mark survives all three. The unit only decides how positions are _counted_. What actually determines whether a Japanese or Arabic document survives ingestion is encoding detection and NFC normalisation, which live in §10.4.
 
-Everything in the JavaScript ecosystem speaks UTF-16 natively. `.length`, `.slice()`, `.indexOf()`, `RegExp.lastIndex`, `Intl.Segmenter` boundaries, every offset returned by a Markdown parser, every span from a tokenizer, and every DOM `Range` in the browser front end. Choosing code points means converting at *every one of those boundaries* — and each conversion is a fresh chance to get it wrong, plus an O(n) array allocation per slice, on documents of a million characters.
+Everything in the JavaScript ecosystem speaks UTF-16 natively. `.length`, `.slice()`, `.indexOf()`, `RegExp.lastIndex`, `Intl.Segmenter` boundaries, every offset returned by a Markdown parser, every span from a tokenizer, and every DOM `Range` in the browser front end. Choosing code points means converting at _every one of those boundaries_ — and each conversion is a fresh chance to get it wrong, plus an O(n) array allocation per slice, on documents of a million characters.
 
 Choosing UTF-16 code units means **zero conversions anywhere in the system**. The chunker's arithmetic, the API server's slicing and the browser's highlight all use the same numbers natively. It is self-consistent by construction rather than by vigilance, and the lint rule disappears because plain `.length` and plain `.slice()` are now correct.
 
@@ -1517,7 +1525,7 @@ The one real hazard of UTF-16 — cutting a surrogate pair in half and producing
 // A boundary may never land between a high and a low surrogate.
 function safeBoundary(str, i) {
   const c = str.charCodeAt(i);
-  return (c >= 0xD800 && c <= 0xDBFF) ? i + 1 : i;   // step past the high surrogate
+  return c >= 0xd800 && c <= 0xdbff ? i + 1 : i; // step past the high surrogate
 }
 ```
 
@@ -1551,27 +1559,27 @@ So the API mostly doesn't make clients slice at all:
 
 - `POST /v1/search` returns the **chunk text itself**. The common case needs no slicing.
 - `GET /v1/documents/:id/pages/:n?highlight=<chunk_id>` returns the page **pre-split** — `{ before, match, after }` — so the highlight is a render, not an index calculation.
-- `char_start`/`char_end` remain in the response as metadata, documented as *"UTF-16 code units, as in JavaScript `String.length`"*, for clients that genuinely want to compute with them.
+- `char_start`/`char_end` remain in the response as metadata, documented as _"UTF-16 code units, as in JavaScript `String.length`"_, for clients that genuinely want to compute with them.
 
 #### And store the UTF-8 byte offsets too — into the canonical Markdown, for every document
 
 There is a fair objection to UTF-16: the canonical Markdown **is** UTF-8, on disk, in PostgreSQL and in any export. A UTF-8 byte offset is therefore the artefact's own native unit, and it is what a Python, Go, Rust or shell consumer would reach for. That instinct is sound.
 
-The reason UTF-16 is nonetheless the *working* unit is narrow and practical: the two components that actually produce and consume offsets — the chunker in Node and the highlight in the browser — are both UTF-16-native, as is every Markdown parser, tokenizer and `RegExp` they call. Making bytes the working unit means a `Buffer.from(str,'utf8')` round trip at every one of those boundaries: an O(n) allocation of several megabytes per operation on a large document, and a fresh chance to be wrong at each one. PostgreSQL is no help either — `substring()` on `text` counts code points, so byte-slicing there needs `convert_to`/`convert_from` around a `bytea`, which §11.7 has already ruled out by making the database store offsets and never interpret them.
+The reason UTF-16 is nonetheless the _working_ unit is narrow and practical: the two components that actually produce and consume offsets — the chunker in Node and the highlight in the browser — are both UTF-16-native, as is every Markdown parser, tokenizer and `RegExp` they call. Making bytes the working unit means a `Buffer.from(str,'utf8')` round trip at every one of those boundaries: an O(n) allocation of several megabytes per operation on a large document, and a fresh chance to be wrong at each one. PostgreSQL is no help either — `substring()` on `text` counts code points, so byte-slicing there needs `convert_to`/`convert_from` around a `bytea`, which §11.7 has already ruled out by making the database store offsets and never interpret them.
 
 So do both, because it costs almost nothing:
 
-| Field | Unit | Into | Populated |
-|---|---|---|---|
-| `char_start` / `char_end` | UTF-16 code units | canonical Markdown | always — the working unit |
-| `byte_start` / `byte_end` | UTF-8 bytes | canonical Markdown | **always** — the portable unit |
-| `offsets_match_original` | — | — | true only when the Markdown is byte-identical to the source file |
+| Field                     | Unit              | Into               | Populated                                                        |
+| ------------------------- | ----------------- | ------------------ | ---------------------------------------------------------------- |
+| `char_start` / `char_end` | UTF-16 code units | canonical Markdown | always — the working unit                                        |
+| `byte_start` / `byte_end` | UTF-8 bytes       | canonical Markdown | **always** — the portable unit                                   |
+| `offsets_match_original`  | —                 | —                  | true only when the Markdown is byte-identical to the source file |
 
 Both pairs are computed by the same single producer in the same pass, so they cannot disagree with each other any more than they can disagree with the text. Two extra integers per chunk is ~8 MB per million chunks.
 
 What this buys: a JavaScript client slices with `char_*` and no conversion; every other language slices the exported `.md` with `byte_*` and no conversion; and when `offsets_match_original` is true — a plain UTF-8, LF, already-NFC `.txt` or `.md` file (§10.4) — the byte offsets address the **original file** as well, because the Markdown and the original are the same bytes.
 
-And it strengthens the verifier in part 3: slicing by *both* units must reproduce `chunk.text`. A bug in either representation is caught by the other.
+And it strengthens the verifier in part 3: slicing by _both_ units must reproduce `chunk.text`. A bug in either representation is caught by the other.
 
 > **Net effect on risk #31:** it stops being a High-severity discipline problem and becomes a Low-severity structural one. One system produces offsets, in the unit its language uses natively, with a single guarded edge case, and a verifier that re-derives them from stored data and shouts if they ever disagree.
 
@@ -1587,17 +1595,17 @@ Chunk size, overlap and the token guard are **system-wide** (§7.8) — one `set
 
 **The limits, and why each one is where it is:**
 
-| Setting | Range | Default | Why the bound |
-|---|---|---|---|
-| `target_chars` | 200 – 8 000 | **2 000** | Below ~200 a chunk carries no context and retrieval degrades to keyword matching with extra steps. Above ~8 000 it is ~2 000 tokens of English — near the practical `max_tokens` ceiling, and coarse enough that a hit points at three topics at once |
-| `overlap_chars` | 0 – 50 % of target | **300** | Redundancy is `target / (target − overlap)`. At 15 % that's 1.18×; at 50 % it's **2×** — double the embedding time, which on this hardware is the whole budget. The database refuses anything above half |
-| `max_tokens` | 128 – 2 048 | **1 024** | Must not exceed the ONNX session's `max_seq_len` (§9.2); raising it raises activation memory and attention cost on an 8 GB box |
-| `snap_window` | 0 – 0.5 | **0.15** | 0 means hard cuts at exactly `target_chars`. Above ~0.3, chunk sizes vary so much that ETA projections stop being meaningful |
-| `heading_prefix` | on / off | **on** | §11.5. Costs 10–25 tokens per chunk; whether it earns them is an evaluation question (§16) |
+| Setting          | Range              | Default   | Why the bound                                                                                                                                                                                                                                         |
+| ---------------- | ------------------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `target_chars`   | 200 – 8 000        | **2 000** | Below ~200 a chunk carries no context and retrieval degrades to keyword matching with extra steps. Above ~8 000 it is ~2 000 tokens of English — near the practical `max_tokens` ceiling, and coarse enough that a hit points at three topics at once |
+| `overlap_chars`  | 0 – 50 % of target | **300**   | Redundancy is `target / (target − overlap)`. At 15 % that's 1.18×; at 50 % it's **2×** — double the embedding time, which on this hardware is the whole budget. The database refuses anything above half                                              |
+| `max_tokens`     | 128 – 2 048        | **1 024** | Must not exceed the ONNX session's `max_seq_len` (§9.2); raising it raises activation memory and attention cost on an 8 GB box                                                                                                                        |
+| `snap_window`    | 0 – 0.5            | **0.15**  | 0 means hard cuts at exactly `target_chars`. Above ~0.3, chunk sizes vary so much that ETA projections stop being meaningful                                                                                                                          |
+| `heading_prefix` | on / off           | **on**    | §11.5. Costs 10–25 tokens per chunk; whether it earns them is an evaluation question (§16)                                                                                                                                                            |
 
 Two rules the **UI** enforces beyond what the database can:
 
-- **Coherence warning.** If `target_chars ÷ 4` (the English estimate) exceeds `max_tokens × 0.8`, most chunks will trip the token guard and be split anyway — so the setting isn't doing what it says. The form says so, using the corpus's *measured* characters-per-token once there is content to measure, not the 4 estimate.
+- **Coherence warning.** If `target_chars ÷ 4` (the English estimate) exceeds `max_tokens × 0.8`, most chunks will trip the token guard and be split anyway — so the setting isn't doing what it says. The form says so, using the corpus's _measured_ characters-per-token once there is content to measure, not the 4 estimate.
 - **Cost preview on the button.** Before confirming, show projected redundancy (`1.18×`), projected total chunk count, and projected re-embedding hours from measured throughput. This is the one screen in the application where an idle two-character edit commits the machine to three days of work.
 
 `build.rules_version` exists so that a **bug fix in the boundary snapper** is also recognised as a rebuild, rather than silently producing chunks that don't line up with their neighbours. `chunk.build_id` records which build produced each row, so provenance survives even mid-rebuild.
@@ -1616,12 +1624,12 @@ stride  = target_chars − overlap_chars          = 1 700 by default
 chunks  = max(1, ceil((total_chars − overlap) / stride))     then runt-merge
 ```
 
-| Corpus | Chars | Chunks | Embedding time @ 6–15 s/chunk |
-|---|---|---|---|
-| 20-page report | ~50 K | ~30 | 3–8 min |
-| 500-page PDF | ~1.25 M | **~735** | **1.2–3.1 hours** |
-| 40-sheet workbook | ~400 K | ~235 | 24–59 min |
-| 10 000 mixed documents | ~250 M | ~147 000 | **days** — the overnight-batch reality of §9.5 |
+| Corpus                 | Chars   | Chunks   | Embedding time @ 6–15 s/chunk                  |
+| ---------------------- | ------- | -------- | ---------------------------------------------- |
+| 20-page report         | ~50 K   | ~30      | 3–8 min                                        |
+| 500-page PDF           | ~1.25 M | **~735** | **1.2–3.1 hours**                              |
+| 40-sheet workbook      | ~400 K  | ~235     | 24–59 min                                      |
+| 10 000 mixed documents | ~250 M  | ~147 000 | **days** — the overnight-batch reality of §9.5 |
 
 The 500-page figure is ~27 % lower than the page-bounded design it replaces, purely because no chunk is now forced to restart at a page boundary. That is 27 % off the slowest operation in the system, for free.
 
@@ -1635,7 +1643,46 @@ The number to show users during ingest is **characters per second**, not chunks 
 
 The one part of the system that deliberately leaves the NAS. A 0.6B embedding model on NAS silicon is already an overnight batch (§9.5); a vision-language model would be hopeless. So images go to an Ollama host — a desktop, a GPU box, or Ollama Cloud — and the NAS keeps the storage, the index and the orchestration.
 
-### 12.1 The request
+### 12.1 Which protocol, and the URL
+
+Ollama exposes **two** HTTP surfaces on the same port, and the choice matters more than it looks.
+
+|                        | Native                                | OpenAI-compatible                                                                                                                |
+| ---------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Base URL               | `http://<host>:11434`                 | `http://<host>:11434/v1`                                                                                                         |
+| Chat endpoint          | `POST /api/chat`                      | `POST /chat/completions`                                                                                                         |
+| Model list             | `GET /api/tags`                       | `GET /v1/models`                                                                                                                 |
+| Images                 | `images: ["<base64>"]` on the message | `image_url` with a **base64 data URI** — a real URL is explicitly unsupported                                                    |
+| **JSON Schema output** | **`format: { …schema… }`**            | **Not supported**                                                                                                                |
+| **`keep_alive`**       | **Yes**                               | Not an OpenAI parameter                                                                                                          |
+| Auth                   | none                                  | `Authorization: Bearer …`, required by SDKs, **ignored** by a self-hosted server (the convention is the literal string `ollama`) |
+
+**NodeRag defaults to the native API**, for two specific reasons rather than a preference:
+
+- §12.1's design depends on **JSON-Schema-constrained output** to guarantee the VLM returns `{kind, markdown, alt, confidence}` rather than prose that happens to contain a table. The OpenAI-compatible endpoint supports `response_format` for plain JSON mode but not a supplied schema, so on that path the guarantee degrades to a prompt-engineering hope.
+- **`keep_alive`** keeps the model resident between calls. Without it a batch of 40 page images spends most of its wall clock reloading the model, and there is no OpenAI parameter to express it.
+
+The OpenAI mode is kept as a configurable alternative anyway (`ollama_api_style = 'openai'`), because it makes the same settings work against LM Studio, vLLM, TEI or a hosted OpenAI-compatible endpoint later, at the cost of falling back to prompt-enforced JSON.
+
+**The default URL is `http://localhost:11434`** — but that default is only correct if Ollama runs _on the NAS_, which it will not. Substitute the host: `http://gpubox.lan:11434`.
+
+**Ollama Cloud** uses the same two surfaces on a different origin:
+
+|             | Self-hosted                 | Ollama Cloud                                                                  |
+| ----------- | --------------------------- | ----------------------------------------------------------------------------- |
+| Origin      | `http://<host>:11434`       | `https://ollama.com`                                                          |
+| Native chat | `/api/chat`                 | `/api/chat`                                                                   |
+| OpenAI chat | `/v1/chat/completions`      | `/v1/chat/completions`                                                        |
+| Model list  | `/api/tags` or `/v1/models` | same                                                                          |
+| API key     | ignored                     | **real** — from `ollama.com/settings/keys`, sent as `Authorization: Bearer …` |
+
+So the OpenAI-compatible base URL for the cloud is **`https://ollama.com/v1`**, and the native base is **`https://ollama.com`**. Only the origin and the key change; `ollama_api_style` continues to decide the path, so one set of settings covers local and cloud without a second code path.
+
+> **Two cautions about the cloud path, both pointing the same way.** Ollama's OpenAI-compatibility documentation only ever shows `localhost` examples — the cloud `/v1` endpoint is used in the wild but is not documented as a supported surface. And there is at least one report of Ollama Cloud's `/v1/chat/completions` returning **500 on vision requests** for models such as `qwen3-vl`, where text-only requests succeed, with the recommended fix being to route vision through native `/api/chat` with the `images` array. That is a single third-party report rather than an established limitation, so treat it as a reason to prefer the native path rather than a proven defect — but it reinforces the decision above for exactly our use case.
+
+> **The gotcha that will cost an hour otherwise:** Ollama binds to **`127.0.0.1:11434`** by default, so out of the box it refuses connections from anything but its own machine — including your NAS. The Ollama host must be started with `OLLAMA_HOST=0.0.0.0:11434` (a service override on Linux, a setting in the app on macOS/Windows) before the NAS can reach it at all. NodeRag's connection test should name this explicitly when it sees a connection refused, rather than reporting a generic network error.
+
+### 12.2 The request
 
 Ollama takes base64 image data in the `images` array. `/api/chat`:
 
@@ -1646,7 +1693,7 @@ POST http://gpubox.lan:11434/api/chat
   "messages": [{
     "role": "user",
     "content": "<the extraction prompt>",
-    "images": ["<base64 PNG, no data: prefix>"]
+    "images": ["<base64 PNG 1>", "<base64 PNG 2>", "<up to the configured batch size>"]
   }],
   "stream": false,
   "keep_alive": "30m",
@@ -1661,6 +1708,11 @@ Three fields do most of the work:
 - **`keep_alive`** keeps the model resident between calls. Without it, a VLM reloads per request and a batch of 40 images spends most of its time on model loading.
 - **`temperature: 0`** — this is transcription, not writing.
 
+NodeRag may attach several images to one message. The prompt numbers them in array order and the
+schema requires an indexed result for every image, allowing responses to be validated and restored
+to document order. `ollama_images_per_call` controls this batch size independently of the parallel
+request semaphore.
+
 The schema we ask for:
 
 ```json
@@ -1668,10 +1720,11 @@ The schema we ask for:
   "type": "object",
   "required": ["kind", "markdown", "alt", "confidence"],
   "properties": {
-    "kind":     { "enum": ["table","chart","diagram","screenshot","photo",
-                           "formula","logo","decorative"] },
+    "kind": {
+      "enum": ["table", "chart", "diagram", "screenshot", "photo", "formula", "logo", "decorative"]
+    },
     "markdown": { "type": "string" },
-    "alt":      { "type": "string" },
+    "alt": { "type": "string" },
     "confidence": { "type": "number" }
   }
 }
@@ -1681,27 +1734,31 @@ Then the ingest side decides what to do: a `table` with high confidence is splic
 
 The prompt is deliberately narrow — transcribe what is there, produce GitHub-flavoured Markdown, do not interpret, do not summarise, return the table verbatim including empty cells. A VLM asked to "describe this image" will editorialise; asked to transcribe, it mostly transcribes.
 
-### 12.2 Configuration
+### 12.3 Configuration
 
-| Setting | Notes |
-|---|---|
-| Base URL | `http://host:11434`. Reachability from the NAS is the thing that breaks — validate at save time, not at 2 a.m. |
-| Bearer token | See below |
-| Model | Free text with a picker populated from `GET /api/tags` |
-| Max parallel calls | Client-side semaphore. **Must not exceed the server's `OLLAMA_NUM_PARALLEL`** or requests queue invisibly and time out |
-| Request timeout | Per call; a 30 s default is short for a large page image |
-| Retries | Exponential backoff, capped; then `pending_vision`, never a hard failure |
-| `keep_alive` | Default `30m` |
-| Max image dimension | Downscale before sending — the single biggest lever on latency and token cost |
-| Enabled per silo | Some silos are pure text and shouldn't pay for vision at all |
+| Setting             | Default                  | Notes                                                                                                                                                                                                                                                               |
+| ------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Base URL            | `http://localhost:11434` | Store the **origin**, not a path — `http://gpubox.lan:11434` or `https://ollama.com`. Strip a pasted `/v1` suffix on save, because people will paste it; `ollama_api_style` supplies the path. Reachability is what breaks, so validate at save time, not at 2 a.m. |
+| API style           | `native`                 | `native` or `openai` (§12.1). Native unless you have a reason                                                                                                                                                                                                       |
+| API key             | `ollama`                 | Sent as `Authorization: Bearer …`. Ignored by a self-hosted server; real for Ollama Cloud or a reverse proxy — see below                                                                                                                                            |
+| Model               | —                        | Free text with a picker populated from `GET /api/tags`                                                                                                                                                                                                              |
+| Max parallel calls  | `2`                      | Client-side semaphore. **Must not exceed the server's `OLLAMA_NUM_PARALLEL`** or requests queue invisibly and time out                                                                                                                                              |
+| Images per call     | `5`                      | Number of ordered images in one provider request (1–16). Lower it if the model or provider runs out of memory; this is separate from parallel calls                                                                                                                 |
+| Request timeout     | `60 s`                   | A large page image on a modest GPU can take most of that                                                                                                                                                                                                            |
+| Retries             | —                        | Exponential backoff, capped; then `pending_vision`, never a hard failure                                                                                                                                                                                            |
+| `keep_alive`        | `30m`                    | **Native API only** (§12.1). The difference between a batch that runs and one that reloads the model 40 times                                                                                                                                                       |
+| Max image dimension | `1600 px`                | Downscale before sending — the single biggest lever on latency and token cost                                                                                                                                                                                       |
+| Vision enabled      | `on`                     | System-wide (§7.8); turn it off for a pure-text corpus and pay nothing                                                                                                                                                                                              |
 
-**A correction worth making explicitly: a self-hosted Ollama has no API key.** Its API is unauthenticated by design — anyone who can reach the port can use the models, and there is no auth header in the API reference. The token field in NodeRag's config therefore serves two real cases: **Ollama Cloud**, which does issue API keys and expects `Authorization: Bearer …`, and a **reverse proxy** in front of a self-hosted instance doing the auth. The UI should say this plainly rather than presenting an "API key" box that does nothing on a LAN Ollama, and it should warn when the configured base URL is a plain-HTTP non-loopback address with no token — because that is an open inference endpoint on the network.
+**About that API key.** A self-hosted Ollama is **unauthenticated by design** — anyone who can reach port 11434 can use the models, and the native API defines no auth header at all. The OpenAI-compatible endpoint accepts `Authorization: Bearer …` because the OpenAI SDKs require the field to be present, but **the value is ignored**; Ollama's own documentation uses the literal string `ollama`, which is why that is NodeRag's default.
 
-**A test button that actually tests something**: `GET /api/tags` to confirm reachability and list models, then one round trip with a bundled sample table image, showing the returned Markdown and the elapsed time. That single click answers "is it configured, is the model right, and how slow will ingest be."
+The field is real in exactly two cases: **Ollama Cloud** — a genuine key from `ollama.com/settings/keys`, which must be stored with the same care as any other credential and redacted from logs, config exports and the audit trail — and a **reverse proxy** in front of a self-hosted instance doing the authentication. The UI should say that in one line under the field rather than presenting a box that silently does nothing on a LAN Ollama — and it should warn when the base URL is a plain-HTTP, non-loopback address, because that describes an open inference endpoint sitting on the network.
 
-### 12.3 Throughput and failure
+**A test button that actually tests something**: `GET /api/tags` (or `/v1/models`) to confirm reachability and list models, then one round trip with a bundled sample table image, showing the returned Markdown and the elapsed time. That single click answers "is it configured, is the model right, and how slow will ingest be." On `ECONNREFUSED` it must say _“Ollama is probably bound to localhost — start it with `OLLAMA_HOST=0.0.0.0:11434`”_ rather than “network error”, because that is the actual cause the overwhelming majority of the time.
 
-Vision calls are the slowest stage in the pipeline and the only one with a network dependency, so they are queued separately from embedding — the two run concurrently because they run on different machines, which is most of the reason for splitting the work this way at all. Parallelism is the configured semaphore, shared across all silos and fair-shared the same way (§9).
+### 12.4 Throughput and failure
+
+Vision calls are the slowest stage in the pipeline and the only one with a network dependency, so they are queued separately from embedding — the two run concurrently because they run on different machines, which is most of the reason for splitting the work this way at all. Each provider call carries up to the configured number of images (five by default), while parallelism separately limits the number of simultaneous calls. The semaphore is shared across all silos and fair-shared the same way (§9).
 
 Everything is cached by image content hash, globally and silo-agnostically, exactly like the embedding cache. The cache is what makes a re-index nearly free and what keeps repeated letterheads from dominating the bill.
 
@@ -1711,13 +1768,14 @@ When Ollama is unreachable the pipeline does not stall: images are marked `pendi
 
 ## 13. Search
 
-Two modes, plus one I'd argue for.
+Four retrieval modes share the same authorization scope and filters.
 
-| Mode | What it does | Default |
-|---|---|---|
-| `vector` | Embed the query, ANN search over permitted partitions | **Yes** |
-| `keyword` | Postgres full-text over the same scope | |
-| `hybrid` | Both, fused with Reciprocal Rank Fusion | Available — see below |
+| Mode       | What it does                                                             | Operator label |
+| ---------- | ------------------------------------------------------------------------ | -------------- |
+| `vector`   | Embed the query, ANN search over permitted passage partitions            | Meaning        |
+| `semantic` | ANN shortlist, then independently embed and rank sentence-sized evidence | Semantic       |
+| `keyword`  | Postgres full-text over the same scope                                   | Keyword        |
+| `hybrid`   | Passage vector and keyword results fused with Reciprocal Rank Fusion     | Both           |
 
 **The case for hybrid, made once and then dropped.** Vector search is the right default and handles the "what does this mean" queries that motivate a RAG database at all. But on real document corpora it reliably loses to keyword on exact tokens — part numbers, invoice IDs, surnames, error codes, quoted phrases — because those carry almost no semantic signal. RRF fusion costs one extra query against an index that already exists (the GIN index is built regardless) and is close to free at this scale. My recommendation is to ship all three, keep `vector` as the default as specified, and make `hybrid` a one-click toggle in the UI and a parameter in the API. If it earns its place in use, promote it later.
 
@@ -1726,26 +1784,31 @@ Two modes, plus one I'd argue for.
 ```
 0. Resolve the SiloScope: gateway ceiling ∩ principal grants ∩ requested silos.
    Empty scope → empty result, before any work is done.
-1. mode = vector | keyword | hybrid   (default: vector)
+1. mode = vector | semantic | keyword | hybrid   (default: vector)
 2. vector:  embed the query with the "Instruct: …\nQuery: …" prefix (§9.1),
             then over the permitted partitions only:
               WHERE silo_id = ANY($scope) ORDER BY embedding <=> $1 LIMIT k
             Partition pruning gives one proper top-k scan per silo, then a merge;
             scores are comparable because it's one model and one metric (§6.5).
             hnsw.ef_search = 100; hnsw.iterative_scan = relaxed_order as a net.
-3. keyword: ts_rank_cd over the per-partition GIN tsvector, same scope,
-            websearch_to_tsquery so users can type "quoted phrases" and -negation
-4. hybrid:  both of the above, fused with RRF (k = 60)
-5. Filters: silo, source, path prefix, format, page range, date range,
-            has_images — SQL predicates inside the already-pruned partitions
-6. Collapse overlap: adjacent chunks share 300 chars (§11.8), so hits from the
+3. semantic: shortlist the strongest permitted vector passages, split each into
+             bounded sentence candidates, embed those candidates with the frozen
+             document prefix, discard weak sentences, and rerank by the strongest
+             remaining sentence. Confidence and green PDF evidence are both taken
+             from that same sentence score.
+4. keyword: ts_rank_cd over the per-partition GIN tsvector, same scope,
+             websearch_to_tsquery so users can type "quoted phrases" and -negation
+5. hybrid:  vector and keyword retrieval fused with RRF (k = 60)
+6. Filters: silo, source, path prefix, format, page range, date range,
+             has_images — SQL predicates inside the already-pruned partitions
+7. Collapse overlap: adjacent chunks share 300 chars (§11.8), so hits from the
    same page with overlapping or abutting char ranges are merged — best score
    kept, displayed span widened to the union, counted once toward the limit.
    Without this the top 10 is the same passage three times.
-7. Assemble: chunk text + page_start/page_end + page_label + page_basis
+8. Assemble: chunk text + page_start/page_end + page_label + page_basis
              + char_start/char_end + heading path + document title, path,
              format and a hash-verified link to the original (§13.2)
-8. Audit: one row — principal, gateway, scope, mode, hit count, latency
+9. Audit: one row — principal, gateway, scope, mode, hit count, latency
 ```
 
 Reranking with a cross-encoder would improve precision noticeably and is unaffordable on this CPU next to the embedder. The `rerank` hook stays in the API contract, disabled, for the day an external endpoint exists.
@@ -1775,9 +1838,12 @@ Every hit is a chunk, and every chunk knows where it came from:
   "heading_path": ["Schedule 3", "Indemnity"],
   "part_of": null,
   "document": {
-    "id": 4471, "title": "MSA — Acme 2025.pdf", "format": "pdf",
+    "id": 4471,
+    "title": "MSA — Acme 2025.pdf",
+    "format": "pdf",
     "path": "Legal/Contracts/MSA — Acme 2025.pdf",
-    "pages": 46, "chars": 1248317,
+    "pages": 46,
+    "chars": 1248317,
     "original_available": true
   }
 }
@@ -1799,7 +1865,7 @@ Both offset pairs address the **canonical Markdown** and are always present (§1
 
 ## 14. REST API
 
-**Full parity is a design rule, not an aspiration:** the web front end is *a client of this API and nothing more*. It gets no private endpoints, no privileged session shortcuts, no server-rendered data the API can't return. The cheapest way to guarantee that is to build the UI against the public API from the first commit, which also means the API gets exercised constantly instead of rotting behind a UI that bypasses it.
+**Full parity is a design rule, not an aspiration:** the web front end is _a client of this API and nothing more_. It gets no private endpoints, no privileged session shortcuts, no server-rendered data the API can't return. The cheapest way to guarantee that is to build the UI against the public API from the first commit, which also means the API gets exercised constantly instead of rotting behind a UI that bypasses it.
 
 ### 14.1 Auth
 
@@ -1853,7 +1919,7 @@ DELETE /v1/admin/silos/:id         purges the silo, then drops its partitions
 GET    /v1/admin/health            embedder, Ollama, DB, disk, queue depth
 ```
 
-† Endpoints marked *not search_only* are refused for API keys with `search_only` set, which is the default (§6.3). A leaked key returns passages, not the corpus.
+† Endpoints marked _not search_only_ are refused for API keys with `search_only` set, which is the default (§6.3). A leaked key returns passages, not the corpus.
 
 `GET /v1/openapi.json` is generated from the same route schemas the server validates against, so it cannot drift from the implementation.
 
@@ -1871,10 +1937,10 @@ A single-page app served as static files by Fastify. No SSR, no framework that n
 
 The whole product is judged here, so it gets the detail:
 
-- **One query box.** Mode is a segmented control next to it — *Meaning* / *Keyword* / *Both* — defaulting to Meaning. Plain words, not "vector" and "BM25"; the people searching their own documents should not need to know what an embedding is.
+- **One query box.** Mode is a segmented control next to it — _Meaning_ / _Semantic_ / _Keyword_ / _Both_ — defaulting to Both. Meaning remains fast passage-level vector retrieval. Semantic is deliberately narrower and slower: it confirms the shortlist against sentence-sized phrases and uses the strongest accepted sentence for ranking, confidence, and green PDF evidence. Matching words and simple singular/plural variants strengthen confidence only in Both. Plain words, not "vector" and "BM25"; the people searching their own documents should not need to know what an embedding is.
 - **Silo scope as chips** above the box, showing only silos the principal can search, all selected by default. This is the single most important affordance in the app: it makes the security boundary visible instead of hidden in a settings page.
 - **Results are passages, not files.** Each hit shows the matching Markdown with query terms highlighted, the document title, and the locator as a first-class element rather than a footnote. The locator is format-aware — `p. 12`, `pp. 37–38` when a chunk crosses a page break, `Sheet: Q3 Detail` for a workbook, and for a `.txt` or `.md` file the character range (`chars 117 000–119 000`) plus a percentage-through-the-document bar, which is the honest locator when there are no pages. A subtle marker appears when `page_basis` isn't exact, hover-explained. Consecutive hits from the same document group under one header instead of flooding the list.
-- **Three actions per hit:** *Preview* opens a side panel at the chunk's character range with the hit highlighted and prev/next paging — a chunk spanning pages 37–38 shows the passage whole, across the break, rather than truncating at a page edge; *Open original* opens the source file deep-linked as far as the format allows (`#page=12` for PDFs, the sheet for a workbook, the character offset for text and Markdown); *Copy citation* yields title, locator and a link.
+- **Three actions per hit:** _Preview_ opens a side panel at the chunk's character range with the hit highlighted and prev/next paging — a chunk spanning pages 37–38 shows the passage whole, across the break, rather than truncating at a page edge; _Open original_ opens the source file deep-linked as far as the format allows (`#page=12` for PDFs, the sheet for a workbook, the character offset for text and Markdown); _Copy citation_ yields title, locator and a link.
 - **Filters that reflect this system:** silo, format, path prefix, date, page range, has-images, and "only pages containing tables" — which is worth surfacing precisely because the vision pipeline is what makes it possible.
 - **Empty states that explain themselves.** No results in `vector` mode offers keyword; no results in any mode with a narrow scope offers to widen it; zero grants explains who to ask.
 
@@ -1882,7 +1948,7 @@ The whole product is judged here, so it gets the detail:
 
 - **Documents** — browse a silo, see per-document ingest state, page count, page basis, image count, and `pending_vision` warnings. Per-document reindex.
 - **Ingest** — sources per silo with crawl schedule and ingest window, live queue with an honest ETA from measured throughput (§9.5), and a **failures list with reasons and one-click retry**. Failed ingests are where trust is won; burying them in a log file is how a system stops being used.
-- **Admin** — silos, users, API keys (grants edited as a permission matrix), audit log with filters, storage and working-set gauge (§6.8), embedder stats, Ollama config with the test button (§12.2).
+- **Admin** — silos, users, API keys (grants edited as a permission matrix), audit log with filters, storage and working-set gauge (§6.8), embedder stats, Ollama config with the test button (§12.3).
 - **Setup wizard** — the §4 first-run flow, same SPA, same API.
 
 Accessibility and dark mode from the start; this is a tool people will stare at. Keyboard-first: `/` focuses search, `↑`/`↓` move through hits, `Enter` previews.
@@ -1893,13 +1959,13 @@ Two internationalisation details belong in this layer and only this layer (§10.
 
 ## 16. Evaluation: how you know retrieval actually works
 
-The largest omission in this plan so far. Every tuning knob defined above — chunk size, overlap, `hnsw.ef_search`, vector versus keyword versus hybrid, whether the heading prefix helps, whether q4 is as good as q8, whether a different embedding model is worth a week of re-embedding — is **unanswerable without a way to measure retrieval quality**. Without one, tuning degrades into changing a number, running one query that looks better, and shipping. That is how RAG systems end up quietly worse after six months of well-intentioned adjustment.
+The largest omission in this plan so far. Every tuning knob defined above — chunk size, overlap, `hnsw.ef_search`, vector versus sentence-refined semantic versus keyword versus hybrid, whether the heading prefix helps, whether q4 is as good as q8, whether a different embedding model is worth a week of re-embedding — is **unanswerable without a way to measure retrieval quality**. Without one, tuning degrades into changing a number, running one query that looks better, and shipping. That is how RAG systems end up quietly worse after six months of well-intentioned adjustment.
 
 This is cheap to build and it should exist before Phase 5, not after.
 
 ### 16.1 A golden set, made from the real corpus
 
-Fifty to a hundred question→expected-passage pairs drawn from the user's own documents. Not synthetic, not from a public benchmark — the whole point is that it reflects *this* corpus, *these* file formats and *these* users' phrasing.
+Fifty to a hundred question→expected-passage pairs drawn from the user's own documents. Not synthetic, not from a public benchmark — the whole point is that it reflects _this_ corpus, _these_ file formats and _these_ users' phrasing.
 
 ```
 { "id": "q014",
@@ -1915,13 +1981,13 @@ Build it in the UI: a "mark this result correct / this one wrong" control on the
 
 ### 16.2 Metrics that matter here
 
-| Metric | Why this one |
-|---|---|
-| **Recall@10** | The retrieval question that actually matters for RAG: did the right passage make it into the context at all? |
-| **MRR** | How far down the user has to look |
-| **nDCG@10** | Ranking quality when several passages are relevant |
-| **Zero-result rate** | The failure users report as "it doesn't work" |
-| **p50 / p95 latency** | Split by mode; vector, keyword and hybrid have very different profiles |
+| Metric                | Why this one                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Recall@10**         | The retrieval question that actually matters for RAG: did the right passage make it into the context at all? |
+| **MRR**               | How far down the user has to look                                                                            |
+| **nDCG@10**           | Ranking quality when several passages are relevant                                                           |
+| **Zero-result rate**  | The failure users report as "it doesn't work"                                                                |
+| **p50 / p95 latency** | Split by mode; vector, semantic, keyword and hybrid have very different profiles                             |
 
 Report per silo and per format. A number that looks fine overall often hides "PDF is good, Excel is terrible" — which is exactly the finding that would send you back to §10.8's wide-sheet rules.
 
@@ -1944,53 +2010,57 @@ Where it fits: build the harness in **Phase 5** alongside search, use it to set 
 
 ## 17. Risks
 
-| # | Risk | Severity | Mitigation |
-|---|---|---|---|
-| 1 | `onnxruntime-node` won't load on DSM's libstdc++ | **High** | Final DSM certification; fall back to a licensed compatible libstdc++ where supportable, then to a source build and a new candidate |
-| 2 | Embedding is slower than users tolerate | **High** | Calibration benchmark in the wizard; q4 default; scheduling window; never re-embed unchanged content |
-| 3 | PG major upgrades across NodeRag versions | **High** | §8.4 dump/restore path built in v1, not retrofitted |
-| 4 | 8 GB RAM contention between PG and ONNX | Medium | Global mutex; conservative `shared_buffers`; refuse to start HNSW build during ingest |
-| 5 | Synology deprecates `Node.js_v22` (they EOL'd v12 already) | Medium | Keep the option to bundle our own Node build in spksrc; the app must not use anything Synology-specific |
-| 6 | DSM 7.3+ changes package APIs | Medium | Pin `os_min_ver`, test on each DSM RC, keep privilege/resource files minimal |
-| 7 | Cross-compiling PG for every x86_64 platform | Medium | Lean on spksrc's existing `cross/postgresql`; build for `x86_64` generic first, add platforms on demand |
-| 8 | User puts PGDATA on an ACL-enabled shared folder; PG refuses to start on the 0700 check | **High** | §5.4 permission probe before accepting any path; fall back to tablespace-only relocation |
-| 9 | PGDATA on an encrypted share that mounts after the package starts | Medium | Detect and refuse encrypted shares; mount-wait in `prestart` if ever supported |
-| 10 | Cloud Sync / Drive / Universal Search / Snapshot Replication operating on a live PGDATA | Medium | Prefer `@appdata` (invisible to them); warn at path-selection time |
-| 11 | User points the data root at a network share | Low | Wizard validates filesystem type and refuses |
-| 12 | **Cross-silo leak** — a query path that forgets its scope | **High** | §6.4: `SiloScope` as a required argument (won't compile without it), RLS backstop, partition boundaries, and a test that runs every endpoint as a zero-grant principal |
-| 13 | Filtered HNSW returns near-empty results for a small silo | **High** | §6.5: LIST partitioning with a per-silo index — this is the whole reason for it; `iterative_scan = relaxed_order` as a safety net |
-| 14 | RLS predicate defeats partition pruning or the HNSW scan | Medium | Benchmark with RLS on/off in Phase 4; fall back to RLS on metadata tables only |
-| 15 | Ingest in one silo blocks search in another (shared, non-preemptible embedder) | **High** | §9: priority queue with batch size 1; separate query session if RAM allows; per-silo ingest windows |
-| 16 | Too many/too large silos thrash the page cache; planning time grows with partitions | Medium | Working-set gauge in the admin UI; cap silos ~64; budget total chunks, not silos |
-| 17 | Users expect per-silo *filesystem* isolation and don't get it | Medium | All silos run as one package user; state it plainly in the UI. Separate SPKs are the only real answer |
-| 18 | Leaked API key | Medium | §6.8: `search`-only default grant, optional expiry and CIDR allow-list, per-key rate limit, `last_used`, instant revocation, audit trail |
-| 19 | Runtime-created gateway ports vs the static `.sc` firewall file | Low | Declare a port range at install, cap gateways, probe before binding |
-| 20 | **DOCX page numbers are unavailable or wrong** — OOXML has no page concept | **High** | §10.1: detect and record `page_basis`; never present a guess as exact; optional LibreOffice conversion on the companion host |
-| 21 | Ollama host unreachable mid-ingest | Medium | §12.3: `pending_vision` state, document ingests anyway, background retry, visible count in the UI |
-| 22 | Vision calls dominate ingest time or cost | Medium | §10.6 size/entropy filters, global image-hash cache, downscaling, per-silo enable, configured parallelism |
-| 23 | VLM hallucinates table contents that then look authoritative in search | **High** | `temperature: 0`, JSON-schema-constrained output, transcribe-don't-interpret prompt, confidence threshold, provenance comment in the markdown so any cell can be traced back to its image |
-| 24 | Table reconstruction from a PDF text layer produces plausible nonsense | Medium | §10.3: low-confidence table regions are routed to the VLM as images instead |
-| 25 | Original file moved, renamed or deleted after indexing | Low | §10.7: hash-verified reference, or content-addressed copy; degrade to "searchable but not openable" with a clear message |
-| 26 | Unauthenticated Ollama endpoint exposed on the LAN | Medium | §12.2: warn on plain-HTTP non-loopback with no token; state plainly that self-hosted Ollama has no auth |
-| 27 | **Chunk over `max_seq_len` is silently truncated** — the tail never reaches the vector while the text still displays | **High** | §11.3: measure `token_count` on every finished chunk and split above `max_tokens`; a character rule cannot bound tokens |
-| 28 | Changing chunk parameters or the model invalidates every vector in the corpus | Medium | §7.5: builds run into staging partitions and swap in, so search never goes down; projected hours shown before confirming; resumable and pausable |
-| 28b | **A model swap flipped per silo rather than atomically** — two models' scores compared in one search | **High** | §7.5: same-model rebuilds may flip per silo; a model change flips every silo in one transaction |
-| 29 | Overlapping chunks return the same passage repeatedly | Medium | §13.1 step 6: collapse hits with overlapping char ranges on the same page |
-| 30 | CJK or code-heavy silos drift far from the intended tokens-per-chunk | Low | §11.2: lower `target_chars` per silo rather than raising `max_tokens` |
-| 31 | Character offsets disagree between components — JS counts UTF-16 units, Postgres counts code points | Low *(was High)* | §11.7, structurally: the chunker is the **only** producer and Postgres never interprets offsets (CI-checkable); the unit is UTF-16 so no conversion exists anywhere; the single hard-cut edge case is surrogate-guarded; and a verifier re-slices sampled chunks nightly by **both** units, turning a silent bug into an alarm |
-| 32 | Excel dates and currency indexed as raw serial numbers (`45292`, not `2024-01-01`) | **High** | §10.8: apply the cell number format and emit the formatted string — it is what the user sees and therefore what they search for |
-| 33 | Workbook saved without cached formula values | Medium | §10.8: index cached values; flag the document rather than emitting zeros |
-| 34 | A 200 MB workbook loaded fully into the Node heap gets the package OOM-killed | Medium | §10.8: `exceljs` streaming reader; never a full in-memory parse |
-| 35 | A split table fragment retrieved without its header is meaningless noise | Medium | §11.4: repeat the header row in every part, carry the row range and `part_of` |
-| 36 | Widening `overlap_chars` toward 50 % silently doubles embedding time | Medium | §11.9: DB `CHECK` caps overlap at half of target; UI shows projected redundancy and re-embed hours before saving |
-| 37 | **Mis-detected `.txt` encoding indexes mojibake** — unsearchable and it pollutes the vector space | **High** | §10.4: BOM → strict UTF-8 → detector, with `encoding_confidence` surfaced in the UI for a human to eyeball |
-| 38 | **NFC/NFD mismatch silently loses matches** on accented, Vietnamese or Korean text | **High** | §10.4: normalise documents *and* queries to NFC, before offsets are computed; record `normalization` per document |
-| 39 | BOM stripped after offsets are computed — every offset off by one | Medium | §10.4: fixed pipeline order, decode before paginate; the §11.7 verifier catches it if it ever regresses |
-| 40 | Snippet truncation splits a grapheme cluster and renders broken glyphs | Low | §15.1: `Intl.Segmenter` for display truncation only, never in the locator path |
-| 41 | **PDF font with no `/ToUnicode` CMap** — extracted text is gibberish that still looks like text | **High** | §10.5: per-page extraction-confidence gate on replacement and private-use characters; failing pages route to the VLM |
-| 42 | **PDF reading order wrong** on multi-column layouts — sentences interleave across columns | **High** | §10.5: reconstruct order from glyph coordinates with column detection; the largest single quality lever in PDF extraction |
-| 43 | Ligatures and line-break hyphenation break keyword search (`ﬁle`, `develop-ment`) | Medium | §10.5: fold the five Latin ligatures and de-hyphenate conservatively, before offsets are computed |
-| 44 | A 400-page scan silently becomes 400 vision calls | Medium | §10.5: count failing pages per document and show the projected vision cost before ingest starts |
+| #   | Risk                                                                                                                 | Severity         | Mitigation                                                                                                                                                                                                                                                                                                                     |
+| --- | -------------------------------------------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | `onnxruntime-node` won't load on DSM's libstdc++                                                                     | **High**         | Final DSM certification; fall back to a licensed compatible libstdc++ where supportable, then to a source build and a new candidate                                                                                                                                                                                            |
+| 2   | Embedding is slower than users tolerate                                                                              | **High**         | Calibration benchmark in the wizard; q4 default; scheduling window; never re-embed unchanged content                                                                                                                                                                                                                           |
+| 3   | PG major upgrades across NodeRag versions                                                                            | **High**         | §8.4 dump/restore path built in v1, not retrofitted                                                                                                                                                                                                                                                                            |
+| 4   | 8 GB RAM contention between PG and ONNX                                                                              | Medium           | Global mutex; conservative `shared_buffers`; refuse to start HNSW build during ingest                                                                                                                                                                                                                                          |
+| 5   | Synology deprecates `Node.js_v22` (they EOL'd v12 already)                                                           | Medium           | Keep the option to bundle our own Node build in spksrc; the app must not use anything Synology-specific                                                                                                                                                                                                                        |
+| 6   | DSM 7.3+ changes package APIs                                                                                        | Medium           | Pin `os_min_ver`, test on each DSM RC, keep privilege/resource files minimal                                                                                                                                                                                                                                                   |
+| 7   | Cross-compiling PG for every x86_64 platform                                                                         | Medium           | Lean on spksrc's existing `cross/postgresql`; build for `x86_64` generic first, add platforms on demand                                                                                                                                                                                                                        |
+| 8   | User puts PGDATA on an ACL-enabled shared folder; PG refuses to start on the 0700 check                              | **High**         | §5.4 permission probe before accepting any path; fall back to tablespace-only relocation                                                                                                                                                                                                                                       |
+| 9   | PGDATA on an encrypted share that mounts after the package starts                                                    | Medium           | Detect and refuse encrypted shares; mount-wait in `prestart` if ever supported                                                                                                                                                                                                                                                 |
+| 10  | Cloud Sync / Drive / Universal Search / Snapshot Replication operating on a live PGDATA                              | Medium           | Prefer `@appdata` (invisible to them); warn at path-selection time                                                                                                                                                                                                                                                             |
+| 11  | User points the data root at a network share                                                                         | Low              | Wizard validates filesystem type and refuses                                                                                                                                                                                                                                                                                   |
+| 12  | **Cross-silo leak** — a query path that forgets its scope                                                            | **High**         | §6.4: `SiloScope` as a required argument (won't compile without it), RLS backstop, partition boundaries, and a test that runs every endpoint as a zero-grant principal                                                                                                                                                         |
+| 13  | Filtered HNSW returns near-empty results for a small silo                                                            | **High**         | §6.5: LIST partitioning with a per-silo index — this is the whole reason for it; `iterative_scan = relaxed_order` as a safety net                                                                                                                                                                                              |
+| 14  | RLS predicate defeats partition pruning or the HNSW scan                                                             | Medium           | Benchmark with RLS on/off in Phase 4; fall back to RLS on metadata tables only                                                                                                                                                                                                                                                 |
+| 15  | Ingest in one silo blocks search in another (shared, non-preemptible embedder)                                       | **High**         | §9: priority queue with batch size 1; separate query session if RAM allows; per-silo ingest windows                                                                                                                                                                                                                            |
+| 16  | Too many/too large silos thrash the page cache; planning time grows with partitions                                  | Medium           | Working-set gauge in the admin UI; cap silos ~64; budget total chunks, not silos                                                                                                                                                                                                                                               |
+| 17  | Users expect per-silo _filesystem_ isolation and don't get it                                                        | Medium           | All silos run as one package user; state it plainly in the UI. Separate SPKs are the only real answer                                                                                                                                                                                                                          |
+| 18  | Leaked API key                                                                                                       | Medium           | §6.8: `search`-only default grant, optional expiry and CIDR allow-list, per-key rate limit, `last_used`, instant revocation, audit trail                                                                                                                                                                                       |
+| 19  | Runtime-created gateway ports vs the static `.sc` firewall file                                                      | Low              | Declare a port range at install, cap gateways, probe before binding                                                                                                                                                                                                                                                            |
+| 20  | **DOCX page numbers are unavailable or wrong** — OOXML has no page concept                                           | **High**         | §10.1: detect and record `page_basis`; never present a guess as exact; optional LibreOffice conversion on the companion host                                                                                                                                                                                                   |
+| 21  | Ollama host unreachable mid-ingest                                                                                   | Medium           | §12.4: `pending_vision` state, document ingests anyway, background retry, visible count in the UI                                                                                                                                                                                                                              |
+| 22  | Vision calls dominate ingest time or cost                                                                            | Medium           | §10.6 size/entropy filters, global image-hash cache, downscaling, per-silo enable, configured parallelism                                                                                                                                                                                                                      |
+| 23  | VLM hallucinates table contents that then look authoritative in search                                               | **High**         | `temperature: 0`, JSON-schema-constrained output, transcribe-don't-interpret prompt, confidence threshold, provenance comment in the markdown so any cell can be traced back to its image                                                                                                                                      |
+| 24  | Table reconstruction from a PDF text layer produces plausible nonsense                                               | Medium           | §10.3: low-confidence table regions are routed to the VLM as images instead                                                                                                                                                                                                                                                    |
+| 25  | Original file moved, renamed or deleted after indexing                                                               | Low              | §10.7: hash-verified reference, or content-addressed copy; degrade to "searchable but not openable" with a clear message                                                                                                                                                                                                       |
+| 26  | Unauthenticated Ollama endpoint exposed on the LAN                                                                   | Medium           | §12.3: warn on plain-HTTP non-loopback with no token; state plainly that self-hosted Ollama has no auth                                                                                                                                                                                                                        |
+| 27  | **Chunk over `max_seq_len` is silently truncated** — the tail never reaches the vector while the text still displays | **High**         | §11.3: measure `token_count` on every finished chunk and split above `max_tokens`; a character rule cannot bound tokens                                                                                                                                                                                                        |
+| 28  | Changing chunk parameters or the model invalidates every vector in the corpus                                        | Medium           | §7.5: builds run into staging partitions and swap in, so search never goes down; projected hours shown before confirming; resumable and pausable                                                                                                                                                                               |
+| 28b | **A model swap flipped per silo rather than atomically** — two models' scores compared in one search                 | **High**         | §7.5: same-model rebuilds may flip per silo; a model change flips every silo in one transaction                                                                                                                                                                                                                                |
+| 29  | Overlapping chunks return the same passage repeatedly                                                                | Medium           | §13.1 step 6: collapse hits with overlapping char ranges on the same page                                                                                                                                                                                                                                                      |
+| 30  | CJK or code-heavy silos drift far from the intended tokens-per-chunk                                                 | Low              | §11.2: lower `target_chars` per silo rather than raising `max_tokens`                                                                                                                                                                                                                                                          |
+| 31  | Character offsets disagree between components — JS counts UTF-16 units, Postgres counts code points                  | Low _(was High)_ | §11.7, structurally: the chunker is the **only** producer and Postgres never interprets offsets (CI-checkable); the unit is UTF-16 so no conversion exists anywhere; the single hard-cut edge case is surrogate-guarded; and a verifier re-slices sampled chunks nightly by **both** units, turning a silent bug into an alarm |
+| 32  | Excel dates and currency indexed as raw serial numbers (`45292`, not `2024-01-01`)                                   | **High**         | §10.8: apply the cell number format and emit the formatted string — it is what the user sees and therefore what they search for                                                                                                                                                                                                |
+| 33  | Workbook saved without cached formula values                                                                         | Medium           | §10.8: index cached values; flag the document rather than emitting zeros                                                                                                                                                                                                                                                       |
+| 34  | A 200 MB workbook loaded fully into the Node heap gets the package OOM-killed                                        | Medium           | §10.8: `exceljs` streaming reader; never a full in-memory parse                                                                                                                                                                                                                                                                |
+| 35  | A split table fragment retrieved without its header is meaningless noise                                             | Medium           | §11.4: repeat the header row in every part, carry the row range and `part_of`                                                                                                                                                                                                                                                  |
+| 36  | Widening `overlap_chars` toward 50 % silently doubles embedding time                                                 | Medium           | §11.9: DB `CHECK` caps overlap at half of target; UI shows projected redundancy and re-embed hours before saving                                                                                                                                                                                                               |
+| 37  | **Mis-detected `.txt` encoding indexes mojibake** — unsearchable and it pollutes the vector space                    | **High**         | §10.4: BOM → strict UTF-8 → detector, with `encoding_confidence` surfaced in the UI for a human to eyeball                                                                                                                                                                                                                     |
+| 38  | **NFC/NFD mismatch silently loses matches** on accented, Vietnamese or Korean text                                   | **High**         | §10.4: normalise documents _and_ queries to NFC, before offsets are computed; record `normalization` per document                                                                                                                                                                                                              |
+| 39  | BOM stripped after offsets are computed — every offset off by one                                                    | Medium           | §10.4: fixed pipeline order, decode before paginate; the §11.7 verifier catches it if it ever regresses                                                                                                                                                                                                                        |
+| 40  | Snippet truncation splits a grapheme cluster and renders broken glyphs                                               | Low              | §15.1: `Intl.Segmenter` for display truncation only, never in the locator path                                                                                                                                                                                                                                                 |
+| 41  | **PDF font with no `/ToUnicode` CMap** — extracted text is gibberish that still looks like text                      | **High**         | §10.5: per-page extraction-confidence gate on replacement and private-use characters; failing pages route to the VLM                                                                                                                                                                                                           |
+| 42  | **PDF reading order wrong** on multi-column layouts — sentences interleave across columns                            | **High**         | §10.5: reconstruct order from glyph coordinates with column detection; the largest single quality lever in PDF extraction                                                                                                                                                                                                      |
+| 43  | Ligatures and line-break hyphenation break keyword search (`ﬁle`, `develop-ment`)                                    | Medium           | §10.5: fold the five Latin ligatures and de-hyphenate conservatively, before offsets are computed                                                                                                                                                                                                                              |
+| 44  | A 400-page scan silently becomes 400 vision calls                                                                    | Medium           | §10.5: count failing pages per document and show the projected vision cost before ingest starts                                                                                                                                                                                                                                |
+| 45  | **Ollama bound to `127.0.0.1` — the NAS cannot reach it at all**                                                     | Medium           | §12.1: it is the _default_. The connection test names `OLLAMA_HOST=0.0.0.0:11434` explicitly on a refused connection                                                                                                                                                                                                           |
+| 46  | Using the OpenAI-compatible endpoint silently loses JSON-Schema output and `keep_alive`                              | Medium           | §12.1: native API is the default; the OpenAI path is opt-in and the UI states what it costs                                                                                                                                                                                                                                    |
+| 47  | **Ollama Cloud sends document page images to a third party** — the one thing in this design that leaves the network  | **High**         | §12.1: the config screen must say so plainly when the base URL is not a private address, and vision can be disabled per corpus (§7.8). A NAS-resident RAG database whose pages quietly go to a hosted model is not what the user thought they installed                                                                        |
+| 48  | Cloud vision is metered, so a scanned corpus has a bill attached                                                     | Medium           | §10.4 filters, the image-hash cache and `max_image_px` become cost controls, not just latency controls; show projected call count before ingest                                                                                                                                                                                |
 
 ### 17.1 What aarch64 would cost later
 
@@ -2000,18 +2070,18 @@ Not much, if the decisions above hold: spksrc already builds PG for aarch64, and
 
 ## 18. Roadmap
 
-| Phase | Goal | Exit criteria |
-|---|---|---|
-| **0. Docker testbed** | Establish the primary development environment | Clean checkout starts healthy PG 17 + pgvector, passes a halfvec probe, protects secrets/fixtures, and records immutable tool/image versions |
-| **1. Package skeleton** | A statically and behaviorally validated thin `.spk` | Archive, metadata, non-root package-user simulation, hello/health, lifecycle scripts and clean simulated uninstall pass in WSL/Docker |
-| **2. Database + silos + identity** | Postgres in the box, access control from day one | `initdb` on first run, migrations, schema from §7 including partitioned silos; create/delete a silo from the UI (with its partitions); users, API keys, grants, sessions, audit log; the zero-grant-principal test suite passes |
-| **3. Ingest + embedding** | Content goes in | TXT/MD/PDF/DOCX/XLSX → page-scoped markdown with `page_basis` detection and sheet-per-page workbooks (§10.8); character chunker with boundary snapping, atomic units, header-repeating table splits, heading prefix and token guard (§11); dual locators (page range + code-point char range); versioned, bounded chunk profiles; model download + verify; standalone embedder with priority + fair-share queue across silos; embedding cache (§6.6); resumable ingest; calibration benchmark |
-| **3b. Locator verifier** | Offsets can't drift silently | §11.7: in-transaction assertion on every chunk, astral-plane CI fixture corpus, nightly sampling verifier surfacing mismatches on the admin dashboard |
-| **4. Vision** | Images become text, and so do bad PDF pages | Ollama client with schema-constrained output, config + test button, image filters and global hash cache, `pending_vision` retry sweep, markdown splicing with provenance, and the §10.5 page-level extraction gate routing failed and scanned pages through the same path |
-| **5. Search + API** | Content comes out | `/v1/search` in all three modes across permitted partitions, RLS benchmark and decision, full REST surface with parity, OpenAPI generated from route schemas, gateways, MCP endpoint |
-| **6. Front end** | People can use it | Search screen (§15.1), document browser and page preview, ingest console with failures and retry, admin screens, setup wizard |
-| **7. Polish** | Shippable | Hyper Backup integration, log rotation, upgrade path tested 1.0→1.1, accessibility pass, docs |
-| **Final DSM certification** | Certify the immutable release candidate | The exact candidate passes runtime, package-user PG/pgvector, install/setup/ingest/search/reboot/upgrade/restore/uninstall, performance and 24-hour soak checks before v1.0.0 |
+| Phase                              | Goal                                                | Exit criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ---------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0. Docker testbed**              | Establish the primary development environment       | Clean checkout starts healthy PG 17 + pgvector, passes a halfvec probe, protects secrets/fixtures, and records immutable tool/image versions                                                                                                                                                                                                                                                                                                                                                  |
+| **1. Package skeleton**            | A statically and behaviorally validated thin `.spk` | Archive, metadata, non-root package-user simulation, hello/health, lifecycle scripts and clean simulated uninstall pass in WSL/Docker                                                                                                                                                                                                                                                                                                                                                         |
+| **2. Database + silos + identity** | Postgres in the box, access control from day one    | `initdb` on first run, migrations, schema from §7 including partitioned silos; create/delete a silo from the UI (with its partitions); users, API keys, grants, sessions, audit log; the zero-grant-principal test suite passes                                                                                                                                                                                                                                                               |
+| **3. Ingest + embedding**          | Content goes in                                     | TXT/MD/PDF/DOCX/XLSX → page-scoped markdown with `page_basis` detection and sheet-per-page workbooks (§10.8); character chunker with boundary snapping, atomic units, header-repeating table splits, heading prefix and token guard (§11); dual locators (page range + code-point char range); versioned, bounded chunk profiles; model download + verify; standalone embedder with priority + fair-share queue across silos; embedding cache (§6.6); resumable ingest; calibration benchmark |
+| **3b. Locator verifier**           | Offsets can't drift silently                        | §11.7: in-transaction assertion on every chunk, astral-plane CI fixture corpus, nightly sampling verifier surfacing mismatches on the admin dashboard                                                                                                                                                                                                                                                                                                                                         |
+| **4. Vision**                      | Images become text, and so do bad PDF pages         | Ollama client with schema-constrained output, config + test button, image filters and global hash cache, `pending_vision` retry sweep, markdown splicing with provenance, and the §10.5 page-level extraction gate routing failed and scanned pages through the same path                                                                                                                                                                                                                     |
+| **5. Search + API**                | Content comes out                                   | `/v1/search` in all three modes across permitted partitions, RLS benchmark and decision, full REST surface with parity, OpenAPI generated from route schemas, gateways, MCP endpoint                                                                                                                                                                                                                                                                                                          |
+| **6. Front end**                   | People can use it                                   | Search screen (§15.1), document browser and page preview, ingest console with failures and retry, admin screens, setup wizard                                                                                                                                                                                                                                                                                                                                                                 |
+| **7. Polish**                      | Shippable                                           | Hyper Backup integration, log rotation, upgrade path tested 1.0→1.1, accessibility pass, docs                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Final DSM certification**        | Certify the immutable release candidate             | The exact candidate passes runtime, package-user PG/pgvector, install/setup/ingest/search/reboot/upgrade/restore/uninstall, performance and 24-hour soak checks before v1.0.0                                                                                                                                                                                                                                                                                                                 |
 
 ---
 
@@ -2021,13 +2091,13 @@ Triaged, because the list above has grown and not all of it blocks anything. Thr
 
 ### 19.1 Decided
 
-| # | Decision | Resolution |
-|---|---|---|
-| D1 | What ships as v1.0 | **The full system.** No deferred phases. §18 is re-ordered so a thin vertical slice works early, rather than each layer being finished in turn |
-| D2 | Silos and multi-user in v1 | **Yes, both.** `silo_id` as partition key and `principal` through every query path from the first migration. The irreversible decision, taken deliberately |
-| D3 | Distribution and updates | **Manual `.spk` upload.** No repo, no SynoCommunity, no auto-update. spksrc layout kept upstream-compatible so a repo stays possible |
-| D5 | Delete semantics | **Both modes**, as §6.6 describes: `remove` keeps the shared caches, `purge` refcount-drops every cache row reachable only from that document. Refcounting is in the schema from migration 1 |
-| D6 | Licence | **Private / internal.** Dependency licences catalogued from commit 1; no GPL runtime dependencies, so the position stays reversible |
+| #   | Decision                   | Resolution                                                                                                                                                                                   |
+| --- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | What ships as v1.0         | **The full system.** No deferred phases. §18 is re-ordered so a thin vertical slice works early, rather than each layer being finished in turn                                               |
+| D2  | Silos and multi-user in v1 | **Yes, both.** `silo_id` as partition key and `principal` through every query path from the first migration. The irreversible decision, taken deliberately                                   |
+| D3  | Distribution and updates   | **Manual `.spk` upload.** No repo, no SynoCommunity, no auto-update. spksrc layout kept upstream-compatible so a repo stays possible                                                         |
+| D5  | Delete semantics           | **Both modes**, as §6.6 describes: `remove` keeps the shared caches, `purge` refcount-drops every cache row reachable only from that document. Refcounting is in the schema from migration 1 |
+| D6  | Licence                    | **Private / internal.** Dependency licences catalogued from commit 1; no GPL runtime dependencies, so the position stays reversible                                                          |
 
 | D7 | Scope of configuration | **System-wide.** Chunk size, overlap, model, threads, vision, search defaults live in one `settings` row (§7.8). Silos carry access control only |
 | D8 | Silo permissions | **`read` and `upload`.** `upload` includes delete. `server_admin` for the rest. API keys additionally default to search-only (§6.3) |
@@ -2036,23 +2106,23 @@ Triaged, because the list above has grown and not all of it blocks anything. Thr
 
 Still open, and cheap to answer late:
 
-| # | Decision | Notes |
-|---|---|---|
-| D4 | Keyword-search language | `ts_config` is now system-wide and baked into a generated column; changing it reindexes `tsv` only — minutes, not days. `'simple'` is the safe default for mixed corpora |
-| D11 | Should `upload` include delete? | Currently yes (§6.3). Splitting delete into a third permission is cheap now and expensive once people rely on two levels |
+| #   | Decision                        | Notes                                                                                                                                                                    |
+| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D4  | Keyword-search language         | `ts_config` is now system-wide and baked into a generated column; changing it reindexes `tsv` only — minutes, not days. `'simple'` is the safe default for mixed corpora |
+| D11 | Should `upload` include delete? | Currently yes (§6.3). Splitting delete into a third permission is cheap now and expensive once people rely on two levels                                                 |
 
 ### 19.2 Measure, don't decide — final DSM certification after the testbed milestones
 
 These are not questions for anyone to answer from a chair or infer from Docker. M0–M14 must keep them in the deferred DSM register. They are executed against the immutable M14 candidate and block v1.0.0 if they fail.
 
-| # | Spike | Kills the project if it fails |
-|---|---|---|
-| S1 | `onnxruntime-node` loads and runs one inference on the actual NAS | **Yes** — this is the highest-risk item in the document (§1.3) |
-| S2 | Cross-built PostgreSQL 17 + pgvector starts as the package user under DSM 7 | **Yes** |
-| S3 | Real seconds-per-chunk, q8 vs q4 vs fp16, at 512/1024 tokens, 1…N threads | No, but it sets every estimate in §9.5 and may change the default quantisation |
-| S4 | The §5.4 permission probe against a real ACL-enabled shared folder | No — it decides whether PGDATA can live where you want it |
-| S5 | One real page of each format end-to-end: a scanned PDF, a two-column PDF, a Word doc saved by Word, one saved by Google Docs, a messy workbook | No, but it turns §10.5 and §10.8 from reasoning into fact |
-| S6 | One Ollama round trip from the NAS with a real table image, timed | No — it sets the vision cost model |
+| #   | Spike                                                                                                                                          | Kills the project if it fails                                                  |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| S1  | `onnxruntime-node` loads and runs one inference on the actual NAS                                                                              | **Yes** — this is the highest-risk item in the document (§1.3)                 |
+| S2  | Cross-built PostgreSQL 17 + pgvector starts as the package user under DSM 7                                                                    | **Yes**                                                                        |
+| S3  | Real seconds-per-chunk, q8 vs q4 vs fp16, at 512/1024 tokens, 1…N threads                                                                      | No, but it sets every estimate in §9.5 and may change the default quantisation |
+| S4  | The §5.4 permission probe against a real ACL-enabled shared folder                                                                             | No — it decides whether PGDATA can live where you want it                      |
+| S5  | One real page of each format end-to-end: a scanned PDF, a two-column PDF, a Word doc saved by Word, one saved by Google Docs, a messy workbook | No, but it turns §10.5 and §10.8 from reasoning into fact                      |
+| S6  | One Ollama round trip from the NAS with a real table image, timed                                                                              | No — it sets the vision cost model                                             |
 
 ### 19.3 Facts about your environment that turn estimates into numbers
 
@@ -2075,7 +2145,7 @@ Recorded so they are not rediscovered as surprises: reranking (§13, unaffordabl
 
 ## Companion documents
 
-- **`IMPLEMENTATION.md`** — build order, repo layout, stack, testing strategy, CI and release. The *how* to this document's *what*.
+- **`IMPLEMENTATION.md`** — build order, repo layout, stack, testing strategy, CI and release. The _how_ to this document's _what_.
 - **`../Implementation/staged implementation.md`** — authoritative M0–M14 execution plan and final DSM certification note.
 - **`../../docker-testbed/TEST-PLAN.md`** — Docker-testbed expansion, evidence boundaries, and DSM handoff contract.
 - **`../Implementation/proofs/dsm-final-proof.json`** — generated only after M14; records the live outcomes of the six checks in §19.2. Several numbers in §9.5 and §12 remain provisional until it passes.
@@ -2094,11 +2164,12 @@ Recorded so they are not rediscovered as surprises: reranking (§13, unaffordabl
 - [spksrc DSM 7.0 packaging notes](https://github.com/SynoCommunity/spksrc/wiki/DSM-7.0)
 - [spksrc spk/postgresql Makefile](https://github.com/SynoCommunity/spksrc/blob/master/spk/postgresql/Makefile)
 - [SynoCommunity PostgreSQL package docs](https://docs.synocommunity.com/packages/postgresql/)
-- [pgvector](https://github.com/pgvector/pgvector) — see its *Filtering* section on post-filtering, `iterative_scan`, and list partitioning for multi-tenancy
+- [pgvector](https://github.com/pgvector/pgvector) — see its _Filtering_ section on post-filtering, `iterative_scan`, and list partitioning for multi-tenancy
 - [Crunchy Data — HNSW indexes with Postgres and pgvector](https://www.crunchydata.com/blog/hnsw-indexes-with-postgres-and-pgvector)
 - [ExcelJS — streaming workbook reader](https://github.com/exceljs/exceljs)
 - [Ollama — API reference](https://github.com/ollama/ollama/blob/main/docs/api.md)
 - [Ollama — Vision capability](https://docs.ollama.com/capabilities/vision)
+- [Ollama — OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility)
 - [python-docx — `docx.text.pagebreak` (rendered page breaks)](https://python-docx.readthedocs.io/en/latest/_modules/docx/text/pagebreak.html)
 - [Qwen/Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B)
 - [onnx-community/Qwen3-Embedding-0.6B-ONNX](https://huggingface.co/onnx-community/Qwen3-Embedding-0.6B-ONNX)

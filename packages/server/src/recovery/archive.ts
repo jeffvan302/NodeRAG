@@ -164,7 +164,7 @@ const safeEntryPath = (path: string): string => {
   ) {
     throw new Error('unsafe-archive-entry-path');
   }
-  if (!/^(database|documents|models)\//u.test(path))
+  if (!/^(database|documents|models|\.noderag-chat)\//u.test(path))
     throw new Error('unclassified-archive-entry-path');
   return path;
 };

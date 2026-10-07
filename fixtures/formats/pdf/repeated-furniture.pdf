@@ -1,0 +1,57 @@
+%PDF-1.4
+%NodeRag synthetic layout fixture
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R /F2 8 0 R /F3 9 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 233 >>
+stream
+BT /F2 9 Tf 72 765 Td (CONFIDENTIAL REVENUE REPORT) Tj ET
+BT /F2 16 Tf 72 720 Td (First reporting section) Tj ET
+BT /F1 12 Tf 72 690 Td (The first page contains material revenue discussion.) Tj ET
+BT /F1 9 Tf 300 28 Td (Page 1) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R /F2 8 0 R /F3 9 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 235 >>
+stream
+BT /F2 9 Tf 72 765 Td (CONFIDENTIAL REVENUE REPORT) Tj ET
+BT /F2 16 Tf 72 720 Td (Second reporting section) Tj ET
+BT /F1 12 Tf 72 690 Td (The second page contains material expense discussion.) Tj ET
+BT /F1 9 Tf 300 28 Td (Page 2) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+8 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+9 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000043 00000 n 
+0000000092 00000 n 
+0000000155 00000 n 
+0000000301 00000 n 
+0000000585 00000 n 
+0000000731 00000 n 
+0000001017 00000 n 
+0000001114 00000 n 
+0000001216 00000 n 
+trailer << /Size 10 /Root 1 0 R >>
+startxref
+1321
+%%EOF

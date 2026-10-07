@@ -30,8 +30,8 @@ describe('foundation migration', () => {
         service: 'noderag',
         status: 'unavailable',
         state: 'unconfigured',
-        migrationHead: '000011_recovery_hardening',
-        expectedMigrationHead: '000011_recovery_hardening',
+        migrationHead: '000029_chat_files',
+        expectedMigrationHead: '000029_chat_files',
         reasons: ['readiness-state:unconfigured'],
       });
 
@@ -43,9 +43,29 @@ describe('foundation migration', () => {
       const marker = await client.query<{ milestone: string }>(
         "SELECT value->>'milestone' AS milestone FROM noderag.system_metadata WHERE key='foundation'",
       );
+      const visionDefaults = await client.query<{
+        ollama_model: string;
+        ollama_parallel: number;
+        ollama_images_per_call: number;
+        ollama_timeout_ms: number;
+        ollama_max_attempts: number;
+        max_image_px: number;
+      }>(
+        `SELECT ollama_model,ollama_parallel,ollama_images_per_call,ollama_timeout_ms,
+                ollama_max_attempts,max_image_px
+         FROM noderag.settings WHERE id=1`,
+      );
       await client.end();
       expect(vector.rows[0]?.extversion).toBe('0.8.6');
       expect(marker.rows[0]?.milestone).toBe('M02');
+      expect(visionDefaults.rows[0]).toEqual({
+        ollama_model: 'minimax-m3:cloud',
+        ollama_parallel: 2,
+        ollama_images_per_call: 3,
+        ollama_timeout_ms: 120_000,
+        ollama_max_attempts: 3,
+        max_image_px: 1650,
+      });
     } finally {
       await container.stop();
     }

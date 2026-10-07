@@ -18,6 +18,9 @@ import { acceptDocumentUpload, uploadRequestDigestInput } from '../ingest/upload
 import type { RequestAuthenticator } from './authentication.js';
 import type { SecretVault } from '../identity/secrets.js';
 import type { BackupProduct } from '../recovery/archive.js';
+import type { RetrievalConfidenceCalibration } from '../search/confidence.js';
+import type { ChatFeatureFlags } from '../chat/features.js';
+import type { OpenAiOAuthManager } from '../chat/openai-oauth.js';
 
 const uploadQuerySchema = z.object({ siloId: z.coerce.number().int().min(1).max(32_767) });
 
@@ -55,6 +58,9 @@ export interface ContentRoutesOptions {
       readonly ownerPrincipalId?: number;
     }): Promise<void>;
   };
+  readonly retrievalCalibration?: RetrievalConfidenceCalibration;
+  readonly chatFeatureFlags?: ChatFeatureFlags;
+  readonly openAiOAuth?: OpenAiOAuthManager;
 }
 
 export const registerContentRoutes = (

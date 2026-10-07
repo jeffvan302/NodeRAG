@@ -7,6 +7,14 @@ export const embedderModelSchema = z.object({
 
 export type EmbedderModel = z.infer<typeof embedderModelSchema>;
 
+export const embedderRuntimeStatusSchema = z.object({
+  availableProcessors: z.number().int().min(1).max(1024),
+  threads: z.number().int().min(1).max(32),
+  generation: z.number().int().nonnegative(),
+});
+
+export type EmbedderRuntimeStatus = z.infer<typeof embedderRuntimeStatusSchema>;
+
 export const embedderRequestSchema = z.discriminatedUnion('operation', [
   z.object({
     id: z.string().uuid(),
@@ -23,6 +31,17 @@ export const embedderRequestSchema = z.discriminatedUnion('operation', [
     texts: z.array(z.string()).min(1).max(16),
     model: embedderModelSchema.optional(),
   }),
+  z.object({
+    id: z.string().uuid(),
+    operation: z.literal('status'),
+    priority: z.literal(0),
+  }),
+  z.object({
+    id: z.string().uuid(),
+    operation: z.literal('configure'),
+    priority: z.literal(0),
+    threads: z.number().int().min(1).max(32),
+  }),
 ]);
 
 export type EmbedderRequest = z.infer<typeof embedderRequestSchema>;
@@ -34,6 +53,7 @@ export const embedderResponseSchema = z.discriminatedUnion('ok', [
     vectors: z.array(z.array(z.number())),
     tokenCounts: z.array(z.number().int().nonnegative()),
     elapsedMilliseconds: z.number().nonnegative(),
+    runtimeStatus: embedderRuntimeStatusSchema.optional(),
   }),
   z.object({
     id: z.string().uuid(),

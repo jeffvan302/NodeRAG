@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { Pool } from 'pg';
 import { databaseInteger, withTransaction, type SqlClient } from './database.js';
 import { withHnswBuildResource } from './resources.js';
+import { CURRENT_SCHEMA_REVISION } from './schema-revision.js';
 
 const identifierPattern = /^[a-z][a-z0-9_]{0,62}$/u;
 
@@ -430,9 +431,15 @@ export const confirmRebuildProposal = async (
            (kind,document_id,silo_id,build_id,priority,payload,frozen_config)
          VALUES ('embed',$1,$2,$3,8,
                  jsonb_build_object('reason','rebuild','stagingTable',$4::text),
-                 jsonb_build_object('schemaRevision','000011_recovery_hardening',
+                 jsonb_build_object('schemaRevision',$5::text,
                                     'buildId',$3::smallint,'stagingTable',$4::text))`,
-        [databaseInteger(document.id, 'document id'), siloId, buildId, table],
+        [
+          databaseInteger(document.id, 'document id'),
+          siloId,
+          buildId,
+          table,
+          CURRENT_SCHEMA_REVISION,
+        ],
       );
       queuedDocuments += 1;
     }

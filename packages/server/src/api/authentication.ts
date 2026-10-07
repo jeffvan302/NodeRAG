@@ -13,6 +13,49 @@ const parseCookie = (request: FastifyRequest, name: string): string | null => {
   return null;
 };
 
+const singleForwardedHeader = (value: string | string[] | undefined): string | null => {
+  if (typeof value !== 'string' || value.includes(',')) return null;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
+const isLoopbackAddress = (address: string | undefined): boolean =>
+  address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';
+
+export const forwardedBrowserOrigin = (input: {
+  readonly peerAddress: string | undefined;
+  readonly forwardedHost: string | string[] | undefined;
+  readonly forwardedProto: string | string[] | undefined;
+}): string | null => {
+  if (!isLoopbackAddress(input.peerAddress)) return null;
+  const host = singleForwardedHeader(input.forwardedHost);
+  const protocol = singleForwardedHeader(input.forwardedProto)?.toLowerCase() ?? null;
+  if (host === null || (protocol !== 'http' && protocol !== 'https')) return null;
+  if (!/^[A-Za-z0-9.[\]:-]+$/u.test(host)) return null;
+  try {
+    const value = new URL(`${protocol}://${host}`);
+    if (
+      value.username !== '' ||
+      value.password !== '' ||
+      value.pathname !== '/' ||
+      value.search !== '' ||
+      value.hash !== ''
+    ) {
+      return null;
+    }
+    return value.origin;
+  } catch {
+    return null;
+  }
+};
+
+export const requestBrowserOrigin = (request: FastifyRequest, fallback: string): string =>
+  forwardedBrowserOrigin({
+    peerAddress: request.raw.socket.remoteAddress,
+    forwardedHost: request.headers['x-forwarded-host'],
+    forwardedProto: request.headers['x-forwarded-proto'],
+  }) ?? fallback;
+
 export interface AuthenticatedPrincipal {
   readonly principalId: number;
   readonly serverAdmin: boolean;
@@ -60,6 +103,7 @@ export const createRequestAuthenticator = (
   };
 
   return async (request) => {
+    const requestOrigin = requestBrowserOrigin(request, expectedOrigin);
     const authorization = request.headers.authorization;
     if (authorization?.startsWith('Bearer ') === true) {
       const result = await authenticateApiKey(
@@ -96,7 +140,12 @@ export const createRequestAuthenticator = (
       searchOnly: false,
       sessionToken,
       csrfAllowed: (candidate, origin) =>
-        browserMutationAllowed({ expectedOrigin, origin, csrfToken: candidate, session }),
+        browserMutationAllowed({
+          expectedOrigin: requestOrigin,
+          origin,
+          csrfToken: candidate,
+          session,
+        }),
     };
   };
 };

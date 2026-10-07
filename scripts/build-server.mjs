@@ -9,11 +9,18 @@ await mkdir(output, { recursive: true });
 
 await build({
   entryPoints: {
+    'chat-export-probe': resolve(root, 'packages/server/src/chat/export-build-probe.ts'),
     embedder: resolve(root, 'packages/embedder/src/main.ts'),
     server: resolve(root, 'packages/server/src/main.ts'),
     worker: resolve(root, 'packages/server/src/worker.ts'),
   },
   bundle: true,
+  alias: {
+    pdfkit: resolve(
+      root,
+      'node_modules/.pnpm/pdfkit@0.20.2/node_modules/pdfkit/js/pdfkit.standalone.js',
+    ),
+  },
   format: 'cjs',
   logLevel: 'info',
   minify: false,
@@ -22,6 +29,12 @@ await build({
   platform: 'node',
   sourcemap: false,
   target: 'node22',
+  banner: {
+    js: 'var __noderag_import_meta_url = require("node:url").pathToFileURL(__filename).href;',
+  },
+  define: {
+    'import.meta.url': '__noderag_import_meta_url',
+  },
   external: ['onnxruntime-node', '@aws-sdk/client-s3', '@napi-rs/canvas'],
 });
 
@@ -42,6 +55,14 @@ await cp(
   resolve(root, 'packages/server/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'),
   resolve(output, 'vendor/pdf.worker.mjs'),
 );
+await mkdir(resolve(output, 'data'), { recursive: true });
+await cp(
+  resolve(
+    root,
+    'node_modules/.pnpm/pdfkit@0.20.2/node_modules/pdfkit/js/data/sRGB_IEC61966_2_1.icc',
+  ),
+  resolve(output, 'data/sRGB_IEC61966_2_1.icc'),
+);
 await mkdir(resolve(output, 'node_modules/@napi-rs'), { recursive: true });
 await cp(
   resolve(root, 'node_modules/.pnpm/@napi-rs+canvas@1.0.8/node_modules/@napi-rs/canvas'),
@@ -49,6 +70,17 @@ await cp(
   { recursive: true },
 );
 await mkdir(resolve(output, 'node_modules'), { recursive: true });
+await mkdir(resolve(output, 'node_modules/@openai'), { recursive: true });
+await cp(
+  resolve(root, 'node_modules/.pnpm/@openai+codex@0.147.0/node_modules/@openai/codex'),
+  resolve(output, 'node_modules/@openai/codex'),
+  { recursive: true },
+);
+await cp(
+  resolve(root, 'node_modules/.pnpm/@openai+codex@0.147.0-linux-x64/node_modules/@openai/codex'),
+  resolve(output, 'node_modules/@openai/codex-linux-x64'),
+  { recursive: true },
+);
 await cp(
   resolve(root, 'node_modules/.pnpm/onnxruntime-node@1.24.3/node_modules/onnxruntime-node'),
   resolve(output, 'node_modules/onnxruntime-node'),

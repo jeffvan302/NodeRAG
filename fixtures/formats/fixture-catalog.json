@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "privacy": "synthetic non-private fixtures only",
   "generator": "scripts/generate-m06-fixtures.mjs",
   "fixtures": [
@@ -119,6 +119,87 @@
       "provenance": "repository-authored synthetic fixture",
       "purpose": "line-end hyphenation",
       "expectedDisposition": "conservative-hyphen-join"
+    },
+    {
+      "path": "pdf/layout-headings.pdf",
+      "format": "pdf",
+      "sizeBytes": 1181,
+      "sha256": "5e932a39cc59dab2d6ec31005038a60e85c02ecd472e1636a92a8f4f3f756e4c",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "title and heading hierarchy",
+      "expectedDisposition": "layout-golden"
+    },
+    {
+      "path": "pdf/legal-lists.pdf",
+      "format": "pdf",
+      "sizeBytes": 1261,
+      "sha256": "a869939dff9d56b936cdf51cb6a1b74da3ec4dcb07a586a6903054c63e39c11b",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "legal sections and nested lists",
+      "expectedDisposition": "layout-golden"
+    },
+    {
+      "path": "pdf/three-column.pdf",
+      "format": "pdf",
+      "sizeBytes": 1216,
+      "sha256": "bb4c38699ca75a8cb381d588504d63f06c6536ae6d000f8a2c8ffc04ddddce70",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "three-column reading order",
+      "expectedDisposition": "layout-golden"
+    },
+    {
+      "path": "pdf/simple-table.pdf",
+      "format": "pdf",
+      "sizeBytes": 1485,
+      "sha256": "f7a79f2d349981049b6c255ede515d01cb24fc6c23958d2555afc8a65f76aed4",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "bordered simple table",
+      "expectedDisposition": "layout-golden"
+    },
+    {
+      "path": "pdf/complex-table.pdf",
+      "format": "pdf",
+      "sizeBytes": 1361,
+      "sha256": "943b3569a3179c9da24a6811392ef6f4f9545270d306b17a3ee65a259c78a3ca",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "merged/spanning table control",
+      "expectedDisposition": "layout-fallback"
+    },
+    {
+      "path": "pdf/repeated-furniture.pdf",
+      "format": "pdf",
+      "sizeBytes": 1587,
+      "sha256": "c904300ac494e3a228d638f75229a5b9ae2045b91f248b4cae2dbd62a2abb359",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "repeated header and page footer",
+      "expectedDisposition": "layout-golden"
+    },
+    {
+      "path": "pdf/diagram-caption.pdf",
+      "format": "pdf",
+      "sizeBytes": 1166,
+      "sha256": "9b73aca077e9a2455b4b52f8f6891a866a9bec004bfa78af35a6bf5611c3d006",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "diagram and caption",
+      "expectedDisposition": "vision-region-candidate"
+    },
+    {
+      "path": "pdf/aligned-prose-negative.pdf",
+      "format": "pdf",
+      "sizeBytes": 1162,
+      "sha256": "36ae362a81708d32124d989f4b19114a4353782d126a6cc79dd9977514d5e4f3",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "aligned prose table-negative control",
+      "expectedDisposition": "layout-negative"
+    },
+    {
+      "path": "pdf/layout-expectations.json",
+      "format": "json",
+      "sizeBytes": 2900,
+      "sha256": "d42c965abbe6c88724e8ef6e74108ef34ac2e56832430aa983e2225204cf1514",
+      "provenance": "repository-authored synthetic fixture",
+      "purpose": "hand-reviewed PDF layout expectations",
+      "expectedDisposition": "golden-evaluation-contract"
     },
     {
       "path": "docx/word-saved.docx",

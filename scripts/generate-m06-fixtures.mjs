@@ -65,6 +65,53 @@ const pdf = (lines) => {
   return Buffer.from(output, 'ascii');
 };
 
+const layoutPdf = (pages) => {
+  const escapedPdfText = (value) =>
+    String(value).replaceAll('\\', '\\\\').replaceAll('(', '\\(').replaceAll(')', '\\)');
+  const pageReferences = pages.map((_, index) => 3 + index * 2);
+  const fontStart = 3 + pages.length * 2;
+  const fontReferences = { F1: fontStart, F2: fontStart + 1, F3: fontStart + 2 };
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    `<< /Type /Pages /Kids [${pageReferences.map((reference) => `${String(reference)} 0 R`).join(' ')}] /Count ${String(pages.length)} >>`,
+  ];
+  for (const [index, page] of pages.entries()) {
+    const pageReference = pageReferences[index];
+    if (pageReference === undefined) throw new Error('layout-page-reference-missing');
+    const contentReference = pageReference + 1;
+    const stream = [
+      ...(page.commands ?? []),
+      ...page.lines.map(
+        ({ x = 72, y, text, font = 'F1', size = 12 }) =>
+          `BT /${font} ${String(size)} Tf ${String(x)} ${String(y)} Td (${escapedPdfText(text)}) Tj ET`,
+      ),
+    ].join('\n');
+    objects.push(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${String(fontReferences.F1)} 0 R /F2 ${String(fontReferences.F2)} 0 R /F3 ${String(fontReferences.F3)} 0 R >> >> /Contents ${String(contentReference)} 0 R >>`,
+      `<< /Length ${String(Buffer.byteLength(stream, 'ascii'))} >>\nstream\n${stream}\nendstream`,
+    );
+  }
+  objects.push(
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>',
+  );
+  let output = '%PDF-1.4\n%NodeRag synthetic layout fixture\n';
+  const offsets = [0];
+  for (const [index, object] of objects.entries()) {
+    offsets.push(Buffer.byteLength(output, 'ascii'));
+    output += `${String(index + 1)} 0 obj\n${object}\nendobj\n`;
+  }
+  const xref = Buffer.byteLength(output, 'ascii');
+  output += `xref\n0 ${String(objects.length + 1)}\n0000000000 65535 f \n`;
+  output += offsets
+    .slice(1)
+    .map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`)
+    .join('');
+  output += `trailer << /Size ${String(objects.length + 1)} /Root 1 0 R >>\nstartxref\n${String(xref)}\n%%EOF\n`;
+  return Buffer.from(output, 'ascii');
+};
+
 const documentContentTypes = `<?xml version="1.0" encoding="UTF-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
@@ -211,6 +258,155 @@ await save(
   ]),
 );
 await save('pdf/no-tounicode.pdf', await readFile(resolve(formats, 'pdf/scanned.pdf')));
+await save(
+  'pdf/layout-headings.pdf',
+  layoutPdf([
+    {
+      lines: [
+        { y: 742, text: 'Annual Financial Report', font: 'F2', size: 24 },
+        { y: 700, text: 'Revenue sources', font: 'F2', size: 18 },
+        { y: 676, text: 'Revenue increased during the reporting period.' },
+        { y: 638, text: 'Tax revenue', font: 'F2', size: 14 },
+        { y: 615, text: 'Personal and corporate tax remain the primary sources.' },
+      ],
+    },
+  ]),
+);
+await save(
+  'pdf/legal-lists.pdf',
+  layoutPdf([
+    {
+      lines: [
+        { y: 742, text: '1. Revenue', font: 'F2', size: 18 },
+        { y: 710, text: '1.1 Tax revenue', font: 'F2', size: 14 },
+        { y: 685, text: 'The authority collects the following revenue sources:' },
+        { x: 90, y: 660, text: '1. Personal income tax' },
+        { x: 90, y: 638, text: '2. Corporate income tax' },
+        { x: 108, y: 616, text: '- Assessed monthly' },
+        { x: 108, y: 594, text: '- Reconciled annually' },
+      ],
+    },
+  ]),
+);
+await save(
+  'pdf/three-column.pdf',
+  layoutPdf([
+    {
+      lines: [
+        { y: 750, text: 'Three-column operating summary', font: 'F2', size: 18 },
+        { x: 54, y: 710, text: 'First column A' },
+        { x: 54, y: 690, text: 'First column B' },
+        { x: 224, y: 710, text: 'Second column A' },
+        { x: 224, y: 690, text: 'Second column B' },
+        { x: 394, y: 710, text: 'Third column A' },
+        { x: 394, y: 690, text: 'Third column B' },
+      ],
+    },
+  ]),
+);
+await save(
+  'pdf/simple-table.pdf',
+  layoutPdf([
+    {
+      commands: [
+        '0.5 w 65 675 m 535 675 l S',
+        '0.5 w 65 650 m 535 650 l S',
+        '0.5 w 65 625 m 535 625 l S',
+        '0.5 w 65 600 m 535 600 l S',
+        '0.5 w 65 600 m 65 675 l S',
+        '0.5 w 245 600 m 245 675 l S',
+        '0.5 w 390 600 m 390 675 l S',
+        '0.5 w 535 600 m 535 675 l S',
+      ],
+      lines: [
+        { y: 725, text: 'Revenue by source', font: 'F2', size: 18 },
+        { x: 72, y: 658, text: 'Source', font: 'F2' },
+        { x: 260, y: 658, text: '2025', font: 'F2' },
+        { x: 405, y: 658, text: '2026', font: 'F2' },
+        { x: 72, y: 633, text: 'Tax revenue' },
+        { x: 260, y: 633, text: '40.2' },
+        { x: 405, y: 633, text: '42.8' },
+        { x: 72, y: 608, text: 'Service fees' },
+        { x: 260, y: 608, text: '8.1' },
+        { x: 405, y: 608, text: '8.6' },
+      ],
+    },
+  ]),
+);
+await save(
+  'pdf/complex-table.pdf',
+  layoutPdf([
+    {
+      lines: [
+        { y: 725, text: 'Complex revenue table', font: 'F2', size: 18 },
+        { x: 72, y: 670, text: 'Source' },
+        { x: 245, y: 670, text: 'Forecast years' },
+        { x: 245, y: 648, text: '2025' },
+        { x: 345, y: 648, text: '2026' },
+        { x: 445, y: 648, text: 'Change' },
+        { x: 72, y: 623, text: 'Tax revenue' },
+        { x: 245, y: 623, text: '40.2' },
+        { x: 345, y: 623, text: '42.8' },
+        { x: 445, y: 623, text: '+2.6' },
+        { x: 72, y: 598, text: 'Notes span all forecast columns and require review.' },
+      ],
+    },
+  ]),
+);
+await save(
+  'pdf/repeated-furniture.pdf',
+  layoutPdf([
+    {
+      lines: [
+        { x: 72, y: 765, text: 'CONFIDENTIAL REVENUE REPORT', font: 'F2', size: 9 },
+        { x: 72, y: 720, text: 'First reporting section', font: 'F2', size: 16 },
+        { x: 72, y: 690, text: 'The first page contains material revenue discussion.' },
+        { x: 300, y: 28, text: 'Page 1', size: 9 },
+      ],
+    },
+    {
+      lines: [
+        { x: 72, y: 765, text: 'CONFIDENTIAL REVENUE REPORT', font: 'F2', size: 9 },
+        { x: 72, y: 720, text: 'Second reporting section', font: 'F2', size: 16 },
+        { x: 72, y: 690, text: 'The second page contains material expense discussion.' },
+        { x: 300, y: 28, text: 'Page 2', size: 9 },
+      ],
+    },
+  ]),
+);
+await save(
+  'pdf/diagram-caption.pdf',
+  layoutPdf([
+    {
+      commands: ['1 w 100 610 130 60 re S', '1 w 380 610 130 60 re S', '1 w 230 640 m 380 640 l S'],
+      lines: [
+        { y: 730, text: 'Revenue processing flow', font: 'F2', size: 18 },
+        { x: 125, y: 638, text: 'Collect' },
+        { x: 412, y: 638, text: 'Report' },
+        {
+          x: 150,
+          y: 580,
+          text: 'Figure 1. Revenue moves from collection to reporting.',
+          font: 'F3',
+          size: 10,
+        },
+      ],
+    },
+  ]),
+);
+await save(
+  'pdf/aligned-prose-negative.pdf',
+  layoutPdf([
+    {
+      lines: [
+        { y: 730, text: 'Aligned prose is not a table', font: 'F2', size: 18 },
+        { x: 72, y: 690, text: 'Revenue is collected from several sources.' },
+        { x: 72, y: 670, text: 'Revenue is reviewed under the annual policy.' },
+        { x: 72, y: 650, text: 'Revenue is reported in the financial statements.' },
+      ],
+    },
+  ]),
+);
 
 await save(
   'docx/word-saved.docx',
@@ -336,6 +532,25 @@ const catalogEntries = [
   ['pdf/scanned.pdf', 'pdf', 'raster-only page', 'vision-required'],
   ['pdf/ligatures.pdf', 'pdf', 'typographic word control', 'usable-text'],
   ['pdf/hyphenated.pdf', 'pdf', 'line-end hyphenation', 'conservative-hyphen-join'],
+  ['pdf/layout-headings.pdf', 'pdf', 'title and heading hierarchy', 'layout-golden'],
+  ['pdf/legal-lists.pdf', 'pdf', 'legal sections and nested lists', 'layout-golden'],
+  ['pdf/three-column.pdf', 'pdf', 'three-column reading order', 'layout-golden'],
+  ['pdf/simple-table.pdf', 'pdf', 'bordered simple table', 'layout-golden'],
+  ['pdf/complex-table.pdf', 'pdf', 'merged/spanning table control', 'layout-fallback'],
+  ['pdf/repeated-furniture.pdf', 'pdf', 'repeated header and page footer', 'layout-golden'],
+  ['pdf/diagram-caption.pdf', 'pdf', 'diagram and caption', 'vision-region-candidate'],
+  [
+    'pdf/aligned-prose-negative.pdf',
+    'pdf',
+    'aligned prose table-negative control',
+    'layout-negative',
+  ],
+  [
+    'pdf/layout-expectations.json',
+    'json',
+    'hand-reviewed PDF layout expectations',
+    'golden-evaluation-contract',
+  ],
   ['docx/word-saved.docx', 'docx', 'saved rendered page-break evidence', 'page-basis-rendered'],
   ['docx/gdocs-export.docx', 'docx', 'synthetic generated-export style package', 'page-basis-none'],
   [
@@ -366,7 +581,7 @@ const catalogEntries = [
   ['images/table.png', 'png', 'synthetic table image', 'vision-probe-input'],
 ];
 const catalog = {
-  version: 2,
+  version: 3,
   privacy: 'synthetic non-private fixtures only',
   generator: 'scripts/generate-m06-fixtures.mjs',
   fixtures: await Promise.all(

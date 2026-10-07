@@ -4,7 +4,7 @@ import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { describe, expect, it, vi } from 'vitest';
 import { extractDocument } from '../src/extract/index.js';
 import { visionActivationSample } from '../src/vision/activation-sample.js';
-import { visionResponseSchema } from '../src/vision/contract.js';
+import { layoutVisionResponseSchema, visionResponseSchema } from '../src/vision/contract.js';
 import { DeterministicFakeVisionProvider } from '../src/vision/fake.js';
 import { OllamaVisionProvider } from '../src/vision/ollama.js';
 import { preprocessVisionImage } from '../src/vision/preprocess.js';
@@ -56,6 +56,32 @@ describe('vision contract and preprocessing', () => {
         alt: 'table',
         confidence: 0.8,
         narrative: 'not in schema',
+      }).success,
+    ).toBe(false);
+    expect(
+      layoutVisionResponseSchema.safeParse({
+        kind: 'table',
+        markdown: '| a |',
+        alt: 'table',
+        confidence: 0.8,
+      }).success,
+    ).toBe(false);
+    expect(
+      layoutVisionResponseSchema.safeParse({
+        kind: 'table',
+        markdown: '| a |',
+        alt: 'table',
+        confidence: 0.8,
+        layoutBlocks: [
+          {
+            kind: 'table',
+            markdown: '| a |',
+            text: 'a',
+            confidence: 0.8,
+            sourceImageIndex: 1,
+            bounds: { x: 0.9, y: 0, width: 0.2, height: 1 },
+          },
+        ],
       }).success,
     ).toBe(false);
   });
@@ -181,6 +207,51 @@ describe('Ollama vision provider', () => {
     expect(urls).toEqual(['https://ollama.com/api/tags', 'https://ollama.com/api/chat']);
   });
 
+  it('sends multiple images in one request and restores results to image order', async () => {
+    const mockFetch = vi.fn<typeof fetch>(async (_input, init) => {
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      const message = (body.messages as Array<{ content: string; images: string[] }>)[0];
+      expect(message?.images).toHaveLength(3);
+      expect(message?.content).toContain('Analyse all 3 supplied images independently');
+      expect(body.format).toMatchObject({
+        properties: { results: { minItems: 3, maxItems: 3 } },
+      });
+      return Response.json({
+        message: {
+          role: 'assistant',
+          content: JSON.stringify({
+            results: [3, 1, 2].map((imageIndex) => ({
+              imageIndex,
+              kind: 'table',
+              markdown: `| Image | ${String(imageIndex)} |`,
+              alt: `Image ${String(imageIndex)}`,
+              confidence: 0.9,
+            })),
+          }),
+        },
+      });
+    });
+    const provider = new OllamaVisionProvider(
+      { baseUrl: 'http://127.0.0.1:11434', model: 'qwen3-vl' },
+      mockFetch,
+    );
+    const signal = new AbortController().signal;
+    const results = await provider.analyseMany(
+      [1, 2, 3].map((number) => ({
+        bytes: testImage(128 + number * 8, 96),
+        mediaType: 'image/png' as const,
+        sourceKind: 'document-image' as const,
+        pageNumber: null,
+        imageId: `image-${String(number)}`,
+        prompt: 'Transcribe this image.',
+        schema: {},
+        signal,
+      })),
+    );
+    expect(results.map(({ alt }) => alt)).toEqual(['Image 1', 'Image 2', 'Image 3']);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('classifies missing models and malformed output without accepting it', async () => {
     const missing = new OllamaVisionProvider(
       { baseUrl: 'http://127.0.0.1:11434', model: 'missing' },
@@ -238,6 +309,27 @@ describe('Ollama vision provider', () => {
 });
 
 describe('vision processing and extraction recovery', () => {
+  it('uses the configured three-image default and splits larger groups into provider calls', async () => {
+    class BatchProbe extends DeterministicFakeVisionProvider {
+      readonly batchSizes: number[] = [];
+
+      override async analyseMany(
+        inputs: Parameters<DeterministicFakeVisionProvider['analyseMany']>[0],
+      ) {
+        this.batchSizes.push(inputs.length);
+        return super.analyseMany(inputs);
+      }
+    }
+    const provider = new BatchProbe();
+    const processor = new VisionProcessor({ provider });
+    expect(processor.maximumImagesPerCall).toBe(3);
+    const results = await processor.analyseMany(
+      Array.from({ length: 12 }, (_, index) => request(testImage(128 + index * 8, 96))),
+    );
+    expect(results).toHaveLength(12);
+    expect(provider.batchSizes.sort((left, right) => right - left)).toEqual([3, 3, 3, 3]);
+  });
+
   it('never exceeds the configured provider concurrency', async () => {
     class ConcurrencyProbe extends DeterministicFakeVisionProvider {
       active = 0;
@@ -313,6 +405,34 @@ describe('vision processing and extraction recovery', () => {
     expect(await revisionA.analyse(image)).toMatchObject({ cached: false });
     expect(await revisionB.analyse(image)).toMatchObject({ cached: false });
     expect(await revisionA.analyse(image)).toMatchObject({ cached: true });
+    expect(entries.size).toBe(2);
+  });
+
+  it('invalidates cached PDF crops when the source policy revision changes', async () => {
+    const entries = new Map<string, Awaited<ReturnType<VisionProcessor['analyse']>>>();
+    const cache: VisionCachePort = {
+      async get(key) {
+        const found = entries.get(key.fingerprint);
+        return found?.disposition === 'analysed' ? found : null;
+      },
+      async markDispatched() {
+        return null;
+      },
+      async put(key, _dispatchId, result) {
+        entries.set(key.fingerprint, result);
+      },
+      async markFailed() {},
+    };
+    const processor = new VisionProcessor({
+      provider: new DeterministicFakeVisionProvider(),
+      cache,
+    });
+    const input = request();
+    const cropA = { ...input, sourcePolicyRevision: 'pdf-crop.v1' };
+    const cropB = { ...input, sourcePolicyRevision: 'pdf-crop.v2' };
+    expect(await processor.analyse(cropA)).toMatchObject({ cached: false });
+    expect(await processor.analyse(cropB)).toMatchObject({ cached: false });
+    expect(await processor.analyse(cropA)).toMatchObject({ cached: true });
     expect(entries.size).toBe(2);
   });
 

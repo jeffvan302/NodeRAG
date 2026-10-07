@@ -32,6 +32,21 @@ describe('framed embedder client and server', () => {
     });
     expect(selected.vectors[0]).toHaveLength(3);
     expect(embedded.tokenCounts).toEqual([3]);
+    expect(await client.runtimeStatus()).toEqual({
+      availableProcessors: 32,
+      threads: 1,
+      generation: 0,
+    });
+    expect(await client.configureThreads(4)).toEqual({
+      availableProcessors: 32,
+      threads: 4,
+      generation: 1,
+    });
+    expect(await client.runtimeStatus()).toEqual({
+      availableProcessors: 32,
+      threads: 4,
+      generation: 1,
+    });
   });
 
   it('splits oversized work into protocol-safe frames while preserving result order', async () => {

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { lstat, readdir, realpath, rm } from 'node:fs/promises';
-import { basename, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { lstat, opendir, readdir, realpath, rm } from 'node:fs/promises';
+import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Pool } from 'pg';
 import type { DocumentFormat } from '../extract/contract.js';
@@ -68,7 +68,7 @@ const sourceMimeTypes: Readonly<Record<DocumentFormat, string>> = {
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 };
 
-const validateGlobs = (values: readonly string[]): readonly string[] => {
+export const validateSourceGlobs = (values: readonly string[]): readonly string[] => {
   if (values.length > 64) throw new Error('too-many-source-globs');
   return values.map((value) => {
     const normalized = value.replaceAll('\\', '/').trim();
@@ -116,27 +116,151 @@ export const validateSourceRoot = async (
   uri: string,
   allowedRoots: readonly string[],
 ): Promise<string> => {
-  const configured = resolveUriPath(uri);
-  const root = await realpath(configured);
-  const info = await lstat(root);
-  if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('source-root-not-directory');
+  try {
+    const configured = resolveUriPath(uri);
+    const root = await realpath(configured);
+    const info = await lstat(root);
+    if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('source-root-not-directory');
+    if (allowedRoots.length === 0) throw new Error('source-roots-not-configured');
+    const permitted = await Promise.all(
+      allowedRoots.map(async (allowed) => {
+        const canonical = await realpath(resolve(allowed));
+        return root === canonical || root.startsWith(`${canonical}${sep}`);
+      }),
+    );
+    if (!permitted.some(Boolean)) throw new Error('source-root-outside-allowlist');
+    const directory = await opendir(root);
+    await directory.close();
+    return root;
+  } catch (error) {
+    throw sourceFolderFailure(error);
+  }
+};
+
+export interface SourceFolderEntry {
+  readonly name: string;
+  readonly path: string;
+}
+
+export interface SourceFolderListing {
+  readonly currentPath: string | null;
+  readonly parentPath: string | null;
+  readonly selectable: boolean;
+  readonly items: readonly SourceFolderEntry[];
+}
+
+const canonicalSourceRoots = async (
+  allowedRoots: readonly string[],
+): Promise<readonly string[]> => {
   if (allowedRoots.length === 0) throw new Error('source-roots-not-configured');
-  const permitted = await Promise.all(
+  const roots = await Promise.all(
     allowedRoots.map(async (allowed) => {
-      const canonical = await realpath(resolve(allowed));
-      return root === canonical || root.startsWith(`${canonical}${sep}`);
+      const canonical = await realpath(resolveUriPath(allowed));
+      if (!(await lstat(canonical)).isDirectory()) throw new Error('source-root-not-directory');
+      return canonical;
     }),
   );
-  if (!permitted.some(Boolean)) throw new Error('source-root-outside-allowlist');
-  return root;
+  return [...new Set(roots)].sort((left, right) => left.localeCompare(right));
+};
+
+const sourceFolderFailure = (error: unknown): Error => {
+  if (error instanceof Error && error.message.startsWith('source-')) return error;
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { readonly code?: unknown }).code)
+      : '';
+  if (code === 'ENOENT') return new Error('source-folder-not-found');
+  if (code === 'EACCES' || code === 'EPERM') return new Error('source-folder-unreadable');
+  return new Error('source-folder-browse-failed');
+};
+
+const pathContains = (parent: string, candidate: string): boolean => {
+  const remainder = relative(parent, candidate);
+  return (
+    remainder === '' ||
+    (remainder !== '..' && !remainder.startsWith(`..${sep}`) && !isAbsolute(remainder))
+  );
+};
+
+const listSourceFolder = async (
+  requestedPath: string,
+  roots: readonly string[],
+): Promise<SourceFolderListing> => {
+  const currentPath = await realpath(resolveUriPath(requestedPath));
+  const info = await lstat(currentPath);
+  if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('source-root-not-directory');
+
+  const selectable = roots.some((root) => pathContains(root, currentPath));
+  const descendantRoots = roots.filter((root) => pathContains(currentPath, root));
+  if (!selectable && descendantRoots.length === 0) {
+    throw new Error('source-root-outside-allowlist');
+  }
+
+  let items: readonly SourceFolderEntry[];
+  if (selectable) {
+    const entries = await readdir(currentPath, { withFileTypes: true });
+    items = entries
+      .filter((entry) => entry.isDirectory() && !entry.isSymbolicLink())
+      .map((entry) => ({ name: entry.name, path: join(currentPath, entry.name) }));
+  } else {
+    const nextFolders = new Map<string, SourceFolderEntry>();
+    for (const root of descendantRoots) {
+      const [nextName] = relative(currentPath, root).split(sep);
+      if (nextName === undefined || nextName === '') continue;
+      const path = join(currentPath, nextName);
+      nextFolders.set(path, { name: nextName, path });
+    }
+    items = [...nextFolders.values()];
+  }
+
+  return {
+    currentPath,
+    parentPath: dirname(currentPath) === currentPath ? null : dirname(currentPath),
+    selectable,
+    items: [...items].sort((left, right) =>
+      left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: 'base' }),
+    ),
+  };
+};
+
+export const browseSourceFolders = async (
+  requestedPath: string | undefined,
+  allowedRoots: readonly string[],
+): Promise<SourceFolderListing> => {
+  try {
+    const roots = await canonicalSourceRoots(allowedRoots);
+    if (requestedPath === undefined || requestedPath.trim() === '') {
+      const anchors = [
+        ...new Set(
+          roots.map((path) => {
+            let anchor = path;
+            while (dirname(anchor) !== anchor) anchor = dirname(anchor);
+            return anchor;
+          }),
+        ),
+      ];
+      if (anchors.length === 1 && anchors[0] !== undefined) {
+        return await listSourceFolder(anchors[0], roots);
+      }
+      return {
+        currentPath: null,
+        parentPath: null,
+        selectable: false,
+        items: anchors.map((path) => ({ name: basename(path) || path, path })),
+      };
+    }
+    return await listSourceFolder(requestedPath, roots);
+  } catch (error) {
+    throw sourceFolderFailure(error);
+  }
 };
 
 export const registerSource = async (
   database: SqlClient,
   input: SourceRegistration,
 ): Promise<SourceRecord> => {
-  const includes = validateGlobs(input.includeGlobs);
-  const excludes = validateGlobs(input.excludeGlobs);
+  const includes = validateSourceGlobs(input.includeGlobs);
+  const excludes = validateSourceGlobs(input.excludeGlobs);
   if (
     input.scheduleIntervalMinutes !== null &&
     (!Number.isInteger(input.scheduleIntervalMinutes) ||
@@ -148,8 +272,10 @@ export const registerSource = async (
   const created = await database.query<{ id: unknown; silo_id: number; uri: string }>(
     `INSERT INTO noderag.source
        (silo_id, uri, include_glob, exclude_glob, schedule_interval_minutes,
-        schedule_enabled, operator_note, created_by)
-     VALUES ($1, $2, $3, $4, $5, false, $6, $7)
+        schedule_enabled, operator_note, created_by, next_crawl_at)
+     VALUES ($1, $2, $3, $4, $5, $5::integer IS NOT NULL, $6, $7,
+             CASE WHEN $5::integer IS NULL THEN NULL
+                  ELSE now() + ($5::bigint * interval '1 minute') END)
      RETURNING id, silo_id, uri`,
     [
       input.siloId,
@@ -167,8 +293,8 @@ export const registerSource = async (
   await database.query(
     `INSERT INTO noderag.audit_log (principal_id, silo_id, action, result, detail)
      VALUES ($1, $2, 'source.create', 'ok',
-             jsonb_build_object('sourceId', $3::bigint, 'scheduleEnabled', false))`,
-    [input.principalId, input.siloId, id],
+             jsonb_build_object('sourceId', $3::bigint, 'scheduleEnabled', $4::boolean))`,
+    [input.principalId, input.siloId, id, input.scheduleIntervalMinutes !== null],
   );
   return { id, siloId: row.silo_id, uri: row.uri };
 };
@@ -236,8 +362,8 @@ const enumerateDocuments = async (
   includeGlobs: readonly string[],
   excludeGlobs: readonly string[],
 ): Promise<readonly ScannedFile[]> => {
-  const includes = validateGlobs(includeGlobs).map(globExpression);
-  const excludes = validateGlobs(excludeGlobs).map(globExpression);
+  const includes = validateSourceGlobs(includeGlobs).map(globExpression);
+  const excludes = validateSourceGlobs(excludeGlobs).map(globExpression);
   const files: ScannedFile[] = [];
   const walk = async (directory: string): Promise<void> => {
     const entries = await readdir(directory, { withFileTypes: true });

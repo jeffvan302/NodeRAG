@@ -12,6 +12,7 @@ interface VisionSettingsRow {
   readonly ollama_model: string | null;
   readonly ollama_model_revision: string | null;
   readonly ollama_parallel: number;
+  readonly ollama_images_per_call: number;
   readonly ollama_timeout_ms: number;
   readonly ollama_max_attempts: number;
   readonly ollama_keep_alive: string;
@@ -32,7 +33,7 @@ export const createRuntimeVisionProcessor = async (
 ): Promise<InjectedVision | undefined> => {
   const found = await pool.query<VisionSettingsRow>(
     `SELECT vision_enabled, ollama_base_url, ollama_model, ollama_model_revision,
-            ollama_parallel, ollama_timeout_ms, ollama_max_attempts, ollama_keep_alive,
+            ollama_parallel, ollama_images_per_call, ollama_timeout_ms, ollama_max_attempts, ollama_keep_alive,
             ollama_num_ctx, max_image_px, ollama_secret_id
      FROM noderag.settings WHERE id = 1`,
   );
@@ -69,6 +70,7 @@ export const createRuntimeVisionProcessor = async (
     cache: new DatabaseVisionCache(pool),
     maximumDimension: settings.max_image_px,
     maximumConcurrency,
+    maximumImagesPerCall: settings.ollama_images_per_call,
     timeoutMs: settings.ollama_timeout_ms,
     maximumAttempts: settings.ollama_max_attempts,
     concurrency: new DatabaseVisionSemaphore(pool, maximumConcurrency),

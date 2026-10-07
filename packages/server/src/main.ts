@@ -13,6 +13,7 @@ import type { IdentityRoutesOptions } from './api/identity-routes.js';
 import type { ContentRoutesOptions } from './api/content-routes.js';
 import { recoverAbandonedMaintenance } from './recovery/maintenance.js';
 import { RecoveryRuntime } from './recovery/runtime.js';
+import { OpenAiOAuthManager } from './chat/openai-oauth.js';
 
 const main = async (): Promise<void> => {
   const config = await loadRuntimeConfig();
@@ -30,6 +31,7 @@ const main = async (): Promise<void> => {
     process.env['NODERAG_ORIGIN'] ?? `http://${config.host}:${String(config.port)}`;
   let identity: IdentityRoutesOptions | undefined;
   let content: ContentRoutesOptions | undefined;
+  let openAiOAuth: OpenAiOAuthManager | undefined;
   if (pool !== null && config.database !== null) {
     const authenticate = createRequestAuthenticator(pool, expectedOrigin);
     identity = {
@@ -48,6 +50,13 @@ const main = async (): Promise<void> => {
         ? {}
         : { pgDumpExecutable: process.env['NODERAG_PG_DUMP'] }),
     });
+    if (config.chatFeatureFlags['chat.providers.enabled']) {
+      openAiOAuth = new OpenAiOAuthManager({
+        pool,
+        secretVault,
+        credentialHome: config.chatCodexHome,
+      });
+    }
     content = {
       pool,
       authenticate,
@@ -59,6 +68,9 @@ const main = async (): Promise<void> => {
         : { visionBearerToken: config.visionBearerToken }),
       secretVault,
       recovery,
+      retrievalCalibration: config.retrievalCalibration,
+      chatFeatureFlags: config.chatFeatureFlags,
+      ...(openAiOAuth === undefined ? {} : { openAiOAuth }),
     };
   }
   let gatewayManager: GatewayListenerManager | undefined;
@@ -93,6 +105,7 @@ const main = async (): Promise<void> => {
     app.log.info({ signal }, 'stopping NodeRag');
     await app.close();
     await gatewayManager?.close();
+    await openAiOAuth?.stop();
     await embedder.close();
     await pool?.end();
     process.exitCode = 0;

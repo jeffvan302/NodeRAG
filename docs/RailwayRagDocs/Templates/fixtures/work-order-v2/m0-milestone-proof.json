@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "milestone": "M0",
+  "recordedAt": "2026-09-02T23:00:00-04:00",
+  "milestoneCommit": "the commit containing this proof",
+  "reviewer": "automated-contract-gate",
+  "rolloutMode": "disabled",
+  "activationEpoch": 0,
+  "workerClaimsEnabled": false,
+  "publicationEnabled": false,
+  "migrationHead": "20260902000300_template_worker_model_status",
+  "migrationCount": 123,
+  "contracts": {
+    "pipeline": 2,
+    "manifest": 2,
+    "discovery": 1,
+    "plannerInput": 1,
+    "plannerResult": 1,
+    "extractionEnvelope": 1,
+    "extractionResult": 1,
+    "evidenceLocator": 1,
+    "shardPlan": 1,
+    "reportSnapshot": 1,
+    "progress": 1,
+    "webhook": 1,
+    "workerProtocol": 1
+  },
+  "evidence": {
+    "specification": "docs/Templates/Work-Order Pipeline - draft1.md",
+    "contractModule": "packages/rag-core/src/template-work-order-contracts.ts",
+    "contractTests": "packages/rag-core/src/template-work-order-contracts.test.ts",
+    "fixtureCatalog": "docs/Templates/fixtures/work-order-v2/gold-fixture-catalog.json",
+    "v1Baseline": "docs/Templates/fixtures/work-order-v2/v1-baseline.json"
+  },
+  "tests": {
+    "docsCheck": "passed",
+    "phase9Check": "passed_contract_check_portable_evidence_remains_intentionally_uncertified",
+    "typecheck": "passed",
+    "unitTests": "passed_including_25_rag_core_files_and_295_rag_core_tests",
+    "build": "passed"
+  },
+  "gate": "passed"
+}

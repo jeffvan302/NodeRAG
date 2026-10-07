@@ -2,7 +2,9 @@ import { createServer } from 'node:net';
 import { createHash } from 'node:crypto';
 import { statfs } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { availableParallelism } from 'node:os';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { EmbedderRuntimeStatus } from '@noderag/shared';
 import { z } from 'zod';
 import { createApiKeyInTransaction, revokeApiKey } from '../identity/api-keys.js';
 import { hashPassword } from '../identity/passwords.js';
@@ -11,10 +13,13 @@ import { databaseInteger, type SqlClient } from '../store/database.js';
 import { executeIdempotent, IdempotencyConflictError } from '../application/idempotency.js';
 import type { ContentRoutesOptions } from './content-routes.js';
 import { RequestAuthenticationError, type AuthenticatedPrincipal } from './authentication.js';
+import { CalibrationJobRegistry, type CalibrationJobPhase } from './calibration-jobs.js';
 import { sendProblem } from './problem.js';
 import { coordinatedEmbedder } from '../store/resources.js';
-import { probeStorage } from '../storage/probe.js';
+import { CURRENT_SCHEMA_REVISION } from '../store/schema-revision.js';
+import { probeStorage, storageProbeProblemCode } from '../storage/probe.js';
 import { downloadModelArtifact, importModelArtifact } from '../storage/model-artifacts.js';
+import { DefaultModelInstaller } from '../storage/default-model.js';
 import {
   activateVerifiedBuild,
   authorizeBuildCleanup,
@@ -103,6 +108,55 @@ const settingsSchema = z
   })
   .strict()
   .refine((value) => Object.keys(value).length > 0);
+
+interface RuntimeControllableEmbedder {
+  runtimeStatus(): Promise<EmbedderRuntimeStatus>;
+  configureThreads(threads: number): Promise<EmbedderRuntimeStatus>;
+}
+
+const runtimeController = (
+  embedder: ContentRoutesOptions['embedder'],
+): Partial<RuntimeControllableEmbedder> => embedder as Partial<RuntimeControllableEmbedder>;
+
+const localProcessorLimit = (): number => Math.min(32, Math.max(1, availableParallelism()));
+
+const fallbackEmbeddingThreads = (): number => {
+  const configured = Number(process.env['NODERAG_EMBED_THREADS'] ?? '4');
+  return Number.isSafeInteger(configured)
+    ? Math.min(localProcessorLimit(), Math.max(1, configured))
+    : Math.min(localProcessorLimit(), 4);
+};
+
+const currentRuntimeStatus = async (
+  embedder: ContentRoutesOptions['embedder'],
+): Promise<EmbedderRuntimeStatus | null> => {
+  const operation = runtimeController(embedder).runtimeStatus?.();
+  if (operation === undefined) return null;
+  try {
+    return await operation;
+  } catch {
+    return null;
+  }
+};
+
+const settingsRuntime = (
+  configuredThreads: number,
+  status: EmbedderRuntimeStatus | null,
+  applyStatus: 'active' | 'reloaded' | 'pending' = 'active',
+) => {
+  const availableProcessors = status?.availableProcessors ?? availableParallelism();
+  const activeEmbeddingThreads = status?.threads ?? fallbackEmbeddingThreads();
+  return {
+    availableProcessors,
+    maximumEmbeddingThreads: Math.min(32, availableProcessors),
+    activeEmbeddingThreads,
+    configuredEmbeddingThreads: configuredThreads,
+    pendingRestart: activeEmbeddingThreads !== configuredThreads,
+    generation: status?.generation ?? 0,
+    controlAvailable: status !== null,
+    applyStatus,
+  };
+};
 const modelSchema = z
   .object({
     name: z.string().min(1).max(200),
@@ -337,6 +391,68 @@ const calibrationSamples = Array.from({ length: 20 }, (_, index) =>
   ),
 );
 
+interface ActiveCalibrationModel {
+  readonly maximum_tokens: number;
+  readonly document_prefix: string;
+  readonly name: string;
+  readonly source_revision: string;
+  readonly manifest_digest: string;
+  readonly dimensions: number;
+}
+
+interface EmbeddingCalibrationResult {
+  readonly chunks: number;
+  readonly characters: number;
+  readonly elapsedMs: number;
+  readonly charactersPerSecond: number;
+  readonly projectedMinutesPerMillionCharacters: number;
+  readonly model: string;
+  readonly revision: string;
+}
+
+const measureEmbeddingThroughput = async (
+  options: ContentRoutesOptions,
+  owner: string,
+  active: ActiveCalibrationModel,
+  samples: readonly string[],
+  report: (phase: CalibrationJobPhase, progress: number) => void = () => undefined,
+): Promise<EmbeddingCalibrationResult> => {
+  const texts = samples.map((value) => `${active.document_prefix}${value.normalize('NFC')}`);
+  const model = { manifestDigest: active.manifest_digest, dimensions: active.dimensions };
+  const embedder = coordinatedEmbedder(options.pool, owner, options.embedder);
+
+  report('loading-model', 5);
+  await embedder.embed(
+    [texts[0] ?? 'NodeRag embedding calibration warm-up.'],
+    active.maximum_tokens,
+    0,
+    model,
+  );
+
+  const characters = samples.reduce((total, value) => total + value.length, 0);
+  const started = performance.now();
+  report('measuring', 10);
+  const batchSize = 4;
+  for (let offset = 0; offset < texts.length; offset += batchSize) {
+    await embedder.embed(texts.slice(offset, offset + batchSize), active.maximum_tokens, 0, model);
+    report('measuring', 10 + (Math.min(texts.length, offset + batchSize) / texts.length) * 80);
+  }
+  report('finalizing', 95);
+  const elapsedMs = Math.max(1, performance.now() - started);
+  const charactersPerSecond = Math.round((characters * 1000) / elapsedMs);
+  return {
+    chunks: samples.length,
+    characters,
+    elapsedMs: Math.round(elapsedMs),
+    charactersPerSecond,
+    projectedMinutesPerMillionCharacters: Number(
+      (1_000_000 / Math.max(1, charactersPerSecond) / 60).toFixed(1),
+    ),
+    model: active.name,
+    revision: active.source_revision,
+  };
+};
+
 const storageProbeOptions = () => {
   const splitRoots = (name: string): readonly string[] =>
     (process.env[name] ?? '')
@@ -438,11 +554,42 @@ const mutationFailure = (
   return sendProblem(reply, 500, 'mutation_failed', request.id);
 };
 
+const calibrationFailure = (error: unknown): { readonly status: number; readonly code: string } => {
+  const message = error instanceof Error ? error.message : '';
+  const operatingSystemCode =
+    error instanceof Error && 'code' in error && typeof error.code === 'string'
+      ? error.code
+      : undefined;
+  if (message === 'EMBEDDER_MODEL_FILES_MISSING')
+    return { status: 409, code: 'embedding_model_not_installed' };
+  if (message === 'EMBEDDER_MODEL_UNAVAILABLE')
+    return { status: 409, code: 'embedding_model_restart_required' };
+  if (message === 'TOKEN_LIMIT') return { status: 400, code: 'embedding_calibration_token_limit' };
+  if (message === 'EMBEDDER_MODEL_LOAD_FAILED' || message === 'EMBEDDER_INVALID_OUTPUT')
+    return { status: 503, code: 'embedding_model_load_failed' };
+  if (['ENOENT', 'ECONNREFUSED', 'ECONNRESET', 'EPIPE'].includes(operatingSystemCode ?? ''))
+    return { status: 503, code: 'embedding_worker_unavailable' };
+  return { status: 503, code: 'embedding_calibration_failed' };
+};
+
 export const registerAdminRoutes = (
   app: FastifyInstance,
   options: ContentRoutesOptions,
   gatewayControl?: GatewayControl,
 ): void => {
+  const defaultModelInstaller = new DefaultModelInstaller({
+    root: resolve(process.env['NODERAG_MODEL_ROOT'] ?? 'runtime-data/models'),
+    allowedHosts: (
+      process.env['NODERAG_MODEL_DOWNLOAD_HOSTS'] ??
+      'huggingface.co,cdn-lfs.huggingface.co,cdn-lfs-us-1.hf.co,cas-bridge.xethub.hf.co,.aws.cdn.hf.co'
+    )
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
+  });
+  const calibrationJobs = new CalibrationJobRegistry<EmbeddingCalibrationResult>(
+    (error) => calibrationFailure(error).code,
+  );
   app.get('/v1/admin/silos', async (request, reply) => {
     const principal = await requireAdmin(request, options, false);
     if (principal === null || principal === 'csrf')
@@ -882,10 +1029,18 @@ export const registerAdminRoutes = (
     const principal = await requireAdmin(request, options, false);
     if (principal === null || principal === 'csrf')
       return sendProblem(reply, 401, 'server_admin_required', request.id);
-    const result = await options.pool.query(
+    const result = await options.pool.query<{
+      embedThreads: number;
+      [key: string]: unknown;
+    }>(
       `SELECT target_chars AS "targetChars",overlap_chars AS "overlapChars",max_tokens AS "maxTokens",snap_window::float AS "snapWindow",heading_prefix AS "headingPrefix",embed_threads AS "embedThreads",ingest_threads AS "ingestThreads",throttle_when_busy AS "throttleWhenBusy",default_mode AS "defaultMode",ef_search AS "efSearch",audit_retention_days AS "auditRetentionDays",updated_at AS "updatedAt" FROM noderag.settings WHERE id=1`,
     );
-    return reply.send(result.rows[0]);
+    const settings = result.rows[0];
+    if (settings === undefined) return sendProblem(reply, 503, 'settings_unavailable', request.id);
+    return reply.send({
+      ...settings,
+      runtime: settingsRuntime(settings.embedThreads, await currentRuntimeStatus(options.embedder)),
+    });
   });
 
   app.put('/v1/admin/setup/progress', async (request, reply) => {
@@ -947,6 +1102,9 @@ export const registerAdminRoutes = (
     if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
     const body = settingsSchema.safeParse(request.body);
     if (!body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    if (body.data.embedThreads !== undefined && body.data.embedThreads > localProcessorLimit()) {
+      return sendProblem(reply, 400, 'embedding_threads_exceed_available_processors', request.id);
+    }
     try {
       const result = await mutate(
         request,
@@ -962,7 +1120,13 @@ export const registerAdminRoutes = (
           const overlap = body.data.overlapChars ?? current.rows[0]?.overlap_chars ?? 300;
           if (overlap > target / 2) throw new Error('overlap_exceeds_half_target');
           const updated = await database.query(
-            `UPDATE noderag.settings SET target_chars=COALESCE($1,target_chars),overlap_chars=COALESCE($2,overlap_chars),max_tokens=COALESCE($3,max_tokens),snap_window=COALESCE($4,snap_window),heading_prefix=COALESCE($5,heading_prefix),embed_threads=COALESCE($6,embed_threads),ingest_threads=COALESCE($7,ingest_threads),throttle_when_busy=COALESCE($8,throttle_when_busy),default_mode=COALESCE($9,default_mode),ef_search=COALESCE($10,ef_search),audit_retention_days=COALESCE($11,audit_retention_days),updated_at=now(),updated_by=$12 WHERE id=1 RETURNING *`,
+            `UPDATE noderag.settings SET target_chars=COALESCE($1,target_chars),overlap_chars=COALESCE($2,overlap_chars),max_tokens=COALESCE($3,max_tokens),snap_window=COALESCE($4,snap_window),heading_prefix=COALESCE($5,heading_prefix),embed_threads=COALESCE($6,embed_threads),ingest_threads=COALESCE($7,ingest_threads),throttle_when_busy=COALESCE($8,throttle_when_busy),default_mode=COALESCE($9,default_mode),ef_search=COALESCE($10,ef_search),audit_retention_days=COALESCE($11,audit_retention_days),updated_at=now(),updated_by=$12 WHERE id=1
+             RETURNING target_chars AS "targetChars",overlap_chars AS "overlapChars",
+                       max_tokens AS "maxTokens",snap_window::float AS "snapWindow",
+                       heading_prefix AS "headingPrefix",embed_threads AS "embedThreads",
+                       ingest_threads AS "ingestThreads",throttle_when_busy AS "throttleWhenBusy",
+                       default_mode AS "defaultMode",ef_search AS "efSearch",
+                       audit_retention_days AS "auditRetentionDays",updated_at AS "updatedAt"`,
             [
               body.data.targetChars ?? null,
               body.data.overlapChars ?? null,
@@ -981,7 +1145,27 @@ export const registerAdminRoutes = (
           return { status: 200, body: updated.rows[0] };
         },
       );
-      return reply.send(result.response.body);
+      const responseBody = result.response.body as { embedThreads?: unknown };
+      const configuredThreads = Number(responseBody.embedThreads ?? body.data.embedThreads ?? 4);
+      let status = await currentRuntimeStatus(options.embedder);
+      let applyStatus: 'active' | 'reloaded' | 'pending' = 'active';
+      if (body.data.embedThreads !== undefined && status?.threads !== body.data.embedThreads) {
+        const configure = runtimeController(options.embedder).configureThreads;
+        if (configure === undefined) {
+          applyStatus = 'pending';
+        } else {
+          try {
+            status = await configure.call(options.embedder, body.data.embedThreads);
+            applyStatus = 'reloaded';
+          } catch {
+            applyStatus = 'pending';
+          }
+        }
+      }
+      return reply.send({
+        ...(responseBody as Record<string, unknown>),
+        runtime: settingsRuntime(configuredThreads, status, applyStatus),
+      });
     } catch (error) {
       return mutationFailure(reply, request, error);
     }
@@ -993,6 +1177,42 @@ export const registerAdminRoutes = (
       return sendProblem(reply, 401, 'server_admin_required', request.id);
     const rows = await options.pool.query(`SELECT * FROM noderag.model_manifest ORDER BY id`);
     return reply.send({ items: rows.rows });
+  });
+
+  app.get('/v1/admin/models/default/status', async (request, reply) => {
+    const principal = await requireAdmin(request, options, false);
+    if (principal === null || principal === 'csrf')
+      return sendProblem(reply, 401, 'server_admin_required', request.id);
+    return reply.send(await defaultModelInstaller.status());
+  });
+
+  app.post('/v1/admin/models/default/install', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    try {
+      const result = await mutate(
+        request,
+        principal,
+        options,
+        'admin-default-model-install',
+        {},
+        async () => {
+          defaultModelInstaller.start(async (artifact) => {
+            await options.pool.query(
+              `INSERT INTO noderag.model_artifact(artifact_name,sha256,bytes,acquisition)
+               VALUES($1,decode($2,'hex'),$3,'download')
+               ON CONFLICT (artifact_name,sha256) DO NOTHING`,
+              [artifact.name, artifact.sha256, artifact.bytes],
+            );
+          });
+          return { status: 202, body: await defaultModelInstaller.status() };
+        },
+      );
+      return reply.code(result.response.status).send(result.response.body);
+    } catch (error) {
+      return mutationFailure(reply, request, error);
+    }
   });
 
   app.post('/v1/admin/models', async (request, reply) => {
@@ -1531,15 +1751,12 @@ export const registerAdminRoutes = (
     try {
       return reply.send(await probeStorage(body.data.managedPath, storageProbeOptions()));
     } catch (error) {
-      const code = error instanceof Error ? error.message : 'storage_probe_failed';
-      if (code === 'storage_path_must_be_absolute') {
-        return sendProblem(reply, 400, code, request.id);
-      }
+      const code = storageProbeProblemCode(error);
       request.log.warn(
-        { errorName: error instanceof Error ? error.name : 'unknown' },
+        { code, errorName: error instanceof Error ? error.name : 'unknown' },
         'storage probe failed',
       );
-      return sendProblem(reply, 400, 'storage_probe_failed', request.id);
+      return sendProblem(reply, 400, code, request.id);
     }
   });
   app.post('/v1/admin/storage', async (request, reply) => {
@@ -1548,6 +1765,17 @@ export const registerAdminRoutes = (
     if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
     const body = storageSchema.safeParse(request.body);
     if (!body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    let storageProbe: Awaited<ReturnType<typeof probeStorage>>;
+    try {
+      storageProbe = await probeStorage(body.data.managedPath, storageProbeOptions());
+    } catch (error) {
+      const code = storageProbeProblemCode(error);
+      request.log.warn(
+        { code, errorName: error instanceof Error ? error.name : 'unknown' },
+        'storage creation probe failed',
+      );
+      return sendProblem(reply, 400, code, request.id);
+    }
     try {
       const result = await mutate(
         request,
@@ -1563,7 +1791,7 @@ export const registerAdminRoutes = (
                        created_at AS "createdAt"`,
             [
               body.data.name,
-              body.data.managedPath,
+              storageProbe.managedPath,
               body.data.purpose,
               body.data.enabled,
               principal.principalId,
@@ -1584,6 +1812,7 @@ export const registerAdminRoutes = (
     const id = smallIdSchema.safeParse((request.params as { id?: unknown }).id);
     const body = storagePatchSchema.safeParse(request.body);
     if (!id.success || !body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    let verifiedManagedPath = body.success ? body.data.managedPath : undefined;
     if (body.data.managedPath !== undefined) {
       const current = await options.pool.query<{ managed_path: string; in_use: boolean }>(
         `SELECT location.managed_path,
@@ -1603,13 +1832,15 @@ export const registerAdminRoutes = (
           return sendProblem(reply, 409, 'storage_location_in_use', request.id);
         }
         try {
-          await probeStorage(body.data.managedPath, storageProbeOptions());
+          verifiedManagedPath = (await probeStorage(body.data.managedPath, storageProbeOptions()))
+            .managedPath;
         } catch (error) {
+          const code = storageProbeProblemCode(error);
           request.log.warn(
-            { errorName: error instanceof Error ? error.name : 'unknown' },
+            { code, errorName: error instanceof Error ? error.name : 'unknown' },
             'storage update probe failed',
           );
-          return sendProblem(reply, 400, 'storage_probe_failed', request.id);
+          return sendProblem(reply, 400, code, request.id);
         }
       }
     }
@@ -1629,7 +1860,7 @@ export const registerAdminRoutes = (
           if (existing === undefined) throw new Error('not_found');
           const pathOrPurposeChanged =
             (body.data.managedPath !== undefined &&
-              body.data.managedPath !== existing.managed_path) ||
+              verifiedManagedPath !== existing.managed_path) ||
             (body.data.purpose !== undefined && body.data.purpose !== existing.purpose);
           if (pathOrPurposeChanged) {
             const references = await database.query<{ in_use: boolean }>(
@@ -1655,7 +1886,7 @@ export const registerAdminRoutes = (
             [
               id.data,
               body.data.name ?? null,
-              body.data.managedPath ?? null,
+              verifiedManagedPath ?? null,
               body.data.purpose ?? null,
               body.data.enabled ?? null,
             ],
@@ -1668,20 +1899,32 @@ export const registerAdminRoutes = (
       return mutationFailure(reply, request, error);
     }
   });
-  app.post('/v1/admin/calibration/embedding', async (request, reply) => {
+  app.get('/v1/admin/calibration/embedding/status', async (request, reply) => {
+    const principal = await requireAdmin(request, options, false);
+    if (principal === null || principal === 'csrf')
+      return sendProblem(reply, 401, 'server_admin_required', request.id);
+    const job = calibrationJobs.status(principal.principalId);
+    return reply.send(
+      job ?? {
+        id: null,
+        state: 'idle',
+        phase: null,
+        progress: 0,
+        startedAt: null,
+        finishedAt: null,
+        result: null,
+        errorCode: null,
+      },
+    );
+  });
+
+  app.post('/v1/admin/calibration/embedding/start', async (request, reply) => {
     const principal = await requireAdmin(request, options, true);
     if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
     if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
     const body = calibrationSchema.safeParse(request.body ?? {});
     if (!body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
-    const model = await options.pool.query<{
-      maximum_tokens: number;
-      document_prefix: string;
-      name: string;
-      source_revision: string;
-      manifest_digest: string;
-      dimensions: number;
-    }>(
+    const model = await options.pool.query<ActiveCalibrationModel>(
       `SELECT m.maximum_tokens, m.document_prefix, m.name, m.source_revision,
               m.manifest_digest, m.dimensions
        FROM noderag.model_manifest m WHERE m.active`,
@@ -1689,27 +1932,53 @@ export const registerAdminRoutes = (
     const active = model.rows[0];
     if (active === undefined) return sendProblem(reply, 503, 'active_model_missing', request.id);
     const samples = body.data.samples ?? calibrationSamples;
-    const characters = samples.reduce((total, value) => total + value.length, 0);
-    const started = performance.now();
-    await coordinatedEmbedder(options.pool, `ui-calibration:${request.id}`, options.embedder).embed(
-      samples.map((value) => `${active.document_prefix}${value.normalize('NFC')}`),
-      active.maximum_tokens,
-      0,
-      { manifestDigest: active.manifest_digest, dimensions: active.dimensions },
-    );
-    const elapsedMs = Math.max(1, performance.now() - started);
-    const charactersPerSecond = Math.round((characters * 1000) / elapsedMs);
-    return reply.send({
-      chunks: samples.length,
-      characters,
-      elapsedMs: Math.round(elapsedMs),
-      charactersPerSecond,
-      projectedMinutesPerMillionCharacters: Number(
-        (1_000_000 / Math.max(1, charactersPerSecond) / 60).toFixed(1),
-      ),
-      model: active.name,
-      revision: active.source_revision,
+    const job = calibrationJobs.start(principal.principalId, async (report) => {
+      try {
+        return await measureEmbeddingThroughput(
+          options,
+          `ui-calibration-job:${principal.principalId}:${request.id}`,
+          active,
+          samples,
+          report,
+        );
+      } catch (error) {
+        const failure = calibrationFailure(error);
+        request.log.error(
+          { errorName: error instanceof Error ? error.name : 'unknown', code: failure.code },
+          'background embedding calibration failed',
+        );
+        throw error;
+      }
     });
+    return reply.code(202).send(job);
+  });
+
+  app.post('/v1/admin/calibration/embedding', async (request, reply) => {
+    const principal = await requireAdmin(request, options, true);
+    if (principal === null) return sendProblem(reply, 401, 'server_admin_required', request.id);
+    if (principal === 'csrf') return sendProblem(reply, 403, 'csrf_rejected', request.id);
+    const body = calibrationSchema.safeParse(request.body ?? {});
+    if (!body.success) return sendProblem(reply, 400, 'invalid_request', request.id);
+    const model = await options.pool.query<ActiveCalibrationModel>(
+      `SELECT m.maximum_tokens, m.document_prefix, m.name, m.source_revision,
+              m.manifest_digest, m.dimensions
+       FROM noderag.model_manifest m WHERE m.active`,
+    );
+    const active = model.rows[0];
+    if (active === undefined) return sendProblem(reply, 503, 'active_model_missing', request.id);
+    const samples = body.data.samples ?? calibrationSamples;
+    try {
+      return reply.send(
+        await measureEmbeddingThroughput(options, `ui-calibration:${request.id}`, active, samples),
+      );
+    } catch (error) {
+      const failure = calibrationFailure(error);
+      request.log.error(
+        { errorName: error instanceof Error ? error.name : 'unknown', code: failure.code },
+        'embedding calibration failed',
+      );
+      return sendProblem(reply, failure.status, failure.code, request.id);
+    }
   });
   app.get('/v1/admin/backups', async (request, reply) => {
     const principal = await requireAdmin(request, options, false);
@@ -2140,7 +2409,7 @@ export const registerAdminRoutes = (
               `INSERT INTO noderag.evaluation_run
                  (mode,workload,created_by,config,corpus_snapshot_id,settings_revision_id,
                   commit_sha,migration_head,build_snapshot,model_snapshot,thresholds)
-               VALUES($1,$2,$3,$4,$5,$6,$7,'000011_recovery_hardening',$8,$9,$10)
+               VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
                RETURNING id,mode,workload,state,created_at AS "createdAt"`,
               [
                 mode,
@@ -2154,6 +2423,7 @@ export const registerAdminRoutes = (
                 corpus.rows[0]?.id,
                 revision.rows[0]?.id,
                 pinnedCommit,
+                CURRENT_SCHEMA_REVISION,
                 JSON.stringify({ items: builds.rows }),
                 JSON.stringify({ active: models.rows }),
                 JSON.stringify({

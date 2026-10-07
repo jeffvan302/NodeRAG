@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "name": "M4 Smyrna source-selection quality corpus",
+  "extractorContract": "poppler-pdftotext-layout-utf8-v1",
+  "acquisitionContract": "page-window-keyword-tfidf-v1",
+  "retrievalConfiguration": {
+    "mode": "hybrid",
+    "scoreScale": "ppb_1e9_v1",
+    "keywordWeightPpb": 600000000,
+    "vectorWeightPpb": 400000000,
+    "minimumScorePpb": 630000000,
+    "protectedDepth": 3,
+    "rrfK": 60
+  },
+  "acquisitionConfiguration": {
+    "chunkCharacters": 1800,
+    "chunkOverlapCharacters": 240,
+    "maximumChunkSignalsPerDocumentQuery": 5,
+    "minimumVectorSimilarity": 0.035,
+    "minimumMatchedQueryTerms": 3
+  },
+  "documents": [
+    {
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "sourceTitle": "Town of Smyrna Financial Statements for December 31, 2024",
+      "fileName": "1. Town of Smyrna Financial Statements for December 31, 2024.pdf",
+      "sha256": "7b450d6c1af0a9839e91557f19e4cd08dc66f84e24ed6809d8bf722711a8b3f5"
+    },
+    {
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "sourceTitle": "2020 Smyrna Comprehensive Plan",
+      "fileName": "2. 2020 Smyrna Comp Plan FINAL.pdf",
+      "sha256": "f4735813ce31ab8e15017f6a9404a06520b64b093e238e552079630d2a325630"
+    },
+    {
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "sourceTitle": "Comprehensive Plan Town Council Presentation",
+      "fileName": "3. Comp Plan Town Council Presentation1 September 30 2020_1.pdf",
+      "sha256": "6be00013d1d1d825df03029c789e6f5e3500b7f940681cf34a71e8b1c2596d31"
+    },
+    {
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "sourceTitle": "Town of Smyrna Performance Audit Report 2022-2023",
+      "fileName": "4. Town-of-Smyrna-Performance-Audit-Report-2022-2023-1.pdf",
+      "sha256": "f8ded76d5226d49aca85154c081320f1779e69526535477cf91299b5fc2f3f37"
+    }
+  ],
+  "cases": [
+    {
+      "queryKey": "financial_position",
+      "requirementKey": "financial_position",
+      "query": "audited financial position revenues expenditures debt and material findings",
+      "expectedCandidateKeys": ["financial_statements_2024"],
+      "allowedAdditionalCandidateKeys": ["performance_audit_2022_2023"]
+    },
+    {
+      "queryKey": "general_fund_budget",
+      "requirementKey": "general_fund_budget",
+      "query": "General Fund budget to actual revenues expenditures and fund balance",
+      "expectedCandidateKeys": ["financial_statements_2024"],
+      "allowedAdditionalCandidateKeys": ["performance_audit_2022_2023"]
+    },
+    {
+      "queryKey": "pension_liabilities",
+      "requirementKey": "pension_liabilities",
+      "query": "police firefighters and employee pension liabilities contributions and investment returns",
+      "expectedCandidateKeys": ["financial_statements_2024"],
+      "allowedAdditionalCandidateKeys": []
+    },
+    {
+      "queryKey": "water_sewer_finance",
+      "requirementKey": "water_sewer_finance",
+      "query": "water and sewer enterprise funds operating income capital assets and debt",
+      "expectedCandidateKeys": ["financial_statements_2024"],
+      "allowedAdditionalCandidateKeys": []
+    },
+    {
+      "queryKey": "future_land_use",
+      "requirementKey": "future_land_use",
+      "query": "future land use map zoning growth and development policy",
+      "expectedCandidateKeys": ["comprehensive_plan_2020"],
+      "allowedAdditionalCandidateKeys": ["comprehensive_plan_presentation_2020"]
+    },
+    {
+      "queryKey": "population_housing",
+      "requirementKey": "population_housing",
+      "query": "population projections housing growth demographics and household trends",
+      "expectedCandidateKeys": ["comprehensive_plan_2020"],
+      "allowedAdditionalCandidateKeys": ["comprehensive_plan_presentation_2020"]
+    },
+    {
+      "queryKey": "transportation_plan",
+      "requirementKey": "transportation_plan",
+      "query": "transportation plan DelDOT roads transit bicycle pedestrian improvements",
+      "expectedCandidateKeys": ["comprehensive_plan_2020"],
+      "allowedAdditionalCandidateKeys": ["comprehensive_plan_presentation_2020"]
+    },
+    {
+      "queryKey": "parks_recreation",
+      "requirementKey": "parks_recreation",
+      "query": "parks recreation open space facilities trails and community recreation goals",
+      "expectedCandidateKeys": ["comprehensive_plan_2020"],
+      "allowedAdditionalCandidateKeys": ["comprehensive_plan_presentation_2020"]
+    },
+    {
+      "queryKey": "economic_development",
+      "requirementKey": "economic_development",
+      "query": "economic development quality businesses high paying jobs downtown redevelopment",
+      "expectedCandidateKeys": ["comprehensive_plan_2020"],
+      "allowedAdditionalCandidateKeys": ["comprehensive_plan_presentation_2020"]
+    },
+    {
+      "queryKey": "bank_reconciliation",
+      "requirementKey": "bank_reconciliation",
+      "query": "formalized bank reconciliation process review approval and accounting controls",
+      "expectedCandidateKeys": ["performance_audit_2022_2023"],
+      "allowedAdditionalCandidateKeys": ["financial_statements_2024"]
+    },
+    {
+      "queryKey": "arpa_capital_controls",
+      "requirementKey": "arpa_capital_controls",
+      "query": "ARPA capital project funds monitoring expenditures reconciliation and oversight",
+      "expectedCandidateKeys": ["performance_audit_2022_2023"],
+      "allowedAdditionalCandidateKeys": ["financial_statements_2024"]
+    },
+    {
+      "queryKey": "credible_no_match",
+      "requirementKey": "credible_no_match",
+      "query": "current airport runway snow removal inspection log",
+      "expectedCandidateKeys": [],
+      "allowedAdditionalCandidateKeys": []
+    }
+  ]
+}

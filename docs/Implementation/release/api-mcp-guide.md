@@ -13,7 +13,7 @@ client-supplied silo ID as authorization.
 
 ## Search
 
-Submit `POST /v1/search` with a query, `vector`, `keyword`, or `hybrid` mode, optional silo
+Submit `POST /v1/search` with a query, `vector`, `semantic`, `keyword`, or `hybrid` mode, optional silo
 narrowing, filters, limit, and opaque cursor. Results provide passage text, document identity,
 heading/page or sheet context where applicable, and character/byte locators. Character offsets are
 UTF-16 code units; byte offsets are UTF-8 bytes. Prefer returned text/context rather than slicing.

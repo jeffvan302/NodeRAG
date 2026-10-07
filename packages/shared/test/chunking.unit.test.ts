@@ -52,6 +52,7 @@ describe('canonical Markdown chunking', () => {
       '- one list item with a continuation\n  that remains attached\n\n',
       '```ts\nconst exact = "line boundary";\n```\n\n',
       '<!-- noderag:image id=7 -->\nimage provenance body\n<!-- /noderag:image -->\n\n',
+      '<!-- noderag:vision image-sha256="abc" -->\nvision body\n<!-- /noderag:vision -->\n\n',
       '| Key | Value |\n| --- | --- |\n',
       tableRows,
     ].join('');
@@ -67,6 +68,10 @@ describe('canonical Markdown chunking', () => {
     expect(chunks.some(({ structureKinds }) => structureKinds.includes('image-provenance'))).toBe(
       true,
     );
+    expect(chunks.map(({ embeddingText }) => embeddingText).join('\n')).not.toContain(
+      '<!-- noderag:',
+    );
+    expect(chunks.map(({ embeddingText }) => embeddingText).join('\n')).toContain('vision body');
     const continuation = chunks.find(
       ({ structureKind, continuation: detail }) =>
         structureKind === 'table' && detail['continued'] === true,

@@ -9,7 +9,9 @@ import type {
   ExtractedPage,
   ExtractionOptions,
   InjectedVision,
+  VisionRequest,
 } from './contract.js';
+import { analyseVisionRequests } from './contract.js';
 import { openOfficeArchive } from './office-archive.js';
 import { extractedImageFromVision, markdownFromVision } from '../vision/result.js';
 
@@ -428,6 +430,7 @@ const worksheetImages = async (
   const images: ExtractedImage[] = [];
   const blocks: string[] = [];
   const warnings: string[] = [];
+  const requests: VisionRequest[] = [];
   for (const [path] of archive.entries) {
     if (!path.startsWith('xl/media/')) continue;
     const bytes = await archive.read(path);
@@ -451,15 +454,22 @@ const worksheetImages = async (
       pageNumber: null,
       imageId: id,
     } as const;
-    const result = await injectedVision.analyse(request);
-    images.push(extractedImageFromVision(request, images.length, result));
-    if (result.disposition === 'analysed' && result.confidence < 0.5)
-      warnings.push('worksheet-image-low-vision-confidence');
-    const block = markdownFromVision(request, result);
-    if (block.length > 0) blocks.push(block);
-    if (result.disposition === 'pending_vision') warnings.push('worksheet-image-vision-pending');
-    if (result.disposition === 'skipped')
-      warnings.push(`worksheet-image-skipped:${result.skipReason}`);
+    requests.push(request);
+  }
+  if (injectedVision !== undefined && requests.length > 0) {
+    const results = await analyseVisionRequests(injectedVision, requests);
+    for (const [index, request] of requests.entries()) {
+      const result = results[index];
+      if (result === undefined) throw new Error('vision-result-missing');
+      images.push(extractedImageFromVision(request, images.length, result));
+      if (result.disposition === 'analysed' && result.confidence < 0.5)
+        warnings.push('worksheet-image-low-vision-confidence');
+      const block = markdownFromVision(request, result);
+      if (block.length > 0) blocks.push(block);
+      if (result.disposition === 'pending_vision') warnings.push('worksheet-image-vision-pending');
+      if (result.disposition === 'skipped')
+        warnings.push(`worksheet-image-skipped:${result.skipReason}`);
+    }
   }
   return { images, blocks, warnings };
 };

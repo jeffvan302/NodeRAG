@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "capturedAt": "2026-09-02T22:47:10-04:00",
+  "branch": "dev",
+  "headBeforeM0": "b3ef33f",
+  "migrationHead": "20260902000300_template_worker_model_status",
+  "authoritativeRoute": "staged_v1",
+  "behavior": {
+    "manifestVersion": 1,
+    "executionPlanVersion": 1,
+    "workerDispatch": "serial staged template executor with model-managed retrieval/extraction loops",
+    "markdownStorage": "one mutable document_markdown row per live document",
+    "coverageIdentity": "does not require immutable Markdown content identity",
+    "phaseTwoProviderCalls": "not deferred into durable server-owned work orders",
+    "publicationCustody": "existing Task Dataset transaction path",
+    "v2RolloutMode": "disabled"
+  },
+  "localRegressionBaseline": {
+    "docsCheck": "passed",
+    "ragCore": {
+      "testFiles": 24,
+      "tests": 278,
+      "status": "passed",
+      "durationSeconds": 1.57
+    },
+    "web": {
+      "testFiles": 102,
+      "tests": 515,
+      "status": "passed",
+      "durationSeconds": 7.72
+    }
+  },
+  "performanceQualification": {
+    "kind": "local_regression_baseline_only",
+    "note": "Provider latency, extraction accuracy, and end-to-end p50/p95 are intentionally measured during M4 shadow and M8/M10 canaries against the frozen corpus; M0 makes no provider call."
+  }
+}

@@ -1,7 +1,7 @@
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { mkdtemp, readFile, rm, writeFile, mkdir } from 'node:fs/promises';
+import { mkdtemp, readFile, realpath, rm, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { executeBackup } from '../src/recovery/backup.js';
@@ -30,6 +30,7 @@ import { runMigrations } from '../src/store/migrations.js';
 import { createChunkPartition } from '../src/store/silos.js';
 import { executeUpgradeRehearsal, planUpgrade } from '../src/recovery/upgrade.js';
 import { bootstrapFirstAdministrator, issueSetupToken } from '../src/setup/bootstrap.js';
+import { probeChatStorage } from '../src/chat/storage.js';
 
 const postgresImage =
   'pgvector/pgvector@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f';
@@ -232,6 +233,24 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
       markdown,
       'utf8',
     );
+    const sourceChatStorage = await probeChatStorage(join(root, 'source-chat-storage'));
+    const recoveryConversationId = '00000000-0000-4000-8000-000000000099';
+    const recoveryRequestMessageId = '00000000-0000-4000-8000-000000000100';
+    const recoveryResponseMessageId = '00000000-0000-4000-8000-000000000101';
+    const recoveryRunId = '00000000-0000-4000-8000-000000000102';
+    const recoveryArtifactId = '00000000-0000-4000-8000-000000000103';
+    const recoveryArtifactRevisionId = '00000000-0000-4000-8000-000000000104';
+    const recoveryExportId = '00000000-0000-4000-8000-000000000105';
+    const recoveryCompressionId = '00000000-0000-4000-8000-000000000106';
+    const recoveryImportId = '00000000-0000-4000-8000-000000000107';
+    await mkdir(join(sourceChatStorage.chatRoot, 'conversations', recoveryConversationId), {
+      recursive: true,
+    });
+    await writeFile(
+      join(sourceChatStorage.chatRoot, 'conversations', recoveryConversationId, 'events.ndjson'),
+      '{"contract":"recovery-chat-file-proof"}\n',
+      'utf8',
+    );
     await pool.query(
       `INSERT INTO noderag.silo (id, slug, display_name) VALUES (7, 'recovery', 'Recovery')`,
     );
@@ -252,6 +271,136 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
       'm13-provider',
       'secret provider value only inside encrypted archive',
       400,
+    );
+    await sourceVault.store(
+      pool,
+      'ollama_cloud',
+      'api-key',
+      'synthetic restored Ollama Cloud key',
+      400,
+    );
+    await sourceVault.store(
+      pool,
+      'openai_oauth',
+      'credential-cache',
+      '{"tokens":{"refresh_token":"synthetic restored OpenAI OAuth credential"}}',
+      400,
+    );
+    await pool.query(
+      `UPDATE noderag.chat_provider_connection
+       SET enabled=true, generation_model='minimax-m3:cloud',
+           credential_secret_id=(
+             SELECT id FROM noderag.encrypted_secret
+             WHERE provider='ollama_cloud' AND name='api-key'
+           )
+       WHERE provider_kind='ollama_cloud'`,
+    );
+    await pool.query(
+      `UPDATE noderag.chat_provider_capability capability
+       SET status='healthy', latency_ms=25, metadata='{"synthetic":true}'::jsonb,
+           tested_at=now(), updated_at=now()
+       FROM noderag.chat_provider_connection connection
+       WHERE capability.connection_id=connection.id
+         AND connection.provider_kind='ollama_cloud'`,
+    );
+    await pool.query(
+      `UPDATE noderag.chat_provider_connection
+       SET enabled=true, generation_model='gpt-test',
+           credential_secret_id=(
+             SELECT id FROM noderag.encrypted_secret
+             WHERE provider='openai_oauth' AND name='credential-cache'
+           )
+       WHERE provider_kind='openai_oauth'`,
+    );
+    await pool.query(
+      `UPDATE noderag.chat_provider_capability capability
+       SET status='healthy', latency_ms=30, metadata='{"synthetic":true}'::jsonb,
+           tested_at=now(), updated_at=now()
+       FROM noderag.chat_provider_connection connection
+       WHERE capability.connection_id=connection.id
+         AND connection.provider_kind='openai_oauth'`,
+    );
+    await pool.query(
+      `WITH configuration AS (
+         INSERT INTO noderag.chat_conversation_configuration_revision (
+           revision_id,settings_revision_id,context_revision_id,provider_connection_id,
+           provider_kind,model,reasoning_effort,context_mode,created_by
+         ) SELECT '00000000-0000-4000-8000-000000000098',current.settings_revision_id,
+                  current.context_revision_id,connection.id,'ollama_cloud','minimax-m3:cloud',
+                  'default','rolling',400
+           FROM noderag.chat_configuration_current current
+           JOIN noderag.chat_provider_connection connection
+             ON connection.provider_kind='ollama_cloud'
+         RETURNING id
+       )
+       INSERT INTO noderag.chat_conversation
+         (id,owner_principal_id,name,configuration_revision_id)
+       SELECT $1,400,'Recovery in-flight Chat proof',id FROM configuration`,
+      [recoveryConversationId],
+    );
+    await pool.query(
+      `INSERT INTO noderag.chat_message
+         (id,conversation_id,sequence,role,content,state,completed_at)
+       VALUES
+         ($1,$3,0,'user','Recover this request','committed',now()),
+         ($2,$3,1,'assistant','Partial response','streaming',NULL)`,
+      [recoveryRequestMessageId, recoveryResponseMessageId, recoveryConversationId],
+    );
+    await pool.query(
+      `INSERT INTO noderag.chat_run (
+         id,conversation_id,request_message_id,response_message_id,status,provider_kind,
+         model,reasoning_effort,context_mode,configuration_revision_id,lease_owner,leased_until
+       ) SELECT $1,$2,$3,$4,'running','ollama_cloud','minimax-m3:cloud','default','rolling',
+                conversation.configuration_revision_id,'backup-worker',now()+interval '5 minutes'
+         FROM noderag.chat_conversation conversation WHERE conversation.id=$2`,
+      [recoveryRunId, recoveryConversationId, recoveryRequestMessageId, recoveryResponseMessageId],
+    );
+    await pool.query(
+      `INSERT INTO noderag.chat_artifact (
+         id,conversation_id,relative_path,path_key,artifact_kind,mime_type,current_revision,
+         current_sha256,current_bytes,created_by_principal_id
+       ) VALUES ($1,$2,'recovery.md','recovery.md','file','text/markdown',1,
+                 decode(repeat('44',32),'hex'),16,400)`,
+      [recoveryArtifactId, recoveryConversationId],
+    );
+    await pool.query(
+      `INSERT INTO noderag.chat_artifact_revision (
+         id,artifact_id,conversation_id,revision,content_sha256,byte_length,
+         storage_relative_path,created_by_kind,created_by_principal_id
+       ) VALUES ($1,$2,$3,1,decode(repeat('44',32),'hex'),16,
+                 'users/400/chats/recovery/recovery.md','user',400)`,
+      [recoveryArtifactRevisionId, recoveryArtifactId, recoveryConversationId],
+    );
+    await pool.query(
+      `INSERT INTO noderag.chat_export_job (
+         id,conversation_id,artifact_id,artifact_revision_id,source_revision,source_sha256,
+         requested_by_principal_id,output_format,state,progress_percent,phase,attempt_count,
+         maximum_attempts,timeout_ms,maximum_output_bytes,lease_owner,leased_until,
+         generator_revision,format_policy_revision
+       ) VALUES ($1,$2,$3,$4,1,decode(repeat('44',32),'hex'),400,'pdf','running',50,
+                 'rendering',1,2,120000,67108864,'backup-export-worker',
+                 now()+interval '5 minutes','chat-export.v1','safe-office-pdf.v1')`,
+      [recoveryExportId, recoveryConversationId, recoveryArtifactId, recoveryArtifactRevisionId],
+    );
+    await pool.query(
+      `INSERT INTO noderag.chat_context_compression_job (
+         id,conversation_id,trigger_run_id,mode,state,context_revision_id,
+         source_last_message_sequence,lease_owner,leased_until,settings_snapshot
+       ) SELECT $1,$2,$3,'automatic','running',current.context_revision_id,1,
+                'backup-compression-worker',now()+interval '5 minutes','{}'::jsonb
+         FROM noderag.chat_configuration_current current WHERE current.singleton=true`,
+      [recoveryCompressionId, recoveryConversationId, recoveryRunId],
+    );
+    await pool.query(
+      `INSERT INTO noderag.chat_import_operation (
+         id,requested_by,source_manifest_sha256,source_schema_revision,state
+       ) VALUES ($1,400,decode(repeat('55',32),'hex'),'chat-archive-manifest.v1','validating')`,
+      [recoveryImportId],
+    );
+    await pool.query(
+      `INSERT INTO noderag.chat_web_usage_minute (connection_id,minute_start,request_count)
+       SELECT id,date_trunc('minute',now()),1 FROM noderag.chat_provider_connection
+       WHERE provider_kind='ollama_cloud'`,
     );
     await pool.query(
       `INSERT INTO noderag.document
@@ -296,8 +445,9 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
       destination: backupRoot,
       passphrase,
       dataRoot: sourceRoot,
+      chatRoot: sourceChatStorage.chatRoot,
       policy: await loadBackupClassification(),
-      migrationHead: '000011_recovery_hardening',
+      migrationHead: '000029_chat_files',
       postgresMajor: 17,
       postgresClientMajor: 17,
       requiredFreeBytes: 1024 * 1024,
@@ -322,7 +472,11 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
         'database/logical.dump',
         'database/secrets.ndjson',
         'database/tables/document.ndjson',
+        'database/tables/research_collection.ndjson',
+        'database/tables/research_reference.ndjson',
         'documents/000000/101/canonical.md',
+        '.noderag-chat/manifest.json',
+        `.noderag-chat/conversations/${recoveryConversationId}/events.ndjson`,
       ]),
     );
     const sidecar = JSON.parse(await readFile(written.sidecarPath, 'utf8')) as {
@@ -344,8 +498,9 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
       destination: backupRoot,
       passphrase,
       dataRoot: sourceRoot,
+      chatRoot: sourceChatStorage.chatRoot,
       policy: await loadBackupClassification(),
-      migrationHead: '000011_recovery_hardening',
+      migrationHead: '000029_chat_files',
       postgresMajor: 17,
       postgresClientMajor: 17,
       requiredFreeBytes: 1024 * 1024,
@@ -367,6 +522,9 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
     expect(portablePaths).not.toContain('database/tables/principal.ndjson');
     expect(portablePaths).not.toContain('database/tables/encrypted_secret.ndjson');
     expect(portablePaths).not.toContain('database/tables/source.ndjson');
+    expect(portablePaths).not.toContain('database/tables/research_collection.ndjson');
+    expect(portablePaths).not.toContain('database/tables/research_reference.ndjson');
+    expect(portablePaths.some((path) => path.startsWith('.noderag-chat/'))).toBe(false);
     expect(portableDocument).not.toContain('source_id');
     expect(portableDocument).not.toContain('uploaded_by');
 
@@ -455,7 +613,7 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
         dataRoot: restoreRoot,
         compatibility: {
           supportedArchiveVersions: [1],
-          migrationHead: '000011_recovery_hardening',
+          migrationHead: '000029_chat_files',
           postgresMajor: 17,
           modelDimensions: [1024],
         },
@@ -489,7 +647,7 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
       dataRoot: restoreRoot,
       compatibility: {
         supportedArchiveVersions: [1],
-        migrationHead: '000011_recovery_hardening',
+        migrationHead: '000029_chat_files',
         postgresMajor: 17,
         modelDimensions: [1024],
       },
@@ -502,14 +660,28 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
     expect(target.rows.get('document')).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: 101, silo_id: 7 })]),
     );
-    expect(target.rows.get('__secrets__')).toEqual([
-      {
-        sourceId: expect.any(Number),
-        provider: 'ollama',
-        name: 'm13-provider',
-        value: 'secret provider value only inside encrypted archive',
-      },
-    ]);
+    expect(target.rows.get('__secrets__')).toEqual(
+      expect.arrayContaining([
+        {
+          sourceId: expect.any(Number),
+          provider: 'ollama',
+          name: 'm13-provider',
+          value: 'secret provider value only inside encrypted archive',
+        },
+        {
+          sourceId: expect.any(Number),
+          provider: 'ollama_cloud',
+          name: 'api-key',
+          value: 'synthetic restored Ollama Cloud key',
+        },
+        {
+          sourceId: expect.any(Number),
+          provider: 'openai_oauth',
+          name: 'credential-cache',
+          value: '{"tokens":{"refresh_token":"synthetic restored OpenAI OAuth credential"}}',
+        },
+      ]),
+    );
     expect(await destinationVault.reveal(pool, 'ollama', 'm13-provider')).toBe(
       'secret provider value only inside encrypted archive',
     );
@@ -523,6 +695,18 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
     expect(
       await readFile(join(restoreRoot, 'documents', '000000', '101', 'canonical.md'), 'utf8'),
     ).toBe(markdown);
+    expect(
+      await readFile(
+        join(
+          restoreRoot,
+          '.noderag-chat',
+          'conversations',
+          recoveryConversationId,
+          'events.ndjson',
+        ),
+        'utf8',
+      ),
+    ).toBe('{"contract":"recovery-chat-file-proof"}\n');
     const barrier = await pool.query<{ state: string }>(
       `SELECT state FROM noderag.maintenance_barrier WHERE id=true`,
     );
@@ -579,6 +763,12 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
     expect(await targetVault.reveal(targetPool, 'ollama', 'm13-provider')).toBe(
       'secret provider value only inside encrypted archive',
     );
+    expect(await targetVault.reveal(targetPool, 'ollama_cloud', 'api-key')).toBe(
+      'synthetic restored Ollama Cloud key',
+    );
+    expect(await targetVault.reveal(targetPool, 'openai_oauth', 'credential-cache')).toBe(
+      '{"tokens":{"refresh_token":"synthetic restored OpenAI OAuth credential"}}',
+    );
     const restoredSettings = await targetPool.query<{
       vision_enabled: boolean;
       ollama_base_url: string | null;
@@ -592,6 +782,117 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
       vision_enabled: false,
       ollama_base_url: null,
       state: 'operational',
+    });
+    const restoredCloud = await targetPool.query<{
+      enabled: boolean;
+      generation_model: string | null;
+      capability_statuses: string[];
+    }>(
+      `SELECT connection.enabled,connection.generation_model,
+              array_agg(capability.status ORDER BY capability.capability) AS capability_statuses
+       FROM noderag.chat_provider_connection connection
+       JOIN noderag.chat_provider_capability capability ON capability.connection_id=connection.id
+       WHERE connection.provider_kind='ollama_cloud'
+       GROUP BY connection.id`,
+    );
+    expect(restoredCloud.rows[0]).toEqual({
+      enabled: false,
+      generation_model: 'minimax-m3:cloud',
+      capability_statuses: ['disabled', 'disabled', 'disabled', 'disabled'],
+    });
+    const restoredOpenAi = await targetPool.query<{
+      enabled: boolean;
+      generation_model: string | null;
+      capability_statuses: string[];
+    }>(
+      `SELECT connection.enabled,connection.generation_model,
+              array_agg(capability.status ORDER BY capability.capability) AS capability_statuses
+       FROM noderag.chat_provider_connection connection
+       JOIN noderag.chat_provider_capability capability ON capability.connection_id=connection.id
+       WHERE connection.provider_kind='openai_oauth'
+       GROUP BY connection.id`,
+    );
+    expect(restoredOpenAi.rows[0]).toEqual({
+      enabled: false,
+      generation_model: 'gpt-test',
+      capability_statuses: ['disabled', 'disabled'],
+    });
+    const restoredChatConfiguration = await targetPool.query<{
+      context_revision: string;
+      settings_revision: string;
+      default_context_mode: string;
+      default_allow_internet: boolean;
+      storage_requested_path: string;
+      storage_resolved_path: string;
+      storage_manifest_id: string;
+    }>(
+      `SELECT context.revision_id::text AS context_revision,
+              settings.revision_id::text AS settings_revision,
+              settings.default_context_mode,settings.default_allow_internet,
+              settings.storage_requested_path,settings.storage_resolved_path,
+              settings.storage_manifest_id::text
+       FROM noderag.chat_configuration_current current
+       JOIN noderag.chat_context_settings_revision context
+         ON context.id=current.context_revision_id
+       JOIN noderag.chat_settings_revision settings ON settings.id=current.settings_revision_id
+       WHERE current.singleton=true`,
+    );
+    expect(restoredChatConfiguration.rows[0]).toEqual({
+      context_revision: '00000000-0000-4000-8000-000000000003',
+      settings_revision: expect.any(String),
+      default_context_mode: 'rolling',
+      default_allow_internet: false,
+      storage_requested_path: resolve(postgresRestoreRoot),
+      storage_resolved_path: await realpath(join(postgresRestoreRoot, '.noderag-chat')),
+      storage_manifest_id: sourceChatStorage.manifest.manifestId,
+    });
+    const resetChatWork = await targetPool.query<{
+      run_status: string;
+      run_error: string;
+      message_state: string;
+      message_restore_review: boolean;
+      export_state: string;
+      export_error: string;
+      compression_state: string;
+      compression_error: string;
+      import_state: string;
+      import_error: string;
+      web_usage_rows: string;
+    }>(
+      `SELECT
+         (SELECT status FROM noderag.chat_run WHERE id=$1) AS run_status,
+         (SELECT safe_error_code FROM noderag.chat_run WHERE id=$1) AS run_error,
+         (SELECT state FROM noderag.chat_message WHERE id=$2) AS message_state,
+         (SELECT (metadata->>'restoreReviewRequired')::boolean
+          FROM noderag.chat_message WHERE id=$2) AS message_restore_review,
+         (SELECT state FROM noderag.chat_export_job WHERE id=$3) AS export_state,
+         (SELECT error_code FROM noderag.chat_export_job WHERE id=$3) AS export_error,
+         (SELECT state FROM noderag.chat_context_compression_job WHERE id=$4) AS compression_state,
+         (SELECT safe_error_code FROM noderag.chat_context_compression_job WHERE id=$4)
+           AS compression_error,
+         (SELECT state FROM noderag.chat_import_operation WHERE id=$5) AS import_state,
+         (SELECT safe_error_code FROM noderag.chat_import_operation WHERE id=$5) AS import_error,
+         (SELECT count(*)::text FROM noderag.chat_web_usage_minute) AS web_usage_rows`,
+      [
+        recoveryRunId,
+        recoveryResponseMessageId,
+        recoveryExportId,
+        recoveryCompressionId,
+        recoveryImportId,
+      ],
+    );
+    expect(resetChatWork.rows[0]).toEqual({
+      run_status: 'failed',
+      run_error: 'restore-review-required',
+      message_state: 'failed',
+      message_restore_review: true,
+      export_state: 'failed',
+      export_error: 'restore-review-required',
+      compression_state: 'failed',
+      compression_error: 'restore-review-required',
+      import_state: 'failed',
+      import_error: 'restore-review-required',
+      web_usage_rows: '0',
     });
   }, 120_000);
 
@@ -718,7 +1019,7 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
       `INSERT INTO noderag.upgrade_rehearsal
          (from_version,to_version,from_postgres_major,to_postgres_major,
           migration_head,required_free_bytes)
-       VALUES ('1.0.0','1.1.0',16,17,'000011_recovery_hardening',2000)
+       VALUES ('1.0.0','1.1.0',16,17,'000018_research_page_references',2000)
        RETURNING id::text`,
     );
     const calls: string[] = [];
@@ -727,7 +1028,7 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
       operationId: Number(successful.rows[0]?.id),
       plan: planUpgrade(16, 17, 1000),
       measuredFreeBytes: 2500,
-      expectedMigrationHead: '000011_recovery_hardening',
+      expectedMigrationHead: '000018_research_page_references',
       driver: {
         createSafetyBackup: async () => {
           calls.push('backup');
@@ -744,7 +1045,7 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
         },
         verify: async () => {
           calls.push('verify');
-          return { migrationHead: '000011_recovery_hardening', rows: 1 };
+          return { migrationHead: '000018_research_page_references', rows: 1 };
         },
         activate: async () => {
           calls.push('activate');
@@ -771,7 +1072,7 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
       `INSERT INTO noderag.upgrade_rehearsal
          (from_version,to_version,from_postgres_major,to_postgres_major,
           migration_head,required_free_bytes)
-       VALUES ('1.0.0','1.0.1',17,17,'000011_recovery_hardening',1000)
+       VALUES ('1.0.0','1.0.1',17,17,'000018_research_page_references',1000)
        RETURNING id::text`,
     );
     let rolledBack = false;
@@ -781,7 +1082,7 @@ describe('Milestone 13 encrypted backup and staged restore', () => {
         operationId: Number(failed.rows[0]?.id),
         plan: planUpgrade(17, 17, 1000),
         measuredFreeBytes: 1000,
-        expectedMigrationHead: '000011_recovery_hardening',
+        expectedMigrationHead: '000018_research_page_references',
         driver: {
           createSafetyBackup: async () => Number(safetyBackup.rows[0]?.id),
           applyForwardMigrations: async () => undefined,

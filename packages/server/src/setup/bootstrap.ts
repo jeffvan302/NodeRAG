@@ -70,7 +70,8 @@ export const ensureSetupTokenFile = async (database: SqlClient, path: string): P
     }
     await rename(temporary, absolute);
   }
-  if (!/^setup_[A-Za-z0-9_-]{43}$/u.test(token)) throw new Error('invalid-setup-token-file');
+  if (!/^setup_(?:[A-Za-z0-9_-]{43}|[a-f0-9]{64})$/u.test(token))
+    throw new Error('invalid-setup-token-file');
   await chmod(absolute, 0o600);
   const digest = sha256(token);
   const found = await database.query<{ setup_token_sha256: Buffer | null }>(

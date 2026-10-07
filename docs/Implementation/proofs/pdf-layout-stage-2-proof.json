@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "stage": 2,
+  "name": "Deterministic native layout reconstruction",
+  "recordedAt": "2026-09-07T03:52:30.000Z",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "revisions": {
+    "pdfExtractionVersion": "pdf-layout.v2-native",
+    "parserRevision": "pdfjs-dist@6.3.289",
+    "layoutPolicyRevision": "native-layout.v1",
+    "confidencePolicyRevision": "native-layout-confidence.preview1",
+    "jobParserRevision": 3
+  },
+  "implementation": {
+    "classifier": "packages/server/src/extract/pdf-layout.ts",
+    "adapter": "packages/server/src/extract/pdf.ts",
+    "qualityRunner": "scripts/measure-pdf-layout-quality.ts",
+    "diagnosticRunner": "scripts/inspect-pdf-layout.ts",
+    "capabilities": [
+      "font-relative baseline grouping",
+      "large-gap cell and region segmentation",
+      "one-, two-, and three-column reading order",
+      "relative title and heading levels",
+      "numbered, alphabetic, Roman-numeral, and bullet list recognition",
+      "nested list indentation",
+      "soft-wrap and conservative hyphen joining",
+      "simple GFM table reconstruction with numeric alignment",
+      "complex-table linear fallback",
+      "document-wide repeated header and footer suppression with retained provenance",
+      "caption classification and conservative diagram-label retention",
+      "normalized page-relative bounding boxes",
+      "durable classifying-layout progress"
+    ]
+  },
+  "quality": {
+    "measuredAt": "2026-09-07T03:51:59.103Z",
+    "approvedExpectationFixtures": 10,
+    "headingKindAndLevelF1": 1,
+    "headingTarget": 0.9,
+    "listItemF1": 1,
+    "listTarget": 0.95,
+    "simpleTableCellEvidenceAccuracy": 1,
+    "simpleTableTarget": 0.95,
+    "requiredEvidenceRetention": 1,
+    "duplicateTextRate": 0,
+    "locatorFailures": 0,
+    "falseTableClassifications": 0,
+    "complexFallbackFailures": 0,
+    "visionBoundPages": 2,
+    "goldenMarkdownSha256": {
+      "layout-headings.pdf": "c2269bac07d66d7d609aefb06596a5b94ccf638201b4a8371462aa20e99320d4",
+      "legal-lists.pdf": "220b38b345d02b10edd109d9f46670524593cec3aceda4cb5b981555a2739863",
+      "three-column.pdf": "865af54caa444d89e3ab8672d924355ee7c4861af3851ff50589ee9ffd004c77",
+      "simple-table.pdf": "314d507de9587f71ca6abb6e7d14561830dd1d612415e5aa5c363bc458ea1980",
+      "complex-table.pdf": "b7e267704206707af263a992202d774cd89314b03ec812f240887327dddb0ef2",
+      "repeated-furniture.pdf": "7793c8982c7a574857e70760af24e89c332dc15e62258e1f5104b585a6fcda23",
+      "diagram-caption.pdf": "7d98b3a01bccc17d04859473aaa6c5b2cfd159c84c6a956eaf80f10f120d8213",
+      "aligned-prose-negative.pdf": "a2ad9c99f44526a55db86c76368d6df6713a28f56473e1b5d2bc19ef7a82be67"
+    }
+  },
+  "performance": {
+    "stage1MedianElapsedMs": 5.91,
+    "stage2MedianElapsedMs": 5.11,
+    "medianChangePercent": -13.54,
+    "allowedMedianIncreasePercent": 25,
+    "stage1MaximumPeakRssBytes": 509018112,
+    "stage2MaximumPeakRssBytes": 498831360,
+    "peakRssChangePercent": -2,
+    "allowedPeakRssIncreasePercent": 20,
+    "gate": "passed"
+  },
+  "verification": {
+    "classifierAndExtractionUnitTests": {
+      "result": "passed",
+      "files": 3,
+      "tests": 24
+    },
+    "databaseBackedFormatIngestion": {
+      "result": "passed",
+      "files": 1,
+      "tests": 4,
+      "assertions": [
+        "structured blocks persisted",
+        "canonical dual-unit locators",
+        "classifying-layout progress",
+        "all supported formats complete",
+        "scanned-page routing remains honest"
+      ]
+    },
+    "serverTypecheck": "passed",
+    "productionBuild": {
+      "result": "passed",
+      "uiModulesTransformed": 2080,
+      "serverBundles": ["server.cjs", "worker.cjs", "embedder.cjs"]
+    }
+  },
+  "controls": {
+    "providerCallsDuringNativeQualityRun": 0,
+    "complexTablesNeverFabricated": true,
+    "repeatedFurnitureRetainedAsSuppressedBlocks": true,
+    "nativeTextDiscarded": false,
+    "canonicalLocatorsVerified": true,
+    "dsmPackageBuilt": false
+  },
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "certification": "stage-2-testbed-complete"
+}

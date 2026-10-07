@@ -111,11 +111,14 @@ const markdownBlocks = (text: string): readonly MarkdownBlock[] => {
       index = Math.min(endIndex, lines.length - 1);
       continue;
     }
-    if (/^\s*<!--\s*noderag:image\b/iu.test(line.text)) {
+    const provenance = /^\s*<!--\s*noderag:(image|vision|vision-pending)\b/iu.exec(line.text)?.[1];
+    if (provenance !== undefined) {
       let endIndex = index + 1;
       while (
         endIndex < lines.length &&
-        !/<!--\s*\/noderag:image\s*-->/iu.test(lines[endIndex]?.text ?? '')
+        !new RegExp(`<!--\\s*\\/noderag:${provenance}\\s*-->`, 'iu').test(
+          lines[endIndex]?.text ?? '',
+        )
       )
         endIndex += 1;
       const last = lines[Math.min(endIndex, lines.length - 1)];
@@ -158,6 +161,14 @@ const markdownBlocks = (text: string): readonly MarkdownBlock[] => {
     }
   }
   return blocks;
+};
+
+const withoutProvenanceComments = (text: string): string => {
+  if (!/<!--\s*\/?noderag:(?:image|vision|vision-pending)\b/iu.test(text)) return text;
+  return text
+    .replace(/^\s*<!--\s*noderag:(?:image|vision|vision-pending)\b[^>]*-->\s*$/gimu, '')
+    .replace(/^\s*<!--\s*\/noderag:(?:image|vision|vision-pending)\s*-->\s*$/gimu, '')
+    .replace(/\n{3,}/gu, '\n\n');
 };
 
 const containingBlock = (
@@ -293,7 +304,7 @@ export const chunkCanonicalMarkdown = (
       ordinal,
       text: chunkText,
       headingPath,
-      embeddingText: `${headingContext}${repeatedHeader}${chunkText}`,
+      embeddingText: `${headingContext}${repeatedHeader}${withoutProvenanceComments(chunkText)}`,
       structureKind,
       structureKinds,
       continuation,

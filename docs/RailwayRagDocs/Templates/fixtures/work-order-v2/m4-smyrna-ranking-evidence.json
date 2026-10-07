@@ -1,0 +1,4037 @@
+{
+  "version": 1,
+  "name": "M4 Smyrna Poppler-backed source-selection evidence",
+  "qualificationScope": "offline_core_quality_only",
+  "productionAcquisitionParity": "not_attested_by_this_fixture; SQL/provider acquisition requires separate acceptance evidence",
+  "catalog": "m4-smyrna-source-selection-catalog.json",
+  "extractorContract": "poppler-pdftotext-layout-utf8-v1",
+  "acquisitionContract": "page-window-keyword-tfidf-v1",
+  "sources": [
+    {
+      "candidateKey": "financial_statements_2024",
+      "sourcePdfSha256": "7b450d6c1af0a9839e91557f19e4cd08dc66f84e24ed6809d8bf722711a8b3f5",
+      "extractedTextSha256": "a17f544aa97e97033080e0f9e1f3c9e7e3761e6448d2bbb67ccb0723f17ccd94",
+      "pageCount": 123,
+      "chunkCount": 203
+    },
+    {
+      "candidateKey": "comprehensive_plan_2020",
+      "sourcePdfSha256": "f4735813ce31ab8e15017f6a9404a06520b64b093e238e552079630d2a325630",
+      "extractedTextSha256": "2ce712c07872d14803e6c4c332b39343560e767f92d7534e0134461e7f8709d8",
+      "pageCount": 149,
+      "chunkCount": 281
+    },
+    {
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "sourcePdfSha256": "6be00013d1d1d825df03029c789e6f5e3500b7f940681cf34a71e8b1c2596d31",
+      "extractedTextSha256": "1527f9cb90f3542ac131231069d2d6526f68da19efd8a891b8a2fbec4e945005",
+      "pageCount": 44,
+      "chunkCount": 44
+    },
+    {
+      "candidateKey": "performance_audit_2022_2023",
+      "sourcePdfSha256": "f8ded76d5226d49aca85154c081320f1779e69526535477cf91299b5fc2f3f37",
+      "extractedTextSha256": "624ce60782ec6644566ae7a18eb37102947f06dd632524df1d8bc87bdb1ab497",
+      "pageCount": 28,
+      "chunkCount": 44
+    }
+  ],
+  "request": {
+    "version": 1,
+    "scopeDigest": "65e78e161749401a0da06fc7cb9aae3594662793d038a21520db47a444923be4",
+    "sourceScopeDigest": "65e78e161749401a0da06fc7cb9aae3594662793d038a21520db47a444923be4",
+    "sourceScopeRevision": 1,
+    "retrievalConfigurationDigest": "f821ed443b05b7deea9c73404d8ec31262db0e67930bef4c87f70c49711fd4f4",
+    "rawAcquisitionConfigurationDigest": "acb7e05bd75a76f754d788d01b89236e0dd4542e81e678a803e2384f43cd7a81",
+    "retrievalIndexDigest": "dbb2d9bbb876cd1a795e647f3f8acc8a02fa0065f2ee56d96f24214b96a196e4",
+    "rankingReferenceSetDigest": "28ab795fc5f47fc6b8456ea80bb87fec16564e77348679965910379ebab5560f",
+    "configuration": {
+      "mode": "hybrid",
+      "scoreScale": "ppb_1e9_v1",
+      "keywordWeightPpb": 600000000,
+      "vectorWeightPpb": 400000000,
+      "minimumScorePpb": 630000000,
+      "protectedDepth": 3,
+      "rrfK": 60
+    },
+    "limits": {
+      "maximumDocumentsPerQuery": 50,
+      "maximumDocuments": 60,
+      "maximumLogicalAssignments": 7200,
+      "maximumResponseBytes": 524288
+    },
+    "queries": [
+      {
+        "queryKey": "arpa_capital_controls",
+        "query": "ARPA capital project funds monitoring expenditures reconciliation and oversight",
+        "normalizedQuery": "arpa capital project funds monitoring expenditures reconciliation and oversight",
+        "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc"
+      },
+      {
+        "queryKey": "financial_position",
+        "query": "audited financial position revenues expenditures debt and material findings",
+        "normalizedQuery": "audited financial position revenues expenditures debt and material findings",
+        "queryDigest": "9ff24f39e690adaa1ed63802ecaa7af9bd3a41373c097fc2f0622c867801bca7"
+      },
+      {
+        "queryKey": "credible_no_match",
+        "query": "current airport runway snow removal inspection log",
+        "normalizedQuery": "current airport runway snow removal inspection log",
+        "queryDigest": "d9fdbde4dd752f525468752c00c194a82253c5877ad9536a79792426d358c447"
+      },
+      {
+        "queryKey": "economic_development",
+        "query": "economic development quality businesses high paying jobs downtown redevelopment",
+        "normalizedQuery": "economic development quality businesses high paying jobs downtown redevelopment",
+        "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4"
+      },
+      {
+        "queryKey": "bank_reconciliation",
+        "query": "formalized bank reconciliation process review approval and accounting controls",
+        "normalizedQuery": "formalized bank reconciliation process review approval and accounting controls",
+        "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72"
+      },
+      {
+        "queryKey": "future_land_use",
+        "query": "future land use map zoning growth and development policy",
+        "normalizedQuery": "future land use map zoning growth and development policy",
+        "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5"
+      },
+      {
+        "queryKey": "general_fund_budget",
+        "query": "General Fund budget to actual revenues expenditures and fund balance",
+        "normalizedQuery": "general fund budget to actual revenues expenditures and fund balance",
+        "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75"
+      },
+      {
+        "queryKey": "parks_recreation",
+        "query": "parks recreation open space facilities trails and community recreation goals",
+        "normalizedQuery": "parks recreation open space facilities trails and community recreation goals",
+        "queryDigest": "ace73e17eeef0fa244dccaa074a31ba6f13461709097ec837eac8525ff6b7145"
+      },
+      {
+        "queryKey": "pension_liabilities",
+        "query": "police firefighters and employee pension liabilities contributions and investment returns",
+        "normalizedQuery": "police firefighters and employee pension liabilities contributions and investment returns",
+        "queryDigest": "d9ca37b1c377ab4b1f704b702504cb62288fa2f27eaa3ac29b0b35ce3236b7a1"
+      },
+      {
+        "queryKey": "population_housing",
+        "query": "population projections housing growth demographics and household trends",
+        "normalizedQuery": "population projections housing growth demographics and household trends",
+        "queryDigest": "d194647a4999e72dd5420d36e4c58f3f0d943ccdf6a4cdab772ac577ddf37a43"
+      },
+      {
+        "queryKey": "transportation_plan",
+        "query": "transportation plan DelDOT roads transit bicycle pedestrian improvements",
+        "normalizedQuery": "transportation plan deldot roads transit bicycle pedestrian improvements",
+        "queryDigest": "038a759c1176c19ae895d0c79f26b63096c3bf2d417376f546550b5fc92ed386"
+      },
+      {
+        "queryKey": "water_sewer_finance",
+        "query": "water and sewer enterprise funds operating income capital assets and debt",
+        "normalizedQuery": "water and sewer enterprise funds operating income capital assets and debt",
+        "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055"
+      }
+    ],
+    "assignments": [
+      {
+        "requirementKey": "arpa_capital_controls",
+        "queryKey": "arpa_capital_controls"
+      },
+      {
+        "requirementKey": "bank_reconciliation",
+        "queryKey": "bank_reconciliation"
+      },
+      {
+        "requirementKey": "credible_no_match",
+        "queryKey": "credible_no_match"
+      },
+      {
+        "requirementKey": "economic_development",
+        "queryKey": "economic_development"
+      },
+      {
+        "requirementKey": "financial_position",
+        "queryKey": "financial_position"
+      },
+      {
+        "requirementKey": "future_land_use",
+        "queryKey": "future_land_use"
+      },
+      {
+        "requirementKey": "general_fund_budget",
+        "queryKey": "general_fund_budget"
+      },
+      {
+        "requirementKey": "parks_recreation",
+        "queryKey": "parks_recreation"
+      },
+      {
+        "requirementKey": "pension_liabilities",
+        "queryKey": "pension_liabilities"
+      },
+      {
+        "requirementKey": "population_housing",
+        "queryKey": "population_housing"
+      },
+      {
+        "requirementKey": "transportation_plan",
+        "queryKey": "transportation_plan"
+      },
+      {
+        "requirementKey": "water_sewer_finance",
+        "queryKey": "water_sewer_finance"
+      }
+    ],
+    "actionableCells": [
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "requirementKey": "arpa_capital_controls",
+        "queryKey": "arpa_capital_controls"
+      },
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "requirementKey": "bank_reconciliation",
+        "queryKey": "bank_reconciliation"
+      },
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "requirementKey": "credible_no_match",
+        "queryKey": "credible_no_match"
+      },
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "requirementKey": "economic_development",
+        "queryKey": "economic_development"
+      },
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "requirementKey": "financial_position",
+        "queryKey": "financial_position"
+      },
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "requirementKey": "future_land_use",
+        "queryKey": "future_land_use"
+      },
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "requirementKey": "general_fund_budget",
+        "queryKey": "general_fund_budget"
+      },
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "requirementKey": "parks_recreation",
+        "queryKey": "parks_recreation"
+      },
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "requirementKey": "pension_liabilities",
+        "queryKey": "pension_liabilities"
+      },
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "requirementKey": "population_housing",
+        "queryKey": "population_housing"
+      },
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "requirementKey": "transportation_plan",
+        "queryKey": "transportation_plan"
+      },
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "requirementKey": "water_sewer_finance",
+        "queryKey": "water_sewer_finance"
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "requirementKey": "arpa_capital_controls",
+        "queryKey": "arpa_capital_controls"
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "requirementKey": "bank_reconciliation",
+        "queryKey": "bank_reconciliation"
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "requirementKey": "credible_no_match",
+        "queryKey": "credible_no_match"
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "requirementKey": "economic_development",
+        "queryKey": "economic_development"
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "requirementKey": "financial_position",
+        "queryKey": "financial_position"
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "requirementKey": "future_land_use",
+        "queryKey": "future_land_use"
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "requirementKey": "general_fund_budget",
+        "queryKey": "general_fund_budget"
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "requirementKey": "parks_recreation",
+        "queryKey": "parks_recreation"
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "requirementKey": "pension_liabilities",
+        "queryKey": "pension_liabilities"
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "requirementKey": "population_housing",
+        "queryKey": "population_housing"
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "requirementKey": "transportation_plan",
+        "queryKey": "transportation_plan"
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "requirementKey": "water_sewer_finance",
+        "queryKey": "water_sewer_finance"
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "requirementKey": "arpa_capital_controls",
+        "queryKey": "arpa_capital_controls"
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "requirementKey": "bank_reconciliation",
+        "queryKey": "bank_reconciliation"
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "requirementKey": "credible_no_match",
+        "queryKey": "credible_no_match"
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "requirementKey": "economic_development",
+        "queryKey": "economic_development"
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "requirementKey": "financial_position",
+        "queryKey": "financial_position"
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "requirementKey": "future_land_use",
+        "queryKey": "future_land_use"
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "requirementKey": "general_fund_budget",
+        "queryKey": "general_fund_budget"
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "requirementKey": "parks_recreation",
+        "queryKey": "parks_recreation"
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "requirementKey": "pension_liabilities",
+        "queryKey": "pension_liabilities"
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "requirementKey": "population_housing",
+        "queryKey": "population_housing"
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "requirementKey": "transportation_plan",
+        "queryKey": "transportation_plan"
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "requirementKey": "water_sewer_finance",
+        "queryKey": "water_sewer_finance"
+      },
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "requirementKey": "arpa_capital_controls",
+        "queryKey": "arpa_capital_controls"
+      },
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "requirementKey": "bank_reconciliation",
+        "queryKey": "bank_reconciliation"
+      },
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "requirementKey": "credible_no_match",
+        "queryKey": "credible_no_match"
+      },
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "requirementKey": "economic_development",
+        "queryKey": "economic_development"
+      },
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "requirementKey": "financial_position",
+        "queryKey": "financial_position"
+      },
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "requirementKey": "future_land_use",
+        "queryKey": "future_land_use"
+      },
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "requirementKey": "general_fund_budget",
+        "queryKey": "general_fund_budget"
+      },
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "requirementKey": "parks_recreation",
+        "queryKey": "parks_recreation"
+      },
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "requirementKey": "pension_liabilities",
+        "queryKey": "pension_liabilities"
+      },
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "requirementKey": "population_housing",
+        "queryKey": "population_housing"
+      },
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "requirementKey": "transportation_plan",
+        "queryKey": "transportation_plan"
+      },
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "requirementKey": "water_sewer_finance",
+        "queryKey": "water_sewer_finance"
+      }
+    ],
+    "documents": [
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "documentId": "00000000-0000-4000-8000-000000000102",
+        "sourceTitle": "2020 Smyrna Comprehensive Plan",
+        "fileName": "2. 2020 Smyrna Comp Plan FINAL.pdf",
+        "sourceIdentityDigest": "f4735813ce31ab8e15017f6a9404a06520b64b093e238e552079630d2a325630",
+        "documentKeywordIndexDigest": "4bd44c06bfcea86881c3b3d8edb933d1cfe04e0dcf6c9411bd9e7f52a8f3575a",
+        "documentVectorIndexDigest": "954fa858d884c6a157b77d1e7f5e8f679496b2d43826e59fc39dd08acec1f0d1"
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "documentId": "00000000-0000-4000-8000-000000000103",
+        "sourceTitle": "Comprehensive Plan Town Council Presentation",
+        "fileName": "3. Comp Plan Town Council Presentation1 September 30 2020_1.pdf",
+        "sourceIdentityDigest": "6be00013d1d1d825df03029c789e6f5e3500b7f940681cf34a71e8b1c2596d31",
+        "documentKeywordIndexDigest": "c9854272abfb0d8dd59b3ac83f5999011a1f26171e628a20f14139028ffcf87c",
+        "documentVectorIndexDigest": "a8c7531de7522531570e489e245b2407c6b90529a77af2a7750f1cb619c1c922"
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "documentId": "00000000-0000-4000-8000-000000000101",
+        "sourceTitle": "Town of Smyrna Financial Statements for December 31, 2024",
+        "fileName": "1. Town of Smyrna Financial Statements for December 31, 2024.pdf",
+        "sourceIdentityDigest": "7b450d6c1af0a9839e91557f19e4cd08dc66f84e24ed6809d8bf722711a8b3f5",
+        "documentKeywordIndexDigest": "1351b8816f2c141b49a75a8ef9a065ba33ba28d5d78db294994117aeb84b4ed0",
+        "documentVectorIndexDigest": "a05877a83af4beed2df7c9c6c0c51233f05dca5eb0b502b2774942fd20bf100f"
+      },
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "documentId": "00000000-0000-4000-8000-000000000104",
+        "sourceTitle": "Town of Smyrna Performance Audit Report 2022-2023",
+        "fileName": "4. Town-of-Smyrna-Performance-Audit-Report-2022-2023-1.pdf",
+        "sourceIdentityDigest": "f8ded76d5226d49aca85154c081320f1779e69526535477cf91299b5fc2f3f37",
+        "documentKeywordIndexDigest": "7ecdc93b821a0f1bebe6835dd3209d2c6ff685586a591e6647a1ab1ffa831f5e",
+        "documentVectorIndexDigest": "7694ed3f76faecdeafb46e48af04d9d28b9c03626770a0dd77128ac84f0d4edb"
+      }
+    ],
+    "coverage": [],
+    "requestDigest": "f18b2d8e50adc7c82d4491aaac985d8b0a3a638c5bf353622ce5ac20dc2f71f8"
+  },
+  "rawSignals": [
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b7a7a8e088e3d0f8637a79e1d90b32408434322a9ff78566339667c9f4cc1a7b",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "038a759c1176c19ae895d0c79f26b63096c3bf2d417376f546550b5fc92ed386",
+      "chunkKey": "comprehensive_plan_2020_p0064_c001",
+      "signalIdentityDigest": "1d5b002d96ca924ddcdaa9ece84d592b88b500c3bf44fc3be16c633d513b757a",
+      "keywordScorePpb": 26834678053,
+      "vectorSimilarityPpb": 176061803,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0064_c001_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0064_c001",
+          "pageNumber": 64
+        }
+      ],
+      "signalDigest": "a9f0f47564a5e000a9b5a6ba5da45e109f219a7b0fd128a699419dad03e498a8"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b7a7a8e088e3d0f8637a79e1d90b32408434322a9ff78566339667c9f4cc1a7b",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "038a759c1176c19ae895d0c79f26b63096c3bf2d417376f546550b5fc92ed386",
+      "chunkKey": "comprehensive_plan_2020_p0091_c000",
+      "signalIdentityDigest": "4c53384b7433a1b85d80b35be88a143193e5d564d74e49418ceb6f10624d54a7",
+      "keywordScorePpb": 37812144352,
+      "vectorSimilarityPpb": 250157561,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0091_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0091_c000",
+          "pageNumber": 91
+        }
+      ],
+      "signalDigest": "90fa811a1586e18324e9c247dc24a2a6986a63203389ca8421e1195af2b8ff03"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b7a7a8e088e3d0f8637a79e1d90b32408434322a9ff78566339667c9f4cc1a7b",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "038a759c1176c19ae895d0c79f26b63096c3bf2d417376f546550b5fc92ed386",
+      "chunkKey": "comprehensive_plan_2020_p0092_c000",
+      "signalIdentityDigest": "09b536f326e282b4bf06065b026ed49b9dcf1ae92fc8992b943d9c9b6313b936",
+      "keywordScorePpb": 33690569203,
+      "vectorSimilarityPpb": 233249081,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0092_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0092_c000",
+          "pageNumber": 92
+        }
+      ],
+      "signalDigest": "5f4973373211b64111ad463664a23282b222455d269f3bf991019e4fa3780800"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b7a7a8e088e3d0f8637a79e1d90b32408434322a9ff78566339667c9f4cc1a7b",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "038a759c1176c19ae895d0c79f26b63096c3bf2d417376f546550b5fc92ed386",
+      "chunkKey": "comprehensive_plan_2020_p0093_c000",
+      "signalIdentityDigest": "62ab5a64b18b8e8c49eebe93c08bb9db41d871bcd26ea27de02da7f1cbf0d9e0",
+      "keywordScorePpb": 29691020936,
+      "vectorSimilarityPpb": 230078968,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0093_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0093_c000",
+          "pageNumber": 93
+        }
+      ],
+      "signalDigest": "d46d3ff41a57f848bf731b788e3347c7e8e4d97bca6331a8d8d7bb84e4dd21cd"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b7a7a8e088e3d0f8637a79e1d90b32408434322a9ff78566339667c9f4cc1a7b",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "038a759c1176c19ae895d0c79f26b63096c3bf2d417376f546550b5fc92ed386",
+      "chunkKey": "comprehensive_plan_2020_p0093_c001",
+      "signalIdentityDigest": "22a4b035de36764bd6489e56c31ab1b584251b9d49cc21ce5fb09a52dd9cdc90",
+      "keywordScorePpb": 34355161129,
+      "vectorSimilarityPpb": 366310556,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0093_c001_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0093_c001",
+          "pageNumber": 93
+        }
+      ],
+      "signalDigest": "8c4023cdd32c1ceb64fc51e887fd8addb685cc96587054915ba9d1c848a1a880"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b2beecb7ce49699a10072ae357dfbd16043a5015b67e46d68e028f0d04d8b88c",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "038a759c1176c19ae895d0c79f26b63096c3bf2d417376f546550b5fc92ed386",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0008_c000",
+      "signalIdentityDigest": "a13c2fbcaab0fa9739677a6f4f86f4d0f3290c7278359061a58f08f891424e58",
+      "keywordScorePpb": 15077675535,
+      "vectorSimilarityPpb": 151479683,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0008_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0008_c000",
+          "pageNumber": 8
+        }
+      ],
+      "signalDigest": "e8497cd183899dce1293a56392b97558561b21e4a500903eaf31a59b338b82a5"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b2beecb7ce49699a10072ae357dfbd16043a5015b67e46d68e028f0d04d8b88c",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "038a759c1176c19ae895d0c79f26b63096c3bf2d417376f546550b5fc92ed386",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0009_c000",
+      "signalIdentityDigest": "4b64aa597f52ce3838db19e6cdef429e61ad74c3f02c46a982282f30a0898e39",
+      "keywordScorePpb": 20924075696,
+      "vectorSimilarityPpb": 193006706,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0009_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0009_c000",
+          "pageNumber": 9
+        }
+      ],
+      "signalDigest": "2311e030afe97a99812a3b8a1345c39bb343937856671863bf1b1ce6414d85b2"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b2beecb7ce49699a10072ae357dfbd16043a5015b67e46d68e028f0d04d8b88c",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "038a759c1176c19ae895d0c79f26b63096c3bf2d417376f546550b5fc92ed386",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0037_c000",
+      "signalIdentityDigest": "2879f709b3ed9fe7f54348d53eb0615c11efb48ee1beffa46355d2fa52539c01",
+      "keywordScorePpb": 15367439829,
+      "vectorSimilarityPpb": 162289045,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0037_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0037_c000",
+          "pageNumber": 37
+        }
+      ],
+      "signalDigest": "32edc2940f5890521eaac349438f2219036b51b0fc3ed0539f1c781a661520d0"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b2beecb7ce49699a10072ae357dfbd16043a5015b67e46d68e028f0d04d8b88c",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "038a759c1176c19ae895d0c79f26b63096c3bf2d417376f546550b5fc92ed386",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0039_c000",
+      "signalIdentityDigest": "55e8700d2f0fc1c8f95d5b4479bae5546edfea734bf7bdb5557c632535a98a98",
+      "keywordScorePpb": 14214530297,
+      "vectorSimilarityPpb": 97343859,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0039_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0039_c000",
+          "pageNumber": 39
+        }
+      ],
+      "signalDigest": "fe92cf01aaa17609e66086e949e4acc3af4104d46f8f5cfd984de039543b9de2"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b60a4959a4bc93fc1613585eb6fa12449eca2ccda60108ac85beaa91a631a5ad",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4",
+      "chunkKey": "comprehensive_plan_2020_p0008_c000",
+      "signalIdentityDigest": "d88e4064380d89fea87bb3b8a7ce544f1d64e4c283bc611d0f203c4e613255eb",
+      "keywordScorePpb": 26193822454,
+      "vectorSimilarityPpb": 162505016,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0008_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0008_c000",
+          "pageNumber": 8
+        }
+      ],
+      "signalDigest": "f9aaecb1a37ecb24959c3d4245124f1e7bb6399de0cf17afdc6a45f75af3d056"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b60a4959a4bc93fc1613585eb6fa12449eca2ccda60108ac85beaa91a631a5ad",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4",
+      "chunkKey": "comprehensive_plan_2020_p0102_c001",
+      "signalIdentityDigest": "7bca51b3b60f124b5a2e353a62e66d6438a51b165c05c7f25498336535ff01b3",
+      "keywordScorePpb": 28241403263,
+      "vectorSimilarityPpb": 172188403,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0102_c001_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0102_c001",
+          "pageNumber": 102
+        }
+      ],
+      "signalDigest": "54d39e28352a029f9902ee20a8c21ac537fbecf23ab5f008c917cf5e5df318cb"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b60a4959a4bc93fc1613585eb6fa12449eca2ccda60108ac85beaa91a631a5ad",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4",
+      "chunkKey": "comprehensive_plan_2020_p0103_c001",
+      "signalIdentityDigest": "c1f1e49f20e35b25e778637bf451304637bc443cc5afaadaaba0c861a90534dd",
+      "keywordScorePpb": 26231000700,
+      "vectorSimilarityPpb": 220329990,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0103_c001_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0103_c001",
+          "pageNumber": 103
+        }
+      ],
+      "signalDigest": "7f32ab8348fc47f906118f53fc0ea346bc3807fa223fd19afb9f608b45e24846"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b60a4959a4bc93fc1613585eb6fa12449eca2ccda60108ac85beaa91a631a5ad",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4",
+      "chunkKey": "comprehensive_plan_2020_p0107_c000",
+      "signalIdentityDigest": "df526a6b5e5914b46e7d69e6e3c875d7c290073fcb3d6a52414b725e757933c9",
+      "keywordScorePpb": 24985333990,
+      "vectorSimilarityPpb": 132130713,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0107_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0107_c000",
+          "pageNumber": 107
+        }
+      ],
+      "signalDigest": "32eb42406f603ac0884a19435421c3a2cc3c81bc86bfaeb9898d0cb87cb51d7f"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "b60a4959a4bc93fc1613585eb6fa12449eca2ccda60108ac85beaa91a631a5ad",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4",
+      "chunkKey": "comprehensive_plan_2020_p0111_c001",
+      "signalIdentityDigest": "533ffe15b89f76ac4d17c5ab1458ce4d2cb0099772b530198df415c3c8d8a727",
+      "keywordScorePpb": 19684547454,
+      "vectorSimilarityPpb": 83583861,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0111_c001_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0111_c001",
+          "pageNumber": 111
+        }
+      ],
+      "signalDigest": "3b3d8c92c4e62971a6ea474ef694102dbb6de7a639d0a95d812223e32297eb1e"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "ae0f6171f555384cb01ee5c16eff5a45b11c8ae5e77da22b20f8e2e2f1b51ab1",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0009_c000",
+      "signalIdentityDigest": "41f14a1047a18c074468328391f1cb4e2d5b0193f5a6eabc71a0cf4015ea1488",
+      "keywordScorePpb": 26193822454,
+      "vectorSimilarityPpb": 292730506,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0009_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0009_c000",
+          "pageNumber": 9
+        }
+      ],
+      "signalDigest": "46f2023344caae2774b45ff9fc35eb04c34078dccc5539f06c6b4bf9c3a0a1a6"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "ae0f6171f555384cb01ee5c16eff5a45b11c8ae5e77da22b20f8e2e2f1b51ab1",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0038_c000",
+      "signalIdentityDigest": "6905c0856128d907a8ff614a65a5006113ee5ab560afcbc159a514b1e08ff598",
+      "keywordScorePpb": 10682171259,
+      "vectorSimilarityPpb": 89853470,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0038_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0038_c000",
+          "pageNumber": 38
+        }
+      ],
+      "signalDigest": "310e1756bc80af40e2b2617e9784146c70b98fd3f3eabd178935e3cb4a245899"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "ae0f6171f555384cb01ee5c16eff5a45b11c8ae5e77da22b20f8e2e2f1b51ab1",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0042_c000",
+      "signalIdentityDigest": "4954968fbe8caaca058d4e70a6abf13a92ae07c3a6a9e67554ee5d70e6be2853",
+      "keywordScorePpb": 9522045230,
+      "vectorSimilarityPpb": 67022381,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0042_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0042_c000",
+          "pageNumber": 42
+        }
+      ],
+      "signalDigest": "70bc0f8db2e73c41fdb7abe1c8cd86534a22f228ac77ef1b44a9518d02b529c5"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "ae0f6171f555384cb01ee5c16eff5a45b11c8ae5e77da22b20f8e2e2f1b51ab1",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0043_c000",
+      "signalIdentityDigest": "2d91eb33d099adedd3911b2f454b2694a27b9a5d0d0510f55a473f634497f95a",
+      "keywordScorePpb": 20538374331,
+      "vectorSimilarityPpb": 196324953,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0043_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0043_c000",
+          "pageNumber": 43
+        }
+      ],
+      "signalDigest": "1ebe7e80a0f4eb579f151bd92bcec9ab72d67644cc4467377303e5870f7b15cf"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "0c7e71e511af317498c9271c92ace48a0d99371e5fd09be6a2eec4feafca6689",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4",
+      "chunkKey": "financial_statements_2024_p0060_c000",
+      "signalIdentityDigest": "ba54e3df63f9ce41306511ea6b0d335781bdaa992adabdadb036f18dadd05049",
+      "keywordScorePpb": 10659569332,
+      "vectorSimilarityPpb": 40827884,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0060_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0060_c000",
+          "pageNumber": 60
+        }
+      ],
+      "signalDigest": "caa005d0f9a5c27b1ff3d8953ab621a03e92bf57804cd6dbd30088543ff818fa"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "0c7e71e511af317498c9271c92ace48a0d99371e5fd09be6a2eec4feafca6689",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4",
+      "chunkKey": "financial_statements_2024_p0120_c000",
+      "signalIdentityDigest": "1ea291982ea916b64d2837f62a9f993f5cec08d1525b19bbeb718dc5a5751ad1",
+      "keywordScorePpb": 8719020394,
+      "vectorSimilarityPpb": 36790524,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0120_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0120_c000",
+          "pageNumber": 120
+        }
+      ],
+      "signalDigest": "3a0730444c6d839039b5768a5878bd269d67ba5df4147a68f0e15ba636eb7e7f"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "967af376fafd65179a2a7c28fd2211c45f491951223eba176096a8f5a8032cbf",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "9ff24f39e690adaa1ed63802ecaa7af9bd3a41373c097fc2f0622c867801bca7",
+      "chunkKey": "financial_statements_2024_p0006_c000",
+      "signalIdentityDigest": "d2b31addb2bfe392c5205791a0063998b582f5b80cc0b3ec441546fe59202abb",
+      "keywordScorePpb": 19821854167,
+      "vectorSimilarityPpb": 209367904,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0006_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0006_c000",
+          "pageNumber": 6
+        }
+      ],
+      "signalDigest": "aefecebd396faf38f64e634756b2994f86a4715b3a52bfc9323f713d75f36b3f"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "967af376fafd65179a2a7c28fd2211c45f491951223eba176096a8f5a8032cbf",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "9ff24f39e690adaa1ed63802ecaa7af9bd3a41373c097fc2f0622c867801bca7",
+      "chunkKey": "financial_statements_2024_p0016_c001",
+      "signalIdentityDigest": "a23f84d618fbc44912bf47dac36a0f356c2d760761c3a56ecc2b678c41e2da2a",
+      "keywordScorePpb": 22452847251,
+      "vectorSimilarityPpb": 170224109,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0016_c001_anchor",
+          "chunkKey": "financial_statements_2024_p0016_c001",
+          "pageNumber": 16
+        }
+      ],
+      "signalDigest": "d2a50f83e75e1243a4b491da381289c2407bbb7bf80e3cf5f4e4d22632d7b1dd"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "967af376fafd65179a2a7c28fd2211c45f491951223eba176096a8f5a8032cbf",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "9ff24f39e690adaa1ed63802ecaa7af9bd3a41373c097fc2f0622c867801bca7",
+      "chunkKey": "financial_statements_2024_p0026_c000",
+      "signalIdentityDigest": "79aee14176aa84bf659a0705d125d307005aa841e035d9bef84fe3d0c578c44f",
+      "keywordScorePpb": 26032435049,
+      "vectorSimilarityPpb": 230362933,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0026_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0026_c000",
+          "pageNumber": 26
+        }
+      ],
+      "signalDigest": "59051384834d680fd3f12e61498483ccfeaa7130026bdf6256a5c2e207b4c71c"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "967af376fafd65179a2a7c28fd2211c45f491951223eba176096a8f5a8032cbf",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "9ff24f39e690adaa1ed63802ecaa7af9bd3a41373c097fc2f0622c867801bca7",
+      "chunkKey": "financial_statements_2024_p0036_c001",
+      "signalIdentityDigest": "586ba24a5988767f7a4309bb2986caa58e989bdcdf3a7a627c9bb90da22a6f2a",
+      "keywordScorePpb": 23783798667,
+      "vectorSimilarityPpb": 240118221,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0036_c001_anchor",
+          "chunkKey": "financial_statements_2024_p0036_c001",
+          "pageNumber": 36
+        }
+      ],
+      "signalDigest": "070cee9bf707f2ca4163ec7fab9b0a8eab53b1485d4685ae376f8f5444ff243c"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "967af376fafd65179a2a7c28fd2211c45f491951223eba176096a8f5a8032cbf",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "9ff24f39e690adaa1ed63802ecaa7af9bd3a41373c097fc2f0622c867801bca7",
+      "chunkKey": "financial_statements_2024_p0102_c000",
+      "signalIdentityDigest": "8959c9ae3a71994162e60050baa5778ea11f75ca6d1ca50feb5575e83bfad342",
+      "keywordScorePpb": 16755741316,
+      "vectorSimilarityPpb": 97043903,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0102_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0102_c000",
+          "pageNumber": 102
+        }
+      ],
+      "signalDigest": "7d986932dd49d06adf055b1419d734cc9424d92ff7e21f27346d1b155bb9f61d"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "52c0c2caca82a590fb18ff25b24c53a943ae087fc995bfb77ec5eede6ab4b132",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "9ff24f39e690adaa1ed63802ecaa7af9bd3a41373c097fc2f0622c867801bca7",
+      "chunkKey": "performance_audit_2022_2023_p0002_c000",
+      "signalIdentityDigest": "bfff44477e8f8e8c7781c50461304c6101574e9a9c7e11f858770a30e5cc8b5b",
+      "keywordScorePpb": 14021797360,
+      "vectorSimilarityPpb": 159541698,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0002_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0002_c000",
+          "pageNumber": 2
+        }
+      ],
+      "signalDigest": "8bcd275e53df952e725192f3ab55f7267e958b57dc4b1c16be94bd23c45112c3"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "52c0c2caca82a590fb18ff25b24c53a943ae087fc995bfb77ec5eede6ab4b132",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "9ff24f39e690adaa1ed63802ecaa7af9bd3a41373c097fc2f0622c867801bca7",
+      "chunkKey": "performance_audit_2022_2023_p0011_c001",
+      "signalIdentityDigest": "a9a294ab24b3977c0b7b9de5a37e056e1c8b3c82b40f21d1ace86afa657fd041",
+      "keywordScorePpb": 11382539640,
+      "vectorSimilarityPpb": 59185935,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0011_c001_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0011_c001",
+          "pageNumber": 11
+        }
+      ],
+      "signalDigest": "9b3165c000122ef2d2ddaa0b71b804e22d12a44ac3495edd66c35cbe198e1d1b"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "52c0c2caca82a590fb18ff25b24c53a943ae087fc995bfb77ec5eede6ab4b132",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "9ff24f39e690adaa1ed63802ecaa7af9bd3a41373c097fc2f0622c867801bca7",
+      "chunkKey": "performance_audit_2022_2023_p0014_c000",
+      "signalIdentityDigest": "079f6d681dbdea52207b01e3cd7badd676e21aa9de6b3515962cd0cfdc8b0660",
+      "keywordScorePpb": 14121387052,
+      "vectorSimilarityPpb": 103976857,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0014_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0014_c000",
+          "pageNumber": 14
+        }
+      ],
+      "signalDigest": "2efa99c0c727234d3d1bd8f93b4e9dd45ded6e9f6b0407b96e0a88696a6a0332"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "52c0c2caca82a590fb18ff25b24c53a943ae087fc995bfb77ec5eede6ab4b132",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "9ff24f39e690adaa1ed63802ecaa7af9bd3a41373c097fc2f0622c867801bca7",
+      "chunkKey": "performance_audit_2022_2023_p0018_c000",
+      "signalIdentityDigest": "ced98245989d88c8d3aaab3bfb1bf72faf6eba0aa41d40f1726ee86369913f2b",
+      "keywordScorePpb": 14426289716,
+      "vectorSimilarityPpb": 79942865,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0018_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0018_c000",
+          "pageNumber": 18
+        }
+      ],
+      "signalDigest": "31b4ffe3ce885692d0be8b529c8d8d9f5597322f15c56732c6b20e6239734009"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "52c0c2caca82a590fb18ff25b24c53a943ae087fc995bfb77ec5eede6ab4b132",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "9ff24f39e690adaa1ed63802ecaa7af9bd3a41373c097fc2f0622c867801bca7",
+      "chunkKey": "performance_audit_2022_2023_p0025_c000",
+      "signalIdentityDigest": "04cd369bd57d50e444c089460c281f89721d849ba804f3c791382988ab101b76",
+      "keywordScorePpb": 15611939656,
+      "vectorSimilarityPpb": 184217140,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0025_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0025_c000",
+          "pageNumber": 25
+        }
+      ],
+      "signalDigest": "82eeeedc7dede87869d278b64d1cf0367cf0fad3b1756bc57db0db4a6b841e8e"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "777048ea75d393110bc446a9babe8dc43bcecba2f74fca3ba497fda5fb8ae473",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "ace73e17eeef0fa244dccaa074a31ba6f13461709097ec837eac8525ff6b7145",
+      "chunkKey": "comprehensive_plan_2020_p0006_c001",
+      "signalIdentityDigest": "76083888a98a1a13204aaee93b290b02e8331512a56833468384adc65cc2c8d6",
+      "keywordScorePpb": 22588330334,
+      "vectorSimilarityPpb": 147445631,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0006_c001_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0006_c001",
+          "pageNumber": 6
+        }
+      ],
+      "signalDigest": "9aa079ba53b7dd0b2065e05df0bcc6a3ee1921d6721aa8aa3b62ca30867d5c87"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "777048ea75d393110bc446a9babe8dc43bcecba2f74fca3ba497fda5fb8ae473",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "ace73e17eeef0fa244dccaa074a31ba6f13461709097ec837eac8525ff6b7145",
+      "chunkKey": "comprehensive_plan_2020_p0124_c000",
+      "signalIdentityDigest": "648965b138f349a563924f9d4f562cb52233769e195f4d099dfb262d3d1f0b8c",
+      "keywordScorePpb": 30496791447,
+      "vectorSimilarityPpb": 228495069,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0124_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0124_c000",
+          "pageNumber": 124
+        }
+      ],
+      "signalDigest": "3d6080d834ffcb2afb7bbbf500b4209cebb26ac1b7bca2f411fe0942df803ad3"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "777048ea75d393110bc446a9babe8dc43bcecba2f74fca3ba497fda5fb8ae473",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "ace73e17eeef0fa244dccaa074a31ba6f13461709097ec837eac8525ff6b7145",
+      "chunkKey": "comprehensive_plan_2020_p0126_c000",
+      "signalIdentityDigest": "c4119a076727492c53dd6fe68d29a9aac39a7cb42a287db2ef5e1c1bf63a1b27",
+      "keywordScorePpb": 24704413253,
+      "vectorSimilarityPpb": 167157616,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0126_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0126_c000",
+          "pageNumber": 126
+        }
+      ],
+      "signalDigest": "a83daae720f8fd3179700947a7cd82f03c0b32d18c4b925c5d1c5229664710f3"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "777048ea75d393110bc446a9babe8dc43bcecba2f74fca3ba497fda5fb8ae473",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "ace73e17eeef0fa244dccaa074a31ba6f13461709097ec837eac8525ff6b7145",
+      "chunkKey": "comprehensive_plan_2020_p0126_c001",
+      "signalIdentityDigest": "414ba58492872e053c7a6732939f1356dc36e4e53e0dbad0557f52ac8a3794ba",
+      "keywordScorePpb": 29924661932,
+      "vectorSimilarityPpb": 311740099,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0126_c001_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0126_c001",
+          "pageNumber": 126
+        }
+      ],
+      "signalDigest": "38e88f11a67bdc9bc2d15adf7c57a235ab9994a5518792e9e8e7b1d137b697f1"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "777048ea75d393110bc446a9babe8dc43bcecba2f74fca3ba497fda5fb8ae473",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "ace73e17eeef0fa244dccaa074a31ba6f13461709097ec837eac8525ff6b7145",
+      "chunkKey": "comprehensive_plan_2020_p0127_c000",
+      "signalIdentityDigest": "b51ac99db466295e2a2e606589d26999a99f580ee8646369e574a0eae57e728b",
+      "keywordScorePpb": 23320455699,
+      "vectorSimilarityPpb": 182584081,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0127_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0127_c000",
+          "pageNumber": 127
+        }
+      ],
+      "signalDigest": "f41c9d6b1a30972e15fe859dac368423a8b36f512722b4de50d063e3b578221d"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "32f019637cddb66883166b674a857043bf0122e85ed1be8f576d50f58e3a57dd",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "ace73e17eeef0fa244dccaa074a31ba6f13461709097ec837eac8525ff6b7145",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0010_c000",
+      "signalIdentityDigest": "6d270a1c8cf162156098644118648b5192063128dbaa464f3f9b30b535fb75a2",
+      "keywordScorePpb": 11887822289,
+      "vectorSimilarityPpb": 102461968,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0010_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0010_c000",
+          "pageNumber": 10
+        }
+      ],
+      "signalDigest": "31a55a21c6b644ebff9f3744cf25126d4cb8384ec768bab2f8deabf32847dcf7"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "32f019637cddb66883166b674a857043bf0122e85ed1be8f576d50f58e3a57dd",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "ace73e17eeef0fa244dccaa074a31ba6f13461709097ec837eac8525ff6b7145",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0039_c000",
+      "signalIdentityDigest": "dabc7ebafb24742ed0e3bd4e12ab67070dff9baa48e071a84d90676758341a67",
+      "keywordScorePpb": 18514598362,
+      "vectorSimilarityPpb": 130377405,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0039_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0039_c000",
+          "pageNumber": 39
+        }
+      ],
+      "signalDigest": "df3d6709663ae9e99c18318eef55c6facc51729fa5d097a1c6ea6e6812e0d615"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "32f019637cddb66883166b674a857043bf0122e85ed1be8f576d50f58e3a57dd",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "ace73e17eeef0fa244dccaa074a31ba6f13461709097ec837eac8525ff6b7145",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0041_c000",
+      "signalIdentityDigest": "7c5db97ef1fb4ac7ba9e941993ca0855827da2bee8063502ef60e232af321eae",
+      "keywordScorePpb": 12595154104,
+      "vectorSimilarityPpb": 171267218,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0041_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0041_c000",
+          "pageNumber": 41
+        }
+      ],
+      "signalDigest": "fd9af14e374b5785037a4571ebc3ef2aeff5dfbff53fcf9eb785ff9621323104"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "862a5c1e6049499f0dd0e00d927d89ab204605bda7907f06713827ad59377d89",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75",
+      "chunkKey": "comprehensive_plan_2020_p0122_c000",
+      "signalIdentityDigest": "7848ff0856dfd27b5659384e2230337d082fa36608d577357925cb172e11fd5e",
+      "keywordScorePpb": 8766743975,
+      "vectorSimilarityPpb": 45940769,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0122_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0122_c000",
+          "pageNumber": 122
+        }
+      ],
+      "signalDigest": "f3ba1286f7bf1b5b2fbe20cc03ec543e51dc8873f2e5f3a6ec5974319ce52c09"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "a0813525fdbd57517208ec661292af48b5516a681c9bd684e283e486343e95fc",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75",
+      "chunkKey": "financial_statements_2024_p0010_c001",
+      "signalIdentityDigest": "a83b9c78b0c19b2603424ce2a5974956c6dea37d30adedffd7d57ea747c1b43f",
+      "keywordScorePpb": 29785241527,
+      "vectorSimilarityPpb": 464227773,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0010_c001_anchor",
+          "chunkKey": "financial_statements_2024_p0010_c001",
+          "pageNumber": 10
+        }
+      ],
+      "signalDigest": "4aa53ab627b632fbb90737845fe5ab45513fd1b71c40a86919c4a15a347a44aa"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "a0813525fdbd57517208ec661292af48b5516a681c9bd684e283e486343e95fc",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75",
+      "chunkKey": "financial_statements_2024_p0016_c001",
+      "signalIdentityDigest": "15d2957beb9aeaec0c3f25138e76b9159d92fe259c5d796ab2844e0844b8a3f5",
+      "keywordScorePpb": 34878269325,
+      "vectorSimilarityPpb": 601522680,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0016_c001_anchor",
+          "chunkKey": "financial_statements_2024_p0016_c001",
+          "pageNumber": 16
+        }
+      ],
+      "signalDigest": "b0b035dbe97ba070fafd95a26abe153031b0ee2ee768d25c185598f83ca7a5d8"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "a0813525fdbd57517208ec661292af48b5516a681c9bd684e283e486343e95fc",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75",
+      "chunkKey": "financial_statements_2024_p0018_c000",
+      "signalIdentityDigest": "71700a36bad3da420847f4c41e7f7f3446aaeb28555cb484882c95db42796bae",
+      "keywordScorePpb": 30581861038,
+      "vectorSimilarityPpb": 374782532,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0018_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0018_c000",
+          "pageNumber": 18
+        }
+      ],
+      "signalDigest": "a1722bd15bb03a9edf8e119c074258de627a3ad30327bb2da1e89bf3d49ff893"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "a0813525fdbd57517208ec661292af48b5516a681c9bd684e283e486343e95fc",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75",
+      "chunkKey": "financial_statements_2024_p0027_c000",
+      "signalIdentityDigest": "ff791c1853ceace4d8002e7192eaf49c00d3e2ff9ba3a2cb1f6fc8bc877d2c89",
+      "keywordScorePpb": 27198461107,
+      "vectorSimilarityPpb": 147506525,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0027_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0027_c000",
+          "pageNumber": 27
+        }
+      ],
+      "signalDigest": "79fce34e8a63d9a8062436127c2f09c37f7c202ba40a67279cd6e3ef55e43b96"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "a0813525fdbd57517208ec661292af48b5516a681c9bd684e283e486343e95fc",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75",
+      "chunkKey": "financial_statements_2024_p0040_c001",
+      "signalIdentityDigest": "be3319d7bfcf2551dbb7ba380fa0f3b29cb3da322ab712e283ff0657fd94fed6",
+      "keywordScorePpb": 22356740388,
+      "vectorSimilarityPpb": 210468824,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0040_c001_anchor",
+          "chunkKey": "financial_statements_2024_p0040_c001",
+          "pageNumber": 40
+        }
+      ],
+      "signalDigest": "e02e83928eb491fd98147c7844007f237631f940c26f0235dc3c2a2ddf65962d"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "89313918cfde0b1b811d631f25a6078e44bc667ee3854c1b1f30ff9972f9d0eb",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75",
+      "chunkKey": "performance_audit_2022_2023_p0003_c000",
+      "signalIdentityDigest": "01de5f28be6aab06d147ec70f72c6c369208ca0ff0adc15ff98057fb5397e198",
+      "keywordScorePpb": 11927432182,
+      "vectorSimilarityPpb": 147311519,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0003_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0003_c000",
+          "pageNumber": 3
+        }
+      ],
+      "signalDigest": "20006749f03b06625e5e6c4892642ad94fc0139db8970460db9008977148ed12"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "89313918cfde0b1b811d631f25a6078e44bc667ee3854c1b1f30ff9972f9d0eb",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75",
+      "chunkKey": "performance_audit_2022_2023_p0007_c000",
+      "signalIdentityDigest": "0a876b6036135f450604cc3d6e69a8085306250500796af26ce7ea23e3ff764b",
+      "keywordScorePpb": 10904023393,
+      "vectorSimilarityPpb": 114458647,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0007_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0007_c000",
+          "pageNumber": 7
+        }
+      ],
+      "signalDigest": "445af47974e849a324152ef50e7cba89e27f04963a24dc0f9079f7459454e5f7"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "89313918cfde0b1b811d631f25a6078e44bc667ee3854c1b1f30ff9972f9d0eb",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75",
+      "chunkKey": "performance_audit_2022_2023_p0018_c000",
+      "signalIdentityDigest": "f3eb95a6f58f48ac55168d2116066dd33bc1a2effa6d9971e4bc3fb6e23804b2",
+      "keywordScorePpb": 17605115743,
+      "vectorSimilarityPpb": 227929193,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0018_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0018_c000",
+          "pageNumber": 18
+        }
+      ],
+      "signalDigest": "e52cd690b7f9269439456c0179411b539fb4a877d2e0fc5195bc05df477a8bfa"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "89313918cfde0b1b811d631f25a6078e44bc667ee3854c1b1f30ff9972f9d0eb",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75",
+      "chunkKey": "performance_audit_2022_2023_p0027_c000",
+      "signalIdentityDigest": "e40344de711ef430ce51c3c2d9e319ce3daff115568c768c358ca2235f1a8f8b",
+      "keywordScorePpb": 17929376866,
+      "vectorSimilarityPpb": 138185382,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0027_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0027_c000",
+          "pageNumber": 27
+        }
+      ],
+      "signalDigest": "964bf0ee020c22d3f2171d0b9310b18e79722f58660447d43078636a0b8d39c8"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "89313918cfde0b1b811d631f25a6078e44bc667ee3854c1b1f30ff9972f9d0eb",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75",
+      "chunkKey": "performance_audit_2022_2023_p0027_c001",
+      "signalIdentityDigest": "b1918495bea21d21b589f8af40f7b02e69995ad93cbe9a3c2ee0ddb23e67a260",
+      "keywordScorePpb": 20393759332,
+      "vectorSimilarityPpb": 201318976,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0027_c001_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0027_c001",
+          "pageNumber": 27
+        }
+      ],
+      "signalDigest": "03f64214d0ea5664dd66f4b847feaefe815c31bf8ffafff525ff7f03d3d9e20a"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "8b909bb92e802c88519aa4c6aa411c541cda26228801c5c841fd25c6a3b43f86",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "comprehensive_plan_2020_p0064_c001",
+      "signalIdentityDigest": "3c504224eb53d2947133b8ebd0abd330e38dd762530dca591e6e015e1c6b4eaa",
+      "keywordScorePpb": 23491351215,
+      "vectorSimilarityPpb": 186323244,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0064_c001_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0064_c001",
+          "pageNumber": 64
+        }
+      ],
+      "signalDigest": "1b46c31065fc73e62d2fa949f770f873c77b65e7f6f61bf0dcceabf440a58d5d"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "8b909bb92e802c88519aa4c6aa411c541cda26228801c5c841fd25c6a3b43f86",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "comprehensive_plan_2020_p0068_c000",
+      "signalIdentityDigest": "ff4d63ef75ac3261255882c93658ea6d8d46b1f7c97e76f6063a407ce194cd17",
+      "keywordScorePpb": 22533585589,
+      "vectorSimilarityPpb": 144673417,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0068_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0068_c000",
+          "pageNumber": 68
+        }
+      ],
+      "signalDigest": "8e7b6988b9c219e05accccede85b378080dfb8a849dafec5174f4044eeaf8998"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "8b909bb92e802c88519aa4c6aa411c541cda26228801c5c841fd25c6a3b43f86",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "comprehensive_plan_2020_p0078_c000",
+      "signalIdentityDigest": "58cd3a8978a0710889b2ef0ec75d49153abfe58a1070aab6d9dd3c77e49538cb",
+      "keywordScorePpb": 24493900686,
+      "vectorSimilarityPpb": 207061334,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0078_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0078_c000",
+          "pageNumber": 78
+        }
+      ],
+      "signalDigest": "bf824e39d1f0d7018cfe7bd1607ccb60b6253716184b64e68a7999a4f636dc29"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "8b909bb92e802c88519aa4c6aa411c541cda26228801c5c841fd25c6a3b43f86",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "comprehensive_plan_2020_p0128_c000",
+      "signalIdentityDigest": "9f57c1cd6d7987bfe4e9c55b0f3f11803e49e06bc0b0cadc981357dbae82fa32",
+      "keywordScorePpb": 23632968073,
+      "vectorSimilarityPpb": 169606082,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0128_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0128_c000",
+          "pageNumber": 128
+        }
+      ],
+      "signalDigest": "ea478f2e293b1e668459cc9dd1d7b3ff00b0fb49dcee1e6b6a01c70d3b68e79c"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "8b909bb92e802c88519aa4c6aa411c541cda26228801c5c841fd25c6a3b43f86",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "comprehensive_plan_2020_p0130_c000",
+      "signalIdentityDigest": "ed702e479fd7bc3dc53a30b8b6fc08a5f4a8e4a365a27857221e2eecd03401f2",
+      "keywordScorePpb": 27549283948,
+      "vectorSimilarityPpb": 255360764,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0130_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0130_c000",
+          "pageNumber": 130
+        }
+      ],
+      "signalDigest": "e33dc1896bc3f3ad01d74c6655a6f67f6eea180b9423fe13b080b8efc94a256a"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "5a2ba51fd4f37f3575fcb1cba11cc0643dd5c9cc343984d55d68900a1b167377",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0027_c000",
+      "signalIdentityDigest": "2bed455e050ef41f4663ada553d3ceffe28eb8af4ee6084fa788dc6733babc25",
+      "keywordScorePpb": 16950891907,
+      "vectorSimilarityPpb": 260454813,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0027_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0027_c000",
+          "pageNumber": 27
+        }
+      ],
+      "signalDigest": "7a065df8536e73436a2035269f3ede411fde433f1d16dfce2c5966540c114095"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "5a2ba51fd4f37f3575fcb1cba11cc0643dd5c9cc343984d55d68900a1b167377",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0028_c000",
+      "signalIdentityDigest": "fa2162d38083bf5f3098a0494140280f36ae8e96831514645e56069eddfc7871",
+      "keywordScorePpb": 20558186319,
+      "vectorSimilarityPpb": 244769629,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0028_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0028_c000",
+          "pageNumber": 28
+        }
+      ],
+      "signalDigest": "4ff11fb29dfffe31a1a35112503dcda78efa6d215932079cfb2a47dfe829cd35"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "5a2ba51fd4f37f3575fcb1cba11cc0643dd5c9cc343984d55d68900a1b167377",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0029_c000",
+      "signalIdentityDigest": "4db58cf9c00b7e42cbf3e234c027454788c77501fa31cab6a4e0af5f86c67d99",
+      "keywordScorePpb": 17542105949,
+      "vectorSimilarityPpb": 179350789,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0029_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0029_c000",
+          "pageNumber": 29
+        }
+      ],
+      "signalDigest": "739abf9c39e7902b37992b3b4e2fa3b0413d6b8c1a57c88b826bdfb7f74088ab"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "5a2ba51fd4f37f3575fcb1cba11cc0643dd5c9cc343984d55d68900a1b167377",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0030_c000",
+      "signalIdentityDigest": "f66eb214b3ad0557e6e3b55158e8b67d4a60bc26603344ca10b1ad3d7f75f1b4",
+      "keywordScorePpb": 16552090101,
+      "vectorSimilarityPpb": 169348397,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0030_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0030_c000",
+          "pageNumber": 30
+        }
+      ],
+      "signalDigest": "158ce8bc86aa16cca81a820a752b4f5f5e7b34e89f2ace46050190e8e4612163"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "5a2ba51fd4f37f3575fcb1cba11cc0643dd5c9cc343984d55d68900a1b167377",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0036_c000",
+      "signalIdentityDigest": "bbe90756ea2dbf895719f2d0e4f9d92288ca72b43bef5adad12c9a6356d3dd5a",
+      "keywordScorePpb": 25460331317,
+      "vectorSimilarityPpb": 446549818,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0036_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0036_c000",
+          "pageNumber": 36
+        }
+      ],
+      "signalDigest": "4695d5c597466739219f5c308604256cff5f21bb13f95a74cd33df6091312d7d"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "057ca4389478ecd2b0c3b5af8a9c2e0987fb8d4819c55488d36002e7334f9898",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "financial_statements_2024_p0017_c000",
+      "signalIdentityDigest": "627c760b1137ec8dd83277cc22bae1af96c0fb8b86ab511861c909d723ef231c",
+      "keywordScorePpb": 9180019970,
+      "vectorSimilarityPpb": 47780411,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0017_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0017_c000",
+          "pageNumber": 17
+        }
+      ],
+      "signalDigest": "d0e077f15baaeb7beb953ad9e8f3ef684e5b3510174026ca606808be6cc5e0b9"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "057ca4389478ecd2b0c3b5af8a9c2e0987fb8d4819c55488d36002e7334f9898",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "financial_statements_2024_p0041_c000",
+      "signalIdentityDigest": "74a80afdc7abe577d753614f4db0dcbb22dc282915136cf4c864ec36a6d07c4a",
+      "keywordScorePpb": 8163041477,
+      "vectorSimilarityPpb": 35588772,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0041_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0041_c000",
+          "pageNumber": 41
+        }
+      ],
+      "signalDigest": "d8781d4b087c5ff2d6c6b08ab3b3cb14a2e887e3d33352ab11fa64ced7f9ed47"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "057ca4389478ecd2b0c3b5af8a9c2e0987fb8d4819c55488d36002e7334f9898",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "financial_statements_2024_p0044_c000",
+      "signalIdentityDigest": "cac0fe440da9f1a9ac423c91ebf1dbbd036e4be85c81d2f7934d0bd0f241b415",
+      "keywordScorePpb": 12317362033,
+      "vectorSimilarityPpb": 93214363,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0044_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0044_c000",
+          "pageNumber": 44
+        }
+      ],
+      "signalDigest": "240a34443d1a25c1799daaa29a3ad6920f89c0601f30a3349c9b0d6adf97501c"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "9ac010a00a200c10fdc4440341a7e8788e94d5bcc75aadca31b092a968427e56",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "performance_audit_2022_2023_p0002_c000",
+      "signalIdentityDigest": "d95e4e53f6ea5afda339dd9731ab76562b36f38cd263db1dc3b0cd380a84f045",
+      "keywordScorePpb": 8208372564,
+      "vectorSimilarityPpb": 44727619,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0002_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0002_c000",
+          "pageNumber": 2
+        }
+      ],
+      "signalDigest": "4d74c600a091eee1d4136cea7b82860c3f19b9e0cf4f51bfaea203b1e28b28bd"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "9ac010a00a200c10fdc4440341a7e8788e94d5bcc75aadca31b092a968427e56",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "performance_audit_2022_2023_p0007_c000",
+      "signalIdentityDigest": "7c07bf5a04b9522587c56b3e0f89a482db6c9dcb990f936eeae0ee43f94072c0",
+      "keywordScorePpb": 9104916015,
+      "vectorSimilarityPpb": 79631844,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0007_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0007_c000",
+          "pageNumber": 7
+        }
+      ],
+      "signalDigest": "e7c30da4e0d3d3678249e28103865e3c66a3cd133f64d1fc03bb62f38f73d066"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "9ac010a00a200c10fdc4440341a7e8788e94d5bcc75aadca31b092a968427e56",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "chunkKey": "performance_audit_2022_2023_p0010_c000",
+      "signalIdentityDigest": "36361bbc3b12100dacf57db9ec579317c5939022e16862a84bd18ab62ae27dce",
+      "keywordScorePpb": 12374744756,
+      "vectorSimilarityPpb": 82641618,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0010_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0010_c000",
+          "pageNumber": 10
+        }
+      ],
+      "signalDigest": "e3d37f82d2ad943138934e1e0a58c4bf3851d2c1f321024f2e5d917919ebcf17"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "5a4ba5d01c4f5b35ace264fdaf4e5a14b2c428e6a49529d717d5465b403240f8",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "comprehensive_plan_2020_p0086_c000",
+      "signalIdentityDigest": "c0140975a99e6e1e8235bb6584cd4975b559775e4b9b10311496e97b39dc7690",
+      "keywordScorePpb": 10331445605,
+      "vectorSimilarityPpb": 50402432,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0086_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0086_c000",
+          "pageNumber": 86
+        }
+      ],
+      "signalDigest": "e6bd53e1f9fe5604f9255b813b039e591fca3cbc946e75c7fc29df79c658bcda"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "5a4ba5d01c4f5b35ace264fdaf4e5a14b2c428e6a49529d717d5465b403240f8",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "comprehensive_plan_2020_p0092_c000",
+      "signalIdentityDigest": "465ac73a04305955c20f4557e8ffbaeb858013f1a3d7b9baa189fe069d3c013d",
+      "keywordScorePpb": 9578503421,
+      "vectorSimilarityPpb": 39464882,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0092_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0092_c000",
+          "pageNumber": 92
+        }
+      ],
+      "signalDigest": "e38a789c5020eaf9fdf951051ddc3b2debe0f0142745406d8231038027b9238a"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "5a4ba5d01c4f5b35ace264fdaf4e5a14b2c428e6a49529d717d5465b403240f8",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "comprehensive_plan_2020_p0092_c001",
+      "signalIdentityDigest": "558ffcbc02f3a9d48cbcfa68bad1221eae02be22b8523d609ae46d4278e5561c",
+      "keywordScorePpb": 8785597364,
+      "vectorSimilarityPpb": 39243153,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0092_c001_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0092_c001",
+          "pageNumber": 92
+        }
+      ],
+      "signalDigest": "c048321ccaf021fda3a46ff84ca72aa00c2bdeb08fe019aadef8a140abf61275"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "5a4ba5d01c4f5b35ace264fdaf4e5a14b2c428e6a49529d717d5465b403240f8",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "comprehensive_plan_2020_p0104_c000",
+      "signalIdentityDigest": "be7951a20a8265087198a409c1c3d67db372d3df3a8090c8c73a22c78fbe2481",
+      "keywordScorePpb": 11590131275,
+      "vectorSimilarityPpb": 71250506,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0104_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0104_c000",
+          "pageNumber": 104
+        }
+      ],
+      "signalDigest": "656866a4e56e6a06b478a3e1ac0254ac82609243810e92cf895e4802f0dd8f14"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "5a4ba5d01c4f5b35ace264fdaf4e5a14b2c428e6a49529d717d5465b403240f8",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "comprehensive_plan_2020_p0121_c000",
+      "signalIdentityDigest": "46274645dc1033f719d9a5f287b63ed2f4a638aec13f4645d2c270c04e7518c7",
+      "keywordScorePpb": 11372131683,
+      "vectorSimilarityPpb": 60552316,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0121_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0121_c000",
+          "pageNumber": 121
+        }
+      ],
+      "signalDigest": "d5581458796f29a1093157243398463ab966ae5f1134f802956e1344dcee339d"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "ef58851484fbbf34999b837fe132d164551dc956d816d260244fb8497499e012",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "financial_statements_2024_p0010_c001",
+      "signalIdentityDigest": "d8414bd64597373d056517067bd24c78a9c84227acf9d2633c139b196d84c876",
+      "keywordScorePpb": 17925047737,
+      "vectorSimilarityPpb": 202971591,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0010_c001_anchor",
+          "chunkKey": "financial_statements_2024_p0010_c001",
+          "pageNumber": 10
+        }
+      ],
+      "signalDigest": "b216ccae8cd47c954b76ccf03aed3dd844560c7726d16d9f8e5c37166e99072c"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "ef58851484fbbf34999b837fe132d164551dc956d816d260244fb8497499e012",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "financial_statements_2024_p0024_c000",
+      "signalIdentityDigest": "342b92a1b033d569e0760806f0591bb5f553969127c7616ccdf433b3f3cfeb96",
+      "keywordScorePpb": 17473241850,
+      "vectorSimilarityPpb": 124714529,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0024_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0024_c000",
+          "pageNumber": 24
+        }
+      ],
+      "signalDigest": "31b9d129cd20dc7135817f1dd2bed1ca7de362f9f5857dd97013ef82580181f6"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "ef58851484fbbf34999b837fe132d164551dc956d816d260244fb8497499e012",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "financial_statements_2024_p0026_c000",
+      "signalIdentityDigest": "f76e9366d9494f78af9e6c06210c7c9f46f58434fe5f50b6ca6a055e3b44bd7f",
+      "keywordScorePpb": 20825948761,
+      "vectorSimilarityPpb": 215361510,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0026_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0026_c000",
+          "pageNumber": 26
+        }
+      ],
+      "signalDigest": "56bc0188f2f28a6b4346d905eb70d847861bf5bd783d1065ed892767290a838c"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "ef58851484fbbf34999b837fe132d164551dc956d816d260244fb8497499e012",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "financial_statements_2024_p0032_c001",
+      "signalIdentityDigest": "880fbaab7a9b3287e039b47dba6a79332c1196355ff07228a04bc9952611f98c",
+      "keywordScorePpb": 16935003820,
+      "vectorSimilarityPpb": 109925210,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0032_c001_anchor",
+          "chunkKey": "financial_statements_2024_p0032_c001",
+          "pageNumber": 32
+        }
+      ],
+      "signalDigest": "8517d623167412967e21111ff5135448858654e62bf14d6b6ab9f1f02ed22f64"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "ef58851484fbbf34999b837fe132d164551dc956d816d260244fb8497499e012",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "financial_statements_2024_p0059_c000",
+      "signalIdentityDigest": "af3179ea62f442cbdb876feba143aab65875221d9b0be6196d7151dc9c6fbbf6",
+      "keywordScorePpb": 23433905116,
+      "vectorSimilarityPpb": 221890504,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0059_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0059_c000",
+          "pageNumber": 59
+        }
+      ],
+      "signalDigest": "fca16f53b6fbcf944f00e2ecc15ead7695c3eb4ad544656be9d907764ad4dcb9"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "343d00f14aa92f2b6745043d4808d394d5791aaf1d44beb8ddf56eaf5e562458",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "performance_audit_2022_2023_p0003_c000",
+      "signalIdentityDigest": "168cce39160b17d1a2b9853d4d662edc9815c90000c7b91f0149811c409a1fc0",
+      "keywordScorePpb": 37591728974,
+      "vectorSimilarityPpb": 369291932,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0003_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0003_c000",
+          "pageNumber": 3
+        }
+      ],
+      "signalDigest": "80d88ccb5811684fd467d3acbdf3eee41a3892e18d31da8dd208b92a4b70b3ff"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "343d00f14aa92f2b6745043d4808d394d5791aaf1d44beb8ddf56eaf5e562458",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "performance_audit_2022_2023_p0007_c000",
+      "signalIdentityDigest": "14f4adc38086eebcac66fb79553e0665711ac2899f7583cc75b9142dcc48e63d",
+      "keywordScorePpb": 19384259683,
+      "vectorSimilarityPpb": 162685649,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0007_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0007_c000",
+          "pageNumber": 7
+        }
+      ],
+      "signalDigest": "3e61624830bf9991be1d5a9a88054a3b5b4b7e9965464de7289cf5dd1a53c4a6"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "343d00f14aa92f2b6745043d4808d394d5791aaf1d44beb8ddf56eaf5e562458",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "performance_audit_2022_2023_p0008_c000",
+      "signalIdentityDigest": "22c0596533a1b9d61d10b92a5d4aa49f7cfb63744f3a69571882709dc2bba165",
+      "keywordScorePpb": 21663704431,
+      "vectorSimilarityPpb": 174678600,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0008_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0008_c000",
+          "pageNumber": 8
+        }
+      ],
+      "signalDigest": "9c4eaf599204133f1dba39f1fd4c5b3711791706b1fd37a052163be8e93bf091"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "343d00f14aa92f2b6745043d4808d394d5791aaf1d44beb8ddf56eaf5e562458",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "performance_audit_2022_2023_p0014_c001",
+      "signalIdentityDigest": "16749f676acb6d71d460a9bf6f7ba665a48ec56708f41c018e70c7534dd5167f",
+      "keywordScorePpb": 19388245021,
+      "vectorSimilarityPpb": 208689147,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0014_c001_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0014_c001",
+          "pageNumber": 14
+        }
+      ],
+      "signalDigest": "63af3030672011c13cddb98cc182b810c1cf5831e85a4ddcf21144bf6e969ab8"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "343d00f14aa92f2b6745043d4808d394d5791aaf1d44beb8ddf56eaf5e562458",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "chunkKey": "performance_audit_2022_2023_p0026_c001",
+      "signalIdentityDigest": "4fe9e1e1637fe3d86357d9dc5e94efe9cdce603c549bdc7fef6929c40fbc9d0b",
+      "keywordScorePpb": 25042493602,
+      "vectorSimilarityPpb": 312750381,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0026_c001_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0026_c001",
+          "pageNumber": 26
+        }
+      ],
+      "signalDigest": "c8c49cad6203835c8dafb3854f24e702c522a193e3c485a88688fa450fc53095"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "e95676f4fb46b7fda35a18f7afc7833f07a925a7622b627b84b39854bfb266f5",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "comprehensive_plan_2020_p0074_c000",
+      "signalIdentityDigest": "64f90d1685b141841e2f2887c6b30e43ec4f306e2f01cba497e70cd337d179de",
+      "keywordScorePpb": 12519960769,
+      "vectorSimilarityPpb": 55939936,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0074_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0074_c000",
+          "pageNumber": 74
+        }
+      ],
+      "signalDigest": "5ef0ca0a5b29fbd8aed80ee42779b1a0d8cd52f3859915ec28694a910eca81fb"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "e95676f4fb46b7fda35a18f7afc7833f07a925a7622b627b84b39854bfb266f5",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "comprehensive_plan_2020_p0078_c001",
+      "signalIdentityDigest": "b31b535a49dc923c3f81e6005b0333f0ce7a45edc149aa897edfd4f16b00f9c8",
+      "keywordScorePpb": 13941386005,
+      "vectorSimilarityPpb": 113701154,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0078_c001_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0078_c001",
+          "pageNumber": 78
+        }
+      ],
+      "signalDigest": "35ac15dd67b3f993a2820b97a5c72978838406cf80cdbf42776efe808f16e171"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "e95676f4fb46b7fda35a18f7afc7833f07a925a7622b627b84b39854bfb266f5",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "comprehensive_plan_2020_p0080_c001",
+      "signalIdentityDigest": "182f6809963043790c13ea8aef245c3f9fa6e1c33d664a4e3969809350f0fc0c",
+      "keywordScorePpb": 15524986590,
+      "vectorSimilarityPpb": 158292666,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0080_c001_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0080_c001",
+          "pageNumber": 80
+        }
+      ],
+      "signalDigest": "e75ad53a8cdc9c6756c447bf47ea703dbe8eb007083e3012d8f3cdc9f8a65ed9"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "e95676f4fb46b7fda35a18f7afc7833f07a925a7622b627b84b39854bfb266f5",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "comprehensive_plan_2020_p0092_c001",
+      "signalIdentityDigest": "762ef4a9770600838633ee2c1d866751d9aea71f160ae9864bffd725c77d393d",
+      "keywordScorePpb": 11115539024,
+      "vectorSimilarityPpb": 47254443,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0092_c001_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0092_c001",
+          "pageNumber": 92
+        }
+      ],
+      "signalDigest": "20d719b7d838e30b31f5867f0426bc8c5f3264511ecc0ae143bdafe795f1e09b"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "e95676f4fb46b7fda35a18f7afc7833f07a925a7622b627b84b39854bfb266f5",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "comprehensive_plan_2020_p0120_c000",
+      "signalIdentityDigest": "3c69331b10b1bdacd42b18e8e75d38f57782c2ebd274d3d95f83b6836bc6e35b",
+      "keywordScorePpb": 17270653177,
+      "vectorSimilarityPpb": 140561182,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0120_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0120_c000",
+          "pageNumber": 120
+        }
+      ],
+      "signalDigest": "452f6f450588fc1ff73d6da61b32f4c2bd45eda6ee8bab3d0403fb8ec54fb4ea"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "fd18415f694a16a0a997098c11640e142520a6b7dfed8fb7cefdd446dfb62b8d",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "financial_statements_2024_p0013_c000",
+      "signalIdentityDigest": "ccbcd3c4d7f5e63c1d38858484bd35606934222bbf0250fd40323975360cf14a",
+      "keywordScorePpb": 22767871634,
+      "vectorSimilarityPpb": 66570254,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0013_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0013_c000",
+          "pageNumber": 13
+        }
+      ],
+      "signalDigest": "379643f830e48fd488876cdd400f57f952c538a9b6fcdc5e946c5061197c06ff"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "fd18415f694a16a0a997098c11640e142520a6b7dfed8fb7cefdd446dfb62b8d",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "financial_statements_2024_p0022_c000",
+      "signalIdentityDigest": "64ec557293caf9a7a88edcc0522b5d1031ff064be906de202910939db2652d62",
+      "keywordScorePpb": 20248389250,
+      "vectorSimilarityPpb": 69274369,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0022_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0022_c000",
+          "pageNumber": 22
+        }
+      ],
+      "signalDigest": "58893fa998b298f00aa807631b1ac6b56a977d0065fc66d80c1a132bfa121f49"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "fd18415f694a16a0a997098c11640e142520a6b7dfed8fb7cefdd446dfb62b8d",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "financial_statements_2024_p0031_c000",
+      "signalIdentityDigest": "170620cff7050a1f088056ebcdc8f8a20be270959110767f19ba9deaa5730074",
+      "keywordScorePpb": 27104752912,
+      "vectorSimilarityPpb": 143384089,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0031_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0031_c000",
+          "pageNumber": 31
+        }
+      ],
+      "signalDigest": "b2d50e9512b3f1dba290abcf909a0552e048245700d7d44c3c544a339a3f6b90"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "fd18415f694a16a0a997098c11640e142520a6b7dfed8fb7cefdd446dfb62b8d",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "financial_statements_2024_p0032_c000",
+      "signalIdentityDigest": "a6c9eab514bd7c0bb9694838b2d1c0ee431e604374066fd31dc2eea8a5e4961d",
+      "keywordScorePpb": 25402779555,
+      "vectorSimilarityPpb": 124243018,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0032_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0032_c000",
+          "pageNumber": 32
+        }
+      ],
+      "signalDigest": "1e7d73d40fa5e8e0829d544e44837474e1860db3e53bf32c78ea0641cd34f78b"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "fd18415f694a16a0a997098c11640e142520a6b7dfed8fb7cefdd446dfb62b8d",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "financial_statements_2024_p0038_c000",
+      "signalIdentityDigest": "2ae9fe69c5f602bc53f737070f565d4bf3aa338a0f52b995d9f5c83fc18243d8",
+      "keywordScorePpb": 30769699093,
+      "vectorSimilarityPpb": 349853701,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0038_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0038_c000",
+          "pageNumber": 38
+        }
+      ],
+      "signalDigest": "c10ba506a0d694cc5f5aa5bd742f56a6321ccc2b6049e17459cea336a3773bf5"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f9988690cfdae82f2479db9ae7ca0529a23e98d8270afb49f4a361b3886d9c56",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "performance_audit_2022_2023_p0002_c000",
+      "signalIdentityDigest": "dbac704516a1562cde2bf2157baea2536cabac9e64723ec5faa7f93179bae959",
+      "keywordScorePpb": 8667214379,
+      "vectorSimilarityPpb": 38664780,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0002_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0002_c000",
+          "pageNumber": 2
+        }
+      ],
+      "signalDigest": "ae7e7b1cf26b4406e76aa5a923a6548714f3b5cd9f9e4504e0ba5f98b0e7b5f9"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f9988690cfdae82f2479db9ae7ca0529a23e98d8270afb49f4a361b3886d9c56",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "performance_audit_2022_2023_p0011_c001",
+      "signalIdentityDigest": "50469a36d0edae94da042fb70f006c64460d19c63aa7fa224a80d041757bf5a5",
+      "keywordScorePpb": 12616902714,
+      "vectorSimilarityPpb": 56707151,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0011_c001_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0011_c001",
+          "pageNumber": 11
+        }
+      ],
+      "signalDigest": "37126da3d96dfb92b424f7e584ddf0c8123fa9fa9668b185816068d46f4594c1"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f9988690cfdae82f2479db9ae7ca0529a23e98d8270afb49f4a361b3886d9c56",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "performance_audit_2022_2023_p0012_c000",
+      "signalIdentityDigest": "3f31223f51716ec3f37652f60070909af3b535eec04e41a0faef44948c7a7f30",
+      "keywordScorePpb": 17461910421,
+      "vectorSimilarityPpb": 110834487,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0012_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0012_c000",
+          "pageNumber": 12
+        }
+      ],
+      "signalDigest": "d154a5fcdaf5ed37e1a12d917fdc04ea094601988cc732b04e80b78e9f0e09f0"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f9988690cfdae82f2479db9ae7ca0529a23e98d8270afb49f4a361b3886d9c56",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "performance_audit_2022_2023_p0013_c000",
+      "signalIdentityDigest": "b6bc59897db53aecd39ba6de070a60946d954dda30ab26919c25eb0ecedb385b",
+      "keywordScorePpb": 7998759811,
+      "vectorSimilarityPpb": 31318319,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0013_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0013_c000",
+          "pageNumber": 13
+        }
+      ],
+      "signalDigest": "a80bea5c3a8ae87e4c16e2c97183ca35eb952115e10e2988d52177ec955c8d5e"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f9988690cfdae82f2479db9ae7ca0529a23e98d8270afb49f4a361b3886d9c56",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "chunkKey": "performance_audit_2022_2023_p0026_c001",
+      "signalIdentityDigest": "a30b87b020b36085835d1c6a30c70abcab4809f8ea5365f4d655f4e860f8de47",
+      "keywordScorePpb": 11907501017,
+      "vectorSimilarityPpb": 113302765,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0026_c001_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0026_c001",
+          "pageNumber": 26
+        }
+      ],
+      "signalDigest": "4ae09bb0bf6b83fe15dd40e43bc0568f915f7e4ce107b0c0c371661342144861"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "1c642729f74d7595b550d9d14bd3abc983520a5b4279df0ce7a2bf0d1c65e28e",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "d194647a4999e72dd5420d36e4c58f3f0d943ccdf6a4cdab772ac577ddf37a43",
+      "chunkKey": "comprehensive_plan_2020_p0013_c000",
+      "signalIdentityDigest": "d90802c21443e214bf68c3eb2ce9ae068bd792e17184de4a6f7b7aa6406e3fe5",
+      "keywordScorePpb": 24392538383,
+      "vectorSimilarityPpb": 212611531,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0013_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0013_c000",
+          "pageNumber": 13
+        }
+      ],
+      "signalDigest": "6350590365e675f0cdc6e92e728c427870dad6f135ea3f6bc26f80d25fb8f61c"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "1c642729f74d7595b550d9d14bd3abc983520a5b4279df0ce7a2bf0d1c65e28e",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "d194647a4999e72dd5420d36e4c58f3f0d943ccdf6a4cdab772ac577ddf37a43",
+      "chunkKey": "comprehensive_plan_2020_p0017_c000",
+      "signalIdentityDigest": "4815c3438bbe30c702818ff6aba244d0a85874047c7dda3aa0ab7b81cfda30fa",
+      "keywordScorePpb": 24571732054,
+      "vectorSimilarityPpb": 200623269,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0017_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0017_c000",
+          "pageNumber": 17
+        }
+      ],
+      "signalDigest": "0bb6dec929e9ba045fb67788b746d989bdc47873a0c00912c6a3499d34896dcb"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "1c642729f74d7595b550d9d14bd3abc983520a5b4279df0ce7a2bf0d1c65e28e",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "d194647a4999e72dd5420d36e4c58f3f0d943ccdf6a4cdab772ac577ddf37a43",
+      "chunkKey": "comprehensive_plan_2020_p0018_c000",
+      "signalIdentityDigest": "75ccc544d963e7cd0462aeba1e99a52d0b2fd722d06d92a91beba0059f2b4110",
+      "keywordScorePpb": 27514878116,
+      "vectorSimilarityPpb": 351384146,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0018_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0018_c000",
+          "pageNumber": 18
+        }
+      ],
+      "signalDigest": "3de9b9cbf9cd7244f7c7ff57e3dd13c03d43e016e9dcb87370bfa251756d35bf"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "1c642729f74d7595b550d9d14bd3abc983520a5b4279df0ce7a2bf0d1c65e28e",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "d194647a4999e72dd5420d36e4c58f3f0d943ccdf6a4cdab772ac577ddf37a43",
+      "chunkKey": "comprehensive_plan_2020_p0019_c000",
+      "signalIdentityDigest": "a19d4d373c9c4967e2fbd17b961dc63b0c1257db337a0ddd8d74e94da43911f4",
+      "keywordScorePpb": 21714254933,
+      "vectorSimilarityPpb": 213677252,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0019_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0019_c000",
+          "pageNumber": 19
+        }
+      ],
+      "signalDigest": "a39b50bdde75740498691cc09e77c8b32a246f198b43e8d75b8e351f6706bc0f"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "1c642729f74d7595b550d9d14bd3abc983520a5b4279df0ce7a2bf0d1c65e28e",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "d194647a4999e72dd5420d36e4c58f3f0d943ccdf6a4cdab772ac577ddf37a43",
+      "chunkKey": "comprehensive_plan_2020_p0044_c000",
+      "signalIdentityDigest": "9361d0d3d38c0e0a817d046de81e68f313808bb2b132823ee733b3afc663a17f",
+      "keywordScorePpb": 17568227102,
+      "vectorSimilarityPpb": 102643960,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0044_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0044_c000",
+          "pageNumber": 44
+        }
+      ],
+      "signalDigest": "7df2c8841f543b0fac070fdb920c664521fd116584063d107cfd37b33cdc200c"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "e574fe66a27c52a88b0497f103f73c3e51c9204491765f2ebad58365a283bb79",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "d194647a4999e72dd5420d36e4c58f3f0d943ccdf6a4cdab772ac577ddf37a43",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0002_c000",
+      "signalIdentityDigest": "4e72e8da304fa5b3b7986b6a99deee27ec43337b645e45a0e9834a153a9c532f",
+      "keywordScorePpb": 9552721573,
+      "vectorSimilarityPpb": 99272373,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0002_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0002_c000",
+          "pageNumber": 2
+        }
+      ],
+      "signalDigest": "c089c9a3b8cf84455adc37fc969684f9efa0cddd0e93316b14ce51b3a6de7d50"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f929355cec556f199856c985f0ce38252cd30f14b4294b029c3757fd889c68c7",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "d9ca37b1c377ab4b1f704b702504cb62288fa2f27eaa3ac29b0b35ce3236b7a1",
+      "chunkKey": "financial_statements_2024_p0003_c000",
+      "signalIdentityDigest": "512566b315298aaae884f3a9332a66a2a2864d4c8e55696b13a645f4bee0b5ce",
+      "keywordScorePpb": 40410513508,
+      "vectorSimilarityPpb": 364649414,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0003_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0003_c000",
+          "pageNumber": 3
+        }
+      ],
+      "signalDigest": "7824ad7f50f208a176b8868926e01ddd702386818ed60a6f0f08bbc50e6d19e5"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f929355cec556f199856c985f0ce38252cd30f14b4294b029c3757fd889c68c7",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "d9ca37b1c377ab4b1f704b702504cb62288fa2f27eaa3ac29b0b35ce3236b7a1",
+      "chunkKey": "financial_statements_2024_p0066_c000",
+      "signalIdentityDigest": "6466a6f169f5d7698c14e07bb53cd4ce8191e4ccace06f641d09e0f81cc22466",
+      "keywordScorePpb": 28974876554,
+      "vectorSimilarityPpb": 337139785,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0066_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0066_c000",
+          "pageNumber": 66
+        }
+      ],
+      "signalDigest": "76d4ef472d52ad36f0c29932243acdef4577209904da67cbbb2be184fe1738b8"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f929355cec556f199856c985f0ce38252cd30f14b4294b029c3757fd889c68c7",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "d9ca37b1c377ab4b1f704b702504cb62288fa2f27eaa3ac29b0b35ce3236b7a1",
+      "chunkKey": "financial_statements_2024_p0074_c000",
+      "signalIdentityDigest": "8b9843e05d9a3e724b35189425ef16b8456580acdae19bcebf4c409304a93b38",
+      "keywordScorePpb": 30381730602,
+      "vectorSimilarityPpb": 345950471,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0074_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0074_c000",
+          "pageNumber": 74
+        }
+      ],
+      "signalDigest": "3b1d6813331b2959f89a4525506079b813d8c1de34e92493177c07858e960ca3"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f929355cec556f199856c985f0ce38252cd30f14b4294b029c3757fd889c68c7",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "d9ca37b1c377ab4b1f704b702504cb62288fa2f27eaa3ac29b0b35ce3236b7a1",
+      "chunkKey": "financial_statements_2024_p0086_c000",
+      "signalIdentityDigest": "a15822dd2cf1d66885fd5fd55fde2c172f98941ec634a1151a5bdba5e2677bb9",
+      "keywordScorePpb": 30236717402,
+      "vectorSimilarityPpb": 340738940,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0086_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0086_c000",
+          "pageNumber": 86
+        }
+      ],
+      "signalDigest": "43aefe4a8b4009d6192b9f87cb17f05e2fe53d866d22f9663c12f1ef8642e4de"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f929355cec556f199856c985f0ce38252cd30f14b4294b029c3757fd889c68c7",
+      "candidateKey": "financial_statements_2024",
+      "documentId": "00000000-0000-4000-8000-000000000101",
+      "queryDigest": "d9ca37b1c377ab4b1f704b702504cb62288fa2f27eaa3ac29b0b35ce3236b7a1",
+      "chunkKey": "financial_statements_2024_p0092_c000",
+      "signalIdentityDigest": "5e3f51df375aa22ac8467fac59ce2fac4e05eed848863c3a1d7bec731c19cf8e",
+      "keywordScorePpb": 28478249798,
+      "vectorSimilarityPpb": 287004883,
+      "anchors": [
+        {
+          "anchorKey": "financial_statements_2024_p0092_c000_anchor",
+          "chunkKey": "financial_statements_2024_p0092_c000",
+          "pageNumber": 92
+        }
+      ],
+      "signalDigest": "290e2aa00599f3eb34517a0f34249b7473948cac6865fe035465dd0ff0b5850d"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f3c92e829c5727caba1a0fa3106a8c73f6acdf9dc184ee047e60da8413fe2360",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72",
+      "chunkKey": "comprehensive_plan_2020_p0008_c000",
+      "signalIdentityDigest": "9c907092fe18d37b6ce4235870efe32041ce3bc857599b6b5591a7093d87d2c7",
+      "keywordScorePpb": 10365442300,
+      "vectorSimilarityPpb": 49486880,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0008_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0008_c000",
+          "pageNumber": 8
+        }
+      ],
+      "signalDigest": "1749e717eeb15dcecc27415aef0fb7b27f30ff01d159eda17a7e8fcf444b9bf7"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f3c92e829c5727caba1a0fa3106a8c73f6acdf9dc184ee047e60da8413fe2360",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72",
+      "chunkKey": "comprehensive_plan_2020_p0011_c000",
+      "signalIdentityDigest": "5e40b381218cce60c1748f99965890967e27592c0d9e59f138af90a3a8f610d4",
+      "keywordScorePpb": 10365442300,
+      "vectorSimilarityPpb": 49186365,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0011_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0011_c000",
+          "pageNumber": 11
+        }
+      ],
+      "signalDigest": "4b940ddee97887f62957e53d3a4c311fc0323544ab85a9d40d15cff82e4731a5"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f3c92e829c5727caba1a0fa3106a8c73f6acdf9dc184ee047e60da8413fe2360",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72",
+      "chunkKey": "comprehensive_plan_2020_p0014_c000",
+      "signalIdentityDigest": "a056120ad80e600290e11828586f64445c27231e304b6877890e7c9bf10633a3",
+      "keywordScorePpb": 12420806280,
+      "vectorSimilarityPpb": 77593656,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0014_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0014_c000",
+          "pageNumber": 14
+        }
+      ],
+      "signalDigest": "7f7022bd2aec55a9acf20b374e0c9016c198857247f57b514c7e932cb7856201"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f3c92e829c5727caba1a0fa3106a8c73f6acdf9dc184ee047e60da8413fe2360",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72",
+      "chunkKey": "comprehensive_plan_2020_p0057_c001",
+      "signalIdentityDigest": "daf8661b31020d217652b832a9ee94fccdd5ef8bf6adcf3726206a7f58522a80",
+      "keywordScorePpb": 10855648637,
+      "vectorSimilarityPpb": 58544645,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0057_c001_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0057_c001",
+          "pageNumber": 57
+        }
+      ],
+      "signalDigest": "4ed7f84ae661523669a4a634d2f1c3c5fb75c5e4a655ec8f446716a6415dfe4d"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "f3c92e829c5727caba1a0fa3106a8c73f6acdf9dc184ee047e60da8413fe2360",
+      "candidateKey": "comprehensive_plan_2020",
+      "documentId": "00000000-0000-4000-8000-000000000102",
+      "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72",
+      "chunkKey": "comprehensive_plan_2020_p0093_c000",
+      "signalIdentityDigest": "db31ecc3e5a47cf246d39d741e2fafdbf7da7de3e11fd9294e26e37c04e568de",
+      "keywordScorePpb": 13629713029,
+      "vectorSimilarityPpb": 97123181,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_2020_p0093_c000_anchor",
+          "chunkKey": "comprehensive_plan_2020_p0093_c000",
+          "pageNumber": 93
+        }
+      ],
+      "signalDigest": "4bda903ec1ae8d380c894b8956d95af04d41ef8afa170cd67decd5fd8649b292"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "a47d1cde224e15a18dc88c2e974c243ae0e86b5246880e7c5bfca0f9a92306c5",
+      "candidateKey": "comprehensive_plan_presentation_2020",
+      "documentId": "00000000-0000-4000-8000-000000000103",
+      "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72",
+      "chunkKey": "comprehensive_plan_presentation_2020_p0009_c000",
+      "signalIdentityDigest": "8ce09c403b27837fbc1130c7fbbf298304f330ff4df053d69b93f3b00bf63af8",
+      "keywordScorePpb": 10365442300,
+      "vectorSimilarityPpb": 89143830,
+      "anchors": [
+        {
+          "anchorKey": "comprehensive_plan_presentation_2020_p0009_c000_anchor",
+          "chunkKey": "comprehensive_plan_presentation_2020_p0009_c000",
+          "pageNumber": 9
+        }
+      ],
+      "signalDigest": "31d49d3178987157248c74303a2f8a45513aa21b14df33e1cc5faaf72a0a458a"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "66cbbb28e21bf34b978f7fc28ad91e4d098d4a96cdc4aeccefb0253a5a348a2c",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72",
+      "chunkKey": "performance_audit_2022_2023_p0003_c000",
+      "signalIdentityDigest": "315fc36bff9e013dafe59b6bc36fae4368c22ace2966fc16385503dc43e4ea61",
+      "keywordScorePpb": 33075285942,
+      "vectorSimilarityPpb": 300245972,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0003_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0003_c000",
+          "pageNumber": 3
+        }
+      ],
+      "signalDigest": "bd647bcb797df4b770470e393394a2b3ff240109ba0cf6df3cf1efbd6adedc30"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "66cbbb28e21bf34b978f7fc28ad91e4d098d4a96cdc4aeccefb0253a5a348a2c",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72",
+      "chunkKey": "performance_audit_2022_2023_p0008_c000",
+      "signalIdentityDigest": "a6aa67238363cec162a740a9ba79ec2652df39408794a11092de5fbcdc501977",
+      "keywordScorePpb": 23313370890,
+      "vectorSimilarityPpb": 245889682,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0008_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0008_c000",
+          "pageNumber": 8
+        }
+      ],
+      "signalDigest": "3e977eeeefc8b4b1984edc1507f8cb596416f85776cdced45983bfde80ca3027"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "66cbbb28e21bf34b978f7fc28ad91e4d098d4a96cdc4aeccefb0253a5a348a2c",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72",
+      "chunkKey": "performance_audit_2022_2023_p0014_c000",
+      "signalIdentityDigest": "9e6f5bea2b2034584ba35eb6b12634d565b56dfe4863746b0493075012840a6e",
+      "keywordScorePpb": 37263778061,
+      "vectorSimilarityPpb": 471983969,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0014_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0014_c000",
+          "pageNumber": 14
+        }
+      ],
+      "signalDigest": "af902bdba4a71e11e0ea3777cbb73ccd8280311e5354eef28c91d95474078be8"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "66cbbb28e21bf34b978f7fc28ad91e4d098d4a96cdc4aeccefb0253a5a348a2c",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72",
+      "chunkKey": "performance_audit_2022_2023_p0014_c001",
+      "signalIdentityDigest": "8e0f59b4a1e34f60fe524f5b2e914eab779f50580bd79bf7a702e051cb3f5ed6",
+      "keywordScorePpb": 32351824139,
+      "vectorSimilarityPpb": 387356387,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0014_c001_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0014_c001",
+          "pageNumber": 14
+        }
+      ],
+      "signalDigest": "97b838dd139736b36f58d25a08b7d7b8ea6dd934f6093e0b496c935b3ca24cc0"
+    },
+    {
+      "version": 1,
+      "cacheIdentityDigest": "66cbbb28e21bf34b978f7fc28ad91e4d098d4a96cdc4aeccefb0253a5a348a2c",
+      "candidateKey": "performance_audit_2022_2023",
+      "documentId": "00000000-0000-4000-8000-000000000104",
+      "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72",
+      "chunkKey": "performance_audit_2022_2023_p0015_c000",
+      "signalIdentityDigest": "e9df051605c993ff8f98f99b6b631ede176b15c99579986911c8b906904d5e5d",
+      "keywordScorePpb": 21411316960,
+      "vectorSimilarityPpb": 451104984,
+      "anchors": [
+        {
+          "anchorKey": "performance_audit_2022_2023_p0015_c000_anchor",
+          "chunkKey": "performance_audit_2022_2023_p0015_c000",
+          "pageNumber": 15
+        }
+      ],
+      "signalDigest": "61c20f95629f4584136e6b30c7bea8e9862601944e82138fd86594d21ee44a5c"
+    }
+  ],
+  "backendOutcomes": [
+    {
+      "queryDigest": "038a759c1176c19ae895d0c79f26b63096c3bf2d417376f546550b5fc92ed386",
+      "keyword": {
+        "state": "succeeded",
+        "errorCode": null
+      },
+      "vector": {
+        "state": "succeeded",
+        "errorCode": null
+      }
+    },
+    {
+      "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4",
+      "keyword": {
+        "state": "succeeded",
+        "errorCode": null
+      },
+      "vector": {
+        "state": "succeeded",
+        "errorCode": null
+      }
+    },
+    {
+      "queryDigest": "9ff24f39e690adaa1ed63802ecaa7af9bd3a41373c097fc2f0622c867801bca7",
+      "keyword": {
+        "state": "succeeded",
+        "errorCode": null
+      },
+      "vector": {
+        "state": "succeeded",
+        "errorCode": null
+      }
+    },
+    {
+      "queryDigest": "ace73e17eeef0fa244dccaa074a31ba6f13461709097ec837eac8525ff6b7145",
+      "keyword": {
+        "state": "succeeded",
+        "errorCode": null
+      },
+      "vector": {
+        "state": "succeeded",
+        "errorCode": null
+      }
+    },
+    {
+      "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75",
+      "keyword": {
+        "state": "succeeded",
+        "errorCode": null
+      },
+      "vector": {
+        "state": "succeeded",
+        "errorCode": null
+      }
+    },
+    {
+      "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+      "keyword": {
+        "state": "succeeded",
+        "errorCode": null
+      },
+      "vector": {
+        "state": "succeeded",
+        "errorCode": null
+      }
+    },
+    {
+      "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+      "keyword": {
+        "state": "succeeded",
+        "errorCode": null
+      },
+      "vector": {
+        "state": "succeeded",
+        "errorCode": null
+      }
+    },
+    {
+      "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+      "keyword": {
+        "state": "succeeded",
+        "errorCode": null
+      },
+      "vector": {
+        "state": "succeeded",
+        "errorCode": null
+      }
+    },
+    {
+      "queryDigest": "d194647a4999e72dd5420d36e4c58f3f0d943ccdf6a4cdab772ac577ddf37a43",
+      "keyword": {
+        "state": "succeeded",
+        "errorCode": null
+      },
+      "vector": {
+        "state": "succeeded",
+        "errorCode": null
+      }
+    },
+    {
+      "queryDigest": "d9ca37b1c377ab4b1f704b702504cb62288fa2f27eaa3ac29b0b35ce3236b7a1",
+      "keyword": {
+        "state": "succeeded",
+        "errorCode": null
+      },
+      "vector": {
+        "state": "succeeded",
+        "errorCode": null
+      }
+    },
+    {
+      "queryDigest": "d9fdbde4dd752f525468752c00c194a82253c5877ad9536a79792426d358c447",
+      "keyword": {
+        "state": "succeeded",
+        "errorCode": null
+      },
+      "vector": {
+        "state": "succeeded",
+        "errorCode": null
+      }
+    },
+    {
+      "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72",
+      "keyword": {
+        "state": "succeeded",
+        "errorCode": null
+      },
+      "vector": {
+        "state": "succeeded",
+        "errorCode": null
+      }
+    }
+  ],
+  "rankingResult": {
+    "version": 1,
+    "requestDigest": "f18b2d8e50adc7c82d4491aaac985d8b0a3a638c5bf353622ce5ac20dc2f71f8",
+    "sourceScopeDigest": "65e78e161749401a0da06fc7cb9aae3594662793d038a21520db47a444923be4",
+    "retrievalConfigurationDigest": "f821ed443b05b7deea9c73404d8ec31262db0e67930bef4c87f70c49711fd4f4",
+    "retrievalIndexDigest": "dbb2d9bbb876cd1a795e647f3f8acc8a02fa0065f2ee56d96f24214b96a196e4",
+    "rankingReferenceSetDigest": "28ab795fc5f47fc6b8456ea80bb87fec16564e77348679965910379ebab5560f",
+    "outcome": "completed",
+    "failure": null,
+    "queries": [
+      {
+        "queryKey": "arpa_capital_controls",
+        "queryDigest": "bce311de962abe0fa0b3290f5295716650686de17396ad2e1515a45c53cd33bc",
+        "state": "success",
+        "retrievalMode": "hybrid",
+        "matchedDocumentCount": 1,
+        "errorCodes": []
+      },
+      {
+        "queryKey": "financial_position",
+        "queryDigest": "9ff24f39e690adaa1ed63802ecaa7af9bd3a41373c097fc2f0622c867801bca7",
+        "state": "success",
+        "retrievalMode": "hybrid",
+        "matchedDocumentCount": 1,
+        "errorCodes": []
+      },
+      {
+        "queryKey": "credible_no_match",
+        "queryDigest": "d9fdbde4dd752f525468752c00c194a82253c5877ad9536a79792426d358c447",
+        "state": "no_match",
+        "retrievalMode": "hybrid",
+        "matchedDocumentCount": 0,
+        "errorCodes": []
+      },
+      {
+        "queryKey": "economic_development",
+        "queryDigest": "2d9d57b10469a1c0f95aa1026e5bf8da9fcfce2952580381e0b391bce8d36aa4",
+        "state": "success",
+        "retrievalMode": "hybrid",
+        "matchedDocumentCount": 2,
+        "errorCodes": []
+      },
+      {
+        "queryKey": "bank_reconciliation",
+        "queryDigest": "e24b31cbcef1001a83412d06610e53062dd46be361a170f7695b121e51b2fa72",
+        "state": "success",
+        "retrievalMode": "hybrid",
+        "matchedDocumentCount": 1,
+        "errorCodes": []
+      },
+      {
+        "queryKey": "future_land_use",
+        "queryDigest": "b2e34e5587d9aa55b51403cddfe691ab465b59aa3a9e2fc05186b4a43aad77d5",
+        "state": "success",
+        "retrievalMode": "hybrid",
+        "matchedDocumentCount": 2,
+        "errorCodes": []
+      },
+      {
+        "queryKey": "general_fund_budget",
+        "queryDigest": "af95f9452b30fdb5f9222989e7874561a25c5daa7a2eec21b0dc069db8ea6f75",
+        "state": "success",
+        "retrievalMode": "hybrid",
+        "matchedDocumentCount": 1,
+        "errorCodes": []
+      },
+      {
+        "queryKey": "parks_recreation",
+        "queryDigest": "ace73e17eeef0fa244dccaa074a31ba6f13461709097ec837eac8525ff6b7145",
+        "state": "success",
+        "retrievalMode": "hybrid",
+        "matchedDocumentCount": 1,
+        "errorCodes": []
+      },
+      {
+        "queryKey": "pension_liabilities",
+        "queryDigest": "d9ca37b1c377ab4b1f704b702504cb62288fa2f27eaa3ac29b0b35ce3236b7a1",
+        "state": "success",
+        "retrievalMode": "hybrid",
+        "matchedDocumentCount": 1,
+        "errorCodes": []
+      },
+      {
+        "queryKey": "population_housing",
+        "queryDigest": "d194647a4999e72dd5420d36e4c58f3f0d943ccdf6a4cdab772ac577ddf37a43",
+        "state": "success",
+        "retrievalMode": "hybrid",
+        "matchedDocumentCount": 1,
+        "errorCodes": []
+      },
+      {
+        "queryKey": "transportation_plan",
+        "queryDigest": "038a759c1176c19ae895d0c79f26b63096c3bf2d417376f546550b5fc92ed386",
+        "state": "success",
+        "retrievalMode": "hybrid",
+        "matchedDocumentCount": 1,
+        "errorCodes": []
+      },
+      {
+        "queryKey": "water_sewer_finance",
+        "queryDigest": "c781d5670ae055ac3ac1d7a2015ffd7346fdc37692f5767792199674c884f055",
+        "state": "success",
+        "retrievalMode": "hybrid",
+        "matchedDocumentCount": 1,
+        "errorCodes": []
+      }
+    ],
+    "candidates": [
+      {
+        "candidateKey": "performance_audit_2022_2023",
+        "documentId": "00000000-0000-4000-8000-000000000104",
+        "sourceTitle": "Town of Smyrna Performance Audit Report 2022-2023",
+        "fileName": "4. Town-of-Smyrna-Performance-Audit-Report-2022-2023-1.pdf",
+        "sourceIdentityDigest": "f8ded76d5226d49aca85154c081320f1779e69526535477cf91299b5fc2f3f37",
+        "protected": true,
+        "reciprocalRankFusionScorePpb": 32786886,
+        "cells": [
+          {
+            "requirementKey": "arpa_capital_controls",
+            "queryKey": "arpa_capital_controls",
+            "state": "matched",
+            "coverageState": "uncovered",
+            "selectable": true,
+            "scorePpb": 873858386,
+            "rank": 1,
+            "percentilePpb": 1000000000,
+            "anchor": {
+              "anchorKey": "performance_audit_2022_2023_p0003_c000_anchor",
+              "pageNumber": 3
+            }
+          },
+          {
+            "requirementKey": "bank_reconciliation",
+            "queryKey": "bank_reconciliation",
+            "state": "matched",
+            "coverageState": "uncovered",
+            "selectable": true,
+            "scorePpb": 894396794,
+            "rank": 1,
+            "percentilePpb": 1000000000,
+            "anchor": {
+              "anchorKey": "performance_audit_2022_2023_p0014_c000_anchor",
+              "pageNumber": 14
+            }
+          },
+          {
+            "requirementKey": "credible_no_match",
+            "queryKey": "credible_no_match",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "economic_development",
+            "queryKey": "economic_development",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "financial_position",
+            "queryKey": "financial_position",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "future_land_use",
+            "queryKey": "future_land_use",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "general_fund_budget",
+            "queryKey": "general_fund_budget",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "parks_recreation",
+            "queryKey": "parks_recreation",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "pension_liabilities",
+            "queryKey": "pension_liabilities",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "population_housing",
+            "queryKey": "population_housing",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "transportation_plan",
+            "queryKey": "transportation_plan",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "water_sewer_finance",
+            "queryKey": "water_sewer_finance",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          }
+        ]
+      },
+      {
+        "candidateKey": "comprehensive_plan_2020",
+        "documentId": "00000000-0000-4000-8000-000000000102",
+        "sourceTitle": "2020 Smyrna Comprehensive Plan",
+        "fileName": "2. 2020 Smyrna Comp Plan FINAL.pdf",
+        "sourceIdentityDigest": "f4735813ce31ab8e15017f6a9404a06520b64b093e238e552079630d2a325630",
+        "protected": true,
+        "reciprocalRankFusionScorePpb": 81967215,
+        "cells": [
+          {
+            "requirementKey": "arpa_capital_controls",
+            "queryKey": "arpa_capital_controls",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "bank_reconciliation",
+            "queryKey": "bank_reconciliation",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "credible_no_match",
+            "queryKey": "credible_no_match",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "economic_development",
+            "queryKey": "economic_development",
+            "state": "matched",
+            "coverageState": "uncovered",
+            "selectable": true,
+            "scorePpb": 834437681,
+            "rank": 1,
+            "percentilePpb": 1000000000,
+            "anchor": {
+              "anchorKey": "comprehensive_plan_2020_p0102_c001_anchor",
+              "pageNumber": 102
+            }
+          },
+          {
+            "requirementKey": "financial_position",
+            "queryKey": "financial_position",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "future_land_use",
+            "queryKey": "future_land_use",
+            "state": "matched",
+            "coverageState": "uncovered",
+            "selectable": true,
+            "scorePpb": 851072153,
+            "rank": 1,
+            "percentilePpb": 1000000000,
+            "anchor": {
+              "anchorKey": "comprehensive_plan_2020_p0130_c000_anchor",
+              "pageNumber": 130
+            }
+          },
+          {
+            "requirementKey": "general_fund_budget",
+            "queryKey": "general_fund_budget",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "parks_recreation",
+            "queryKey": "parks_recreation",
+            "state": "matched",
+            "coverageState": "uncovered",
+            "selectable": true,
+            "scorePpb": 851091829,
+            "rank": 1,
+            "percentilePpb": 1000000000,
+            "anchor": {
+              "anchorKey": "comprehensive_plan_2020_p0126_c001_anchor",
+              "pageNumber": 126
+            }
+          },
+          {
+            "requirementKey": "pension_liabilities",
+            "queryKey": "pension_liabilities",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "population_housing",
+            "queryKey": "population_housing",
+            "state": "matched",
+            "coverageState": "uncovered",
+            "selectable": true,
+            "scorePpb": 870276829,
+            "rank": 1,
+            "percentilePpb": 1000000000,
+            "anchor": {
+              "anchorKey": "comprehensive_plan_2020_p0018_c000_anchor",
+              "pageNumber": 18
+            }
+          },
+          {
+            "requirementKey": "transportation_plan",
+            "queryKey": "transportation_plan",
+            "state": "matched",
+            "coverageState": "uncovered",
+            "selectable": true,
+            "scorePpb": 850031512,
+            "rank": 1,
+            "percentilePpb": 1000000000,
+            "anchor": {
+              "anchorKey": "comprehensive_plan_2020_p0091_c000_anchor",
+              "pageNumber": 91
+            }
+          },
+          {
+            "requirementKey": "water_sewer_finance",
+            "queryKey": "water_sewer_finance",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          }
+        ]
+      },
+      {
+        "candidateKey": "financial_statements_2024",
+        "documentId": "00000000-0000-4000-8000-000000000101",
+        "sourceTitle": "Town of Smyrna Financial Statements for December 31, 2024",
+        "fileName": "1. Town of Smyrna Financial Statements for December 31, 2024.pdf",
+        "sourceIdentityDigest": "7b450d6c1af0a9839e91557f19e4cd08dc66f84e24ed6809d8bf722711a8b3f5",
+        "protected": true,
+        "reciprocalRankFusionScorePpb": 65573772,
+        "cells": [
+          {
+            "requirementKey": "arpa_capital_controls",
+            "queryKey": "arpa_capital_controls",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "bank_reconciliation",
+            "queryKey": "bank_reconciliation",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "credible_no_match",
+            "queryKey": "credible_no_match",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "economic_development",
+            "queryKey": "economic_development",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "financial_position",
+            "queryKey": "financial_position",
+            "state": "matched",
+            "coverageState": "uncovered",
+            "selectable": true,
+            "scorePpb": 846072587,
+            "rank": 1,
+            "percentilePpb": 1000000000,
+            "anchor": {
+              "anchorKey": "financial_statements_2024_p0026_c000_anchor",
+              "pageNumber": 26
+            }
+          },
+          {
+            "requirementKey": "future_land_use",
+            "queryKey": "future_land_use",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "general_fund_budget",
+            "queryKey": "general_fund_budget",
+            "state": "matched",
+            "coverageState": "uncovered",
+            "selectable": true,
+            "scorePpb": 920304536,
+            "rank": 1,
+            "percentilePpb": 1000000000,
+            "anchor": {
+              "anchorKey": "financial_statements_2024_p0016_c001_anchor",
+              "pageNumber": 16
+            }
+          },
+          {
+            "requirementKey": "parks_recreation",
+            "queryKey": "parks_recreation",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "pension_liabilities",
+            "queryKey": "pension_liabilities",
+            "state": "matched",
+            "coverageState": "uncovered",
+            "selectable": true,
+            "scorePpb": 872929883,
+            "rank": 1,
+            "percentilePpb": 1000000000,
+            "anchor": {
+              "anchorKey": "financial_statements_2024_p0003_c000_anchor",
+              "pageNumber": 3
+            }
+          },
+          {
+            "requirementKey": "population_housing",
+            "queryKey": "population_housing",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "transportation_plan",
+            "queryKey": "transportation_plan",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "water_sewer_finance",
+            "queryKey": "water_sewer_finance",
+            "state": "matched",
+            "coverageState": "uncovered",
+            "selectable": true,
+            "scorePpb": 869970740,
+            "rank": 1,
+            "percentilePpb": 1000000000,
+            "anchor": {
+              "anchorKey": "financial_statements_2024_p0038_c000_anchor",
+              "pageNumber": 38
+            }
+          }
+        ]
+      },
+      {
+        "candidateKey": "comprehensive_plan_presentation_2020",
+        "documentId": "00000000-0000-4000-8000-000000000103",
+        "sourceTitle": "Comprehensive Plan Town Council Presentation",
+        "fileName": "3. Comp Plan Town Council Presentation1 September 30 2020_1.pdf",
+        "sourceIdentityDigest": "6be00013d1d1d825df03029c789e6f5e3500b7f940681cf34a71e8b1c2596d31",
+        "protected": true,
+        "reciprocalRankFusionScorePpb": 32258064,
+        "cells": [
+          {
+            "requirementKey": "arpa_capital_controls",
+            "queryKey": "arpa_capital_controls",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "bank_reconciliation",
+            "queryKey": "bank_reconciliation",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "credible_no_match",
+            "queryKey": "credible_no_match",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "economic_development",
+            "queryKey": "economic_development",
+            "state": "matched",
+            "coverageState": "uncovered",
+            "selectable": true,
+            "scorePpb": 815044421,
+            "rank": 2,
+            "percentilePpb": 0,
+            "anchor": {
+              "anchorKey": "comprehensive_plan_presentation_2020_p0009_c000_anchor",
+              "pageNumber": 9
+            }
+          },
+          {
+            "requirementKey": "financial_position",
+            "queryKey": "financial_position",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "future_land_use",
+            "queryKey": "future_land_use",
+            "state": "matched",
+            "coverageState": "uncovered",
+            "selectable": true,
+            "scorePpb": 843814350,
+            "rank": 2,
+            "percentilePpb": 0,
+            "anchor": {
+              "anchorKey": "comprehensive_plan_presentation_2020_p0036_c000_anchor",
+              "pageNumber": 36
+            }
+          },
+          {
+            "requirementKey": "general_fund_budget",
+            "queryKey": "general_fund_budget",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "parks_recreation",
+            "queryKey": "parks_recreation",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "pension_liabilities",
+            "queryKey": "pension_liabilities",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "population_housing",
+            "queryKey": "population_housing",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "transportation_plan",
+            "queryKey": "transportation_plan",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          },
+          {
+            "requirementKey": "water_sewer_finance",
+            "queryKey": "water_sewer_finance",
+            "state": "unobserved",
+            "coverageState": "uncovered",
+            "selectable": false,
+            "scorePpb": null,
+            "rank": null,
+            "percentilePpb": null,
+            "anchor": null
+          }
+        ]
+      }
+    ],
+    "totalEligibleDocuments": 4,
+    "protectedDocumentCount": 4,
+    "responseBytes": 15276,
+    "resultDigest": "1f6670aaac49842d69447d4f042575432ab929457267709e39d188d85e3eabb6"
+  },
+  "m4Selections": [
+    {
+      "queryKey": "financial_position",
+      "state": "success",
+      "candidateKeys": [
+        "financial_statements_2024"
+      ]
+    },
+    {
+      "queryKey": "general_fund_budget",
+      "state": "success",
+      "candidateKeys": [
+        "financial_statements_2024"
+      ]
+    },
+    {
+      "queryKey": "pension_liabilities",
+      "state": "success",
+      "candidateKeys": [
+        "financial_statements_2024"
+      ]
+    },
+    {
+      "queryKey": "water_sewer_finance",
+      "state": "success",
+      "candidateKeys": [
+        "financial_statements_2024"
+      ]
+    },
+    {
+      "queryKey": "future_land_use",
+      "state": "success",
+      "candidateKeys": [
+        "comprehensive_plan_2020",
+        "comprehensive_plan_presentation_2020"
+      ]
+    },
+    {
+      "queryKey": "population_housing",
+      "state": "success",
+      "candidateKeys": [
+        "comprehensive_plan_2020"
+      ]
+    },
+    {
+      "queryKey": "transportation_plan",
+      "state": "success",
+      "candidateKeys": [
+        "comprehensive_plan_2020"
+      ]
+    },
+    {
+      "queryKey": "parks_recreation",
+      "state": "success",
+      "candidateKeys": [
+        "comprehensive_plan_2020"
+      ]
+    },
+    {
+      "queryKey": "economic_development",
+      "state": "success",
+      "candidateKeys": [
+        "comprehensive_plan_2020",
+        "comprehensive_plan_presentation_2020"
+      ]
+    },
+    {
+      "queryKey": "bank_reconciliation",
+      "state": "success",
+      "candidateKeys": [
+        "performance_audit_2022_2023"
+      ]
+    },
+    {
+      "queryKey": "arpa_capital_controls",
+      "state": "success",
+      "candidateKeys": [
+        "performance_audit_2022_2023"
+      ]
+    },
+    {
+      "queryKey": "credible_no_match",
+      "state": "no_match",
+      "candidateKeys": []
+    }
+  ],
+  "m4Metrics": {
+    "macroRecall": 1,
+    "microRecall": 1,
+    "worstRequiredMappingRecall": 1,
+    "expectedOnlyPrecision": 0.846154,
+    "labelPrecision": 1,
+    "noMatchCaseCount": 1,
+    "noMatchFalsePositiveCount": 0,
+    "perQuery": [
+      {
+        "queryKey": "financial_position",
+        "expected": [
+          "financial_statements_2024"
+        ],
+        "selected": [
+          "financial_statements_2024"
+        ],
+        "recall": 1,
+        "falsePositiveCount": 0
+      },
+      {
+        "queryKey": "general_fund_budget",
+        "expected": [
+          "financial_statements_2024"
+        ],
+        "selected": [
+          "financial_statements_2024"
+        ],
+        "recall": 1,
+        "falsePositiveCount": 0
+      },
+      {
+        "queryKey": "pension_liabilities",
+        "expected": [
+          "financial_statements_2024"
+        ],
+        "selected": [
+          "financial_statements_2024"
+        ],
+        "recall": 1,
+        "falsePositiveCount": 0
+      },
+      {
+        "queryKey": "water_sewer_finance",
+        "expected": [
+          "financial_statements_2024"
+        ],
+        "selected": [
+          "financial_statements_2024"
+        ],
+        "recall": 1,
+        "falsePositiveCount": 0
+      },
+      {
+        "queryKey": "future_land_use",
+        "expected": [
+          "comprehensive_plan_2020"
+        ],
+        "selected": [
+          "comprehensive_plan_2020",
+          "comprehensive_plan_presentation_2020"
+        ],
+        "recall": 1,
+        "falsePositiveCount": 0
+      },
+      {
+        "queryKey": "population_housing",
+        "expected": [
+          "comprehensive_plan_2020"
+        ],
+        "selected": [
+          "comprehensive_plan_2020"
+        ],
+        "recall": 1,
+        "falsePositiveCount": 0
+      },
+      {
+        "queryKey": "transportation_plan",
+        "expected": [
+          "comprehensive_plan_2020"
+        ],
+        "selected": [
+          "comprehensive_plan_2020"
+        ],
+        "recall": 1,
+        "falsePositiveCount": 0
+      },
+      {
+        "queryKey": "parks_recreation",
+        "expected": [
+          "comprehensive_plan_2020"
+        ],
+        "selected": [
+          "comprehensive_plan_2020"
+        ],
+        "recall": 1,
+        "falsePositiveCount": 0
+      },
+      {
+        "queryKey": "economic_development",
+        "expected": [
+          "comprehensive_plan_2020"
+        ],
+        "selected": [
+          "comprehensive_plan_2020",
+          "comprehensive_plan_presentation_2020"
+        ],
+        "recall": 1,
+        "falsePositiveCount": 0
+      },
+      {
+        "queryKey": "bank_reconciliation",
+        "expected": [
+          "performance_audit_2022_2023"
+        ],
+        "selected": [
+          "performance_audit_2022_2023"
+        ],
+        "recall": 1,
+        "falsePositiveCount": 0
+      },
+      {
+        "queryKey": "arpa_capital_controls",
+        "expected": [
+          "performance_audit_2022_2023"
+        ],
+        "selected": [
+          "performance_audit_2022_2023"
+        ],
+        "recall": 1,
+        "falsePositiveCount": 0
+      },
+      {
+        "queryKey": "credible_no_match",
+        "expected": [],
+        "selected": [],
+        "recall": null,
+        "falsePositiveCount": 0
+      }
+    ]
+  },
+  "v1Baseline": {
+    "algorithm": "rankAskChunks-compatible-keyword-top-20-v1",
+    "selections": [
+      {
+        "queryKey": "financial_position",
+        "state": "success",
+        "candidateKeys": [
+          "financial_statements_2024",
+          "performance_audit_2022_2023"
+        ]
+      },
+      {
+        "queryKey": "general_fund_budget",
+        "state": "success",
+        "candidateKeys": [
+          "financial_statements_2024",
+          "performance_audit_2022_2023"
+        ]
+      },
+      {
+        "queryKey": "pension_liabilities",
+        "state": "success",
+        "candidateKeys": [
+          "financial_statements_2024"
+        ]
+      },
+      {
+        "queryKey": "water_sewer_finance",
+        "state": "success",
+        "candidateKeys": [
+          "comprehensive_plan_2020",
+          "financial_statements_2024"
+        ]
+      },
+      {
+        "queryKey": "future_land_use",
+        "state": "success",
+        "candidateKeys": [
+          "comprehensive_plan_2020",
+          "comprehensive_plan_presentation_2020"
+        ]
+      },
+      {
+        "queryKey": "population_housing",
+        "state": "success",
+        "candidateKeys": [
+          "comprehensive_plan_2020",
+          "performance_audit_2022_2023"
+        ]
+      },
+      {
+        "queryKey": "transportation_plan",
+        "state": "success",
+        "candidateKeys": [
+          "comprehensive_plan_2020",
+          "financial_statements_2024"
+        ]
+      },
+      {
+        "queryKey": "parks_recreation",
+        "state": "success",
+        "candidateKeys": [
+          "comprehensive_plan_2020"
+        ]
+      },
+      {
+        "queryKey": "economic_development",
+        "state": "success",
+        "candidateKeys": [
+          "comprehensive_plan_2020",
+          "comprehensive_plan_presentation_2020"
+        ]
+      },
+      {
+        "queryKey": "bank_reconciliation",
+        "state": "success",
+        "candidateKeys": [
+          "comprehensive_plan_2020",
+          "financial_statements_2024",
+          "performance_audit_2022_2023"
+        ]
+      },
+      {
+        "queryKey": "arpa_capital_controls",
+        "state": "success",
+        "candidateKeys": [
+          "comprehensive_plan_2020",
+          "financial_statements_2024",
+          "performance_audit_2022_2023"
+        ]
+      },
+      {
+        "queryKey": "credible_no_match",
+        "state": "success",
+        "candidateKeys": [
+          "comprehensive_plan_2020",
+          "financial_statements_2024",
+          "performance_audit_2022_2023"
+        ]
+      }
+    ],
+    "metrics": {
+      "macroRecall": 1,
+      "microRecall": 1,
+      "worstRequiredMappingRecall": 1,
+      "expectedOnlyPrecision": 0.5,
+      "labelPrecision": 0.772727,
+      "noMatchCaseCount": 1,
+      "noMatchFalsePositiveCount": 3,
+      "perQuery": [
+        {
+          "queryKey": "financial_position",
+          "expected": [
+            "financial_statements_2024"
+          ],
+          "selected": [
+            "financial_statements_2024",
+            "performance_audit_2022_2023"
+          ],
+          "recall": 1,
+          "falsePositiveCount": 0
+        },
+        {
+          "queryKey": "general_fund_budget",
+          "expected": [
+            "financial_statements_2024"
+          ],
+          "selected": [
+            "financial_statements_2024",
+            "performance_audit_2022_2023"
+          ],
+          "recall": 1,
+          "falsePositiveCount": 0
+        },
+        {
+          "queryKey": "pension_liabilities",
+          "expected": [
+            "financial_statements_2024"
+          ],
+          "selected": [
+            "financial_statements_2024"
+          ],
+          "recall": 1,
+          "falsePositiveCount": 0
+        },
+        {
+          "queryKey": "water_sewer_finance",
+          "expected": [
+            "financial_statements_2024"
+          ],
+          "selected": [
+            "comprehensive_plan_2020",
+            "financial_statements_2024"
+          ],
+          "recall": 1,
+          "falsePositiveCount": 1
+        },
+        {
+          "queryKey": "future_land_use",
+          "expected": [
+            "comprehensive_plan_2020"
+          ],
+          "selected": [
+            "comprehensive_plan_2020",
+            "comprehensive_plan_presentation_2020"
+          ],
+          "recall": 1,
+          "falsePositiveCount": 0
+        },
+        {
+          "queryKey": "population_housing",
+          "expected": [
+            "comprehensive_plan_2020"
+          ],
+          "selected": [
+            "comprehensive_plan_2020",
+            "performance_audit_2022_2023"
+          ],
+          "recall": 1,
+          "falsePositiveCount": 1
+        },
+        {
+          "queryKey": "transportation_plan",
+          "expected": [
+            "comprehensive_plan_2020"
+          ],
+          "selected": [
+            "comprehensive_plan_2020",
+            "financial_statements_2024"
+          ],
+          "recall": 1,
+          "falsePositiveCount": 1
+        },
+        {
+          "queryKey": "parks_recreation",
+          "expected": [
+            "comprehensive_plan_2020"
+          ],
+          "selected": [
+            "comprehensive_plan_2020"
+          ],
+          "recall": 1,
+          "falsePositiveCount": 0
+        },
+        {
+          "queryKey": "economic_development",
+          "expected": [
+            "comprehensive_plan_2020"
+          ],
+          "selected": [
+            "comprehensive_plan_2020",
+            "comprehensive_plan_presentation_2020"
+          ],
+          "recall": 1,
+          "falsePositiveCount": 0
+        },
+        {
+          "queryKey": "bank_reconciliation",
+          "expected": [
+            "performance_audit_2022_2023"
+          ],
+          "selected": [
+            "comprehensive_plan_2020",
+            "financial_statements_2024",
+            "performance_audit_2022_2023"
+          ],
+          "recall": 1,
+          "falsePositiveCount": 1
+        },
+        {
+          "queryKey": "arpa_capital_controls",
+          "expected": [
+            "performance_audit_2022_2023"
+          ],
+          "selected": [
+            "comprehensive_plan_2020",
+            "financial_statements_2024",
+            "performance_audit_2022_2023"
+          ],
+          "recall": 1,
+          "falsePositiveCount": 1
+        },
+        {
+          "queryKey": "credible_no_match",
+          "expected": [],
+          "selected": [
+            "comprehensive_plan_2020",
+            "financial_statements_2024",
+            "performance_audit_2022_2023"
+          ],
+          "recall": null,
+          "falsePositiveCount": 3
+        }
+      ]
+    }
+  }
+}

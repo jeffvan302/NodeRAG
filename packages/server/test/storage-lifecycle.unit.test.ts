@@ -1,10 +1,15 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { chmod, lstat, mkdtemp, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { downloadModelArtifact, importModelArtifact } from '../src/storage/model-artifacts.js';
-import { probeStorage } from '../src/storage/probe.js';
+import {
+  downloadModelArtifact,
+  importModelArtifact,
+  modelDownloadHostAllowed,
+} from '../src/storage/model-artifacts.js';
+import { DefaultModelInstaller } from '../src/storage/default-model.js';
+import { probeStorage, storageProbeProblemCode } from '../src/storage/probe.js';
 import { relocateStorage } from '../src/storage/relocation.js';
 import { recentStructuredErrors } from '../src/api/durability-routes.js';
 
@@ -17,8 +22,45 @@ describe('M10 storage and model lifecycle', () => {
     });
     expect(result.writable).toBe(true);
     expect(result.fsyncVerified).toBe(true);
+    expect(result.managedPath).toBe(result.resolvedPath);
+    expect(result.managedSubdirectory).toBe(false);
     expect(result.mode).toMatch(/^0[0-7]{3}$/);
     expect(BigInt(result.availableBytes)).toBeGreaterThan(0n);
+  });
+
+  it('preserves an existing shared folder and uses a dedicated managed subfolder', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'noderag-storage-acl-'));
+    const selected = join(root, 'shared-documents');
+    await mkdir(selected, { mode: 0o755 });
+    await chmod(selected, 0o755);
+    const result = await probeStorage(selected, {
+      policy: 'testbed',
+      protectExistingDirectory: true,
+      rebuildReserveBytes: 0n,
+    });
+    const resolvedSelected = await realpath(selected);
+    expect(result.selectedPath).toBe(resolvedSelected);
+    expect(result.managedPath).toBe(join(resolvedSelected, '.noderag-managed'));
+    expect(result.managedSubdirectory).toBe(true);
+    expect(result.warnings).toContain('managed-subdirectory-created');
+    if (process.platform !== 'win32') {
+      expect((await lstat(selected)).mode & 0o777).toBe(0o755);
+      expect((await lstat(result.managedPath)).mode & 0o777).toBe(0o700);
+    } else {
+      expect((await lstat(result.managedPath)).isDirectory()).toBe(true);
+    }
+  });
+
+  it('returns actionable storage problem codes for operating-system failures', () => {
+    expect(storageProbeProblemCode(Object.assign(new Error('denied'), { code: 'EACCES' }))).toBe(
+      'storage_permission_denied',
+    );
+    expect(storageProbeProblemCode(Object.assign(new Error('full'), { code: 'ENOSPC' }))).toBe(
+      'storage_capacity_insufficient',
+    );
+    expect(storageProbeProblemCode(new Error('storage_filesystem_unsupported'))).toBe(
+      'storage_filesystem_unsupported',
+    );
   });
 
   it('imports a model only from an allowed root and verifies SHA before rename', async () => {
@@ -62,6 +104,73 @@ describe('M10 storage and model lifecycle', () => {
       }),
     ).resolves.toEqual({ name: 'model.onnx', bytes: bytes.length, sha256 });
     expect(await readFile(join(root, 'model.onnx'))).toEqual(bytes);
+  });
+
+  it('follows only allowlisted HTTPS redirects for model downloads', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'noderag-download-redirect-'));
+    const bytes = Buffer.from('redirected-model-artifact');
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    const visited: string[] = [];
+    const fetcher = async (input: URL | RequestInfo) => {
+      const url = String(input);
+      visited.push(url);
+      return url.includes('models.example.test')
+        ? new Response(null, {
+            status: 302,
+            headers: { location: 'https://cdn.example.test/signed/model.onnx' },
+          })
+        : new Response(bytes, { status: 200 });
+    };
+
+    await expect(
+      downloadModelArtifact({
+        urls: ['https://models.example.test/model.onnx'],
+        allowedHosts: ['models.example.test', 'cdn.example.test'],
+        destinationRoot: root,
+        name: 'model.onnx',
+        expectedSha256: sha256,
+        fetcher: fetcher as typeof fetch,
+      }),
+    ).resolves.toMatchObject({ name: 'model.onnx', sha256 });
+    expect(visited).toEqual([
+      'https://models.example.test/model.onnx',
+      'https://cdn.example.test/signed/model.onnx',
+    ]);
+  });
+
+  it('allows a bounded provider CDN suffix without accepting look-alike domains', () => {
+    const allowed = ['huggingface.co', '.aws.cdn.hf.co'];
+    expect(modelDownloadHostAllowed('huggingface.co', allowed)).toBe(true);
+    expect(modelDownloadHostAllowed('us.aws.cdn.hf.co', allowed)).toBe(true);
+    expect(modelDownloadHostAllowed('eu.aws.cdn.hf.co', allowed)).toBe(true);
+    expect(modelDownloadHostAllowed('aws.cdn.hf.co.attacker.example', allowed)).toBe(false);
+    expect(modelDownloadHostAllowed('notaws.cdn.hf.co', allowed)).toBe(false);
+  });
+
+  it('downloads and marks a complete default model without blocking status requests', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'noderag-default-model-'));
+    const bytes = Buffer.from('small-default-model');
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    const records: string[] = [];
+    const installer = new DefaultModelInstaller({
+      root,
+      allowedHosts: ['models.example.test'],
+      files: [
+        {
+          name: 'model.onnx',
+          bytes: bytes.length,
+          sha256,
+          urls: ['https://models.example.test/model.onnx'],
+        },
+      ],
+      fetcher: (async () => new Response(bytes, { status: 200 })) as typeof fetch,
+    });
+
+    expect(await installer.status()).toMatchObject({ state: 'missing', progress: 0 });
+    installer.start(async (artifact) => void records.push(artifact.name));
+    await installer.waitForIdle();
+    expect(await installer.status()).toMatchObject({ state: 'ready', progress: 100 });
+    expect(records).toEqual(['model.onnx']);
   });
 
   it('copies, verifies, activates, and retains the old tree during relocation', async () => {

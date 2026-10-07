@@ -1,12 +1,5 @@
 {
   "defaults": {
     "run-as": "package"
-  },
-  "username": "sc-noderag",
-  "groupname": "sc-noderag",
-  "ctrl-script": [
-    { "action": "start", "run-as": "package" },
-    { "action": "stop", "run-as": "package" },
-    { "action": "status", "run-as": "package" }
-  ]
+  }
 }

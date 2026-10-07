@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "purpose": "Hand-reviewed expectations for deterministic PDF layout reconstruction",
+  "fixtures": [
+    {
+      "file": "layout-headings.pdf",
+      "expectedKinds": ["title", "heading", "paragraph", "heading", "paragraph"],
+      "requiredMarkdown": ["# Annual Financial Report", "## Revenue sources", "### Tax revenue"],
+      "visionDisposition": "none"
+    },
+    {
+      "file": "legal-lists.pdf",
+      "expectedKinds": [
+        "heading",
+        "heading",
+        "paragraph",
+        "list-item",
+        "list-item",
+        "list-item",
+        "list-item"
+      ],
+      "requiredMarkdown": [
+        "# 1. Revenue",
+        "## 1.1 Tax revenue",
+        "1. Personal income tax",
+        "2. Corporate income tax",
+        "  - Assessed monthly",
+        "  - Reconciled annually"
+      ],
+      "visionDisposition": "none"
+    },
+    {
+      "file": "three-column.pdf",
+      "expectedKinds": ["heading", "paragraph", "paragraph", "paragraph"],
+      "requiredTextOrder": [
+        "First column A",
+        "First column B",
+        "Second column A",
+        "Second column B",
+        "Third column A",
+        "Third column B"
+      ],
+      "visionDisposition": "none"
+    },
+    {
+      "file": "simple-table.pdf",
+      "expectedKinds": ["heading", "table"],
+      "requiredMarkdown": [
+        "| Source | 2025 | 2026 |",
+        "| --- | ---: | ---: |",
+        "| Tax revenue | 40.2 | 42.8 |",
+        "| Service fees | 8.1 | 8.6 |"
+      ],
+      "visionDisposition": "none"
+    },
+    {
+      "file": "complex-table.pdf",
+      "expectedKinds": ["heading", "unknown"],
+      "requiredWarning": "complex-table-fallback",
+      "visionDisposition": "region"
+    },
+    {
+      "file": "repeated-furniture.pdf",
+      "expectedSuppressedKinds": ["header", "footer"],
+      "forbiddenMarkdown": ["CONFIDENTIAL REVENUE REPORT", "Page 1", "Page 2"],
+      "requiredMarkdown": ["First reporting section", "Second reporting section"],
+      "visionDisposition": "none"
+    },
+    {
+      "file": "diagram-caption.pdf",
+      "expectedKinds": ["heading", "unknown", "caption"],
+      "requiredMarkdown": ["Figure 1. Revenue moves from collection to reporting."],
+      "visionDisposition": "region"
+    },
+    {
+      "file": "aligned-prose-negative.pdf",
+      "forbiddenKinds": ["table"],
+      "requiredMarkdown": [
+        "Revenue is collected from several sources.",
+        "Revenue is reviewed under the annual policy.",
+        "Revenue is reported in the financial statements."
+      ],
+      "visionDisposition": "none"
+    },
+    {
+      "file": "scanned.pdf",
+      "expectedKinds": [],
+      "requiredWarning": "pdf-page-vision-required",
+      "visionDisposition": "page"
+    },
+    {
+      "file": "no-tounicode.pdf",
+      "expectedKinds": [],
+      "requiredWarning": "pdf-page-vision-required",
+      "visionDisposition": "page"
+    }
+  ]
+}

@@ -10,7 +10,7 @@ import {
   rm,
   statfs,
 } from 'node:fs/promises';
-import { dirname, isAbsolute, resolve, sep } from 'node:path';
+import { basename, dirname, isAbsolute, resolve, sep } from 'node:path';
 
 const gibibyte = 1024n * 1024n * 1024n;
 const supportedMagic = new Map<bigint, string>([
@@ -20,6 +20,7 @@ const supportedMagic = new Map<bigint, string>([
 
 export interface StorageProbeOptions {
   readonly policy?: 'dsm' | 'testbed';
+  readonly protectExistingDirectory?: boolean;
   readonly projectedBytes?: bigint;
   readonly rebuildReserveBytes?: bigint;
   readonly encryptedRoots?: readonly string[];
@@ -27,6 +28,36 @@ export interface StorageProbeOptions {
   readonly syncRoots?: readonly string[];
   readonly indexingRoots?: readonly string[];
 }
+
+const probeProblemCodes = new Set([
+  'storage_capacity_insufficient',
+  'storage_encryption_required',
+  'storage_filesystem_unsupported',
+  'storage_managed_subdirectory_invalid',
+  'storage_path_must_be_absolute',
+  'storage_path_must_be_under_volume',
+  'storage_path_not_directory',
+  'storage_read_after_fsync_failed',
+]);
+
+export const storageProbeProblemCode = (error: unknown): string => {
+  if (error instanceof Error && probeProblemCodes.has(error.message)) return error.message;
+  const code =
+    error instanceof Error && 'code' in error && typeof error.code === 'string' ? error.code : '';
+  if (['EACCES', 'EPERM', 'EROFS'].includes(code)) return 'storage_permission_denied';
+  if (['EDQUOT', 'ENOSPC'].includes(code)) return 'storage_capacity_insufficient';
+  if (['EEXIST', 'ENOTDIR'].includes(code)) return 'storage_path_not_directory';
+  return 'storage_probe_failed';
+};
+
+const existingPath = async (path: string) => {
+  try {
+    return await lstat(path);
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return null;
+    throw error;
+  }
+};
 
 const contains = (root: string, candidate: string): boolean =>
   candidate === root || candidate.startsWith(`${root}${sep}`);
@@ -37,18 +68,34 @@ const roots = (values: readonly string[] = []): readonly string[] =>
 export const probeStorage = async (managedPath: string, options: StorageProbeOptions = {}) => {
   if (!isAbsolute(managedPath)) throw new Error('storage_path_must_be_absolute');
   const requested = resolve(managedPath);
-  await mkdir(requested, { recursive: true, mode: 0o700 });
-  const target = await realpath(requested);
-  if (options.policy === 'dsm' && !/^\/volume[1-9][0-9]*(?:\/|$)/u.test(target)) {
+  const existing = await existingPath(requested);
+  if (existing !== null && (!existing.isDirectory() || existing.isSymbolicLink())) {
+    throw new Error('storage_path_not_directory');
+  }
+  if (existing === null) await mkdir(requested, { recursive: true, mode: 0o700 });
+  const selectedPath = await realpath(requested);
+  if (options.policy === 'dsm' && !/^\/volume[1-9][0-9]*(?:\/|$)/u.test(selectedPath)) {
     throw new Error('storage_path_must_be_under_volume');
+  }
+  const protectExistingDirectory = options.protectExistingDirectory ?? options.policy === 'dsm';
+  const useManagedSubdirectory =
+    protectExistingDirectory && existing !== null && basename(selectedPath) !== '.noderag-managed';
+  let target = selectedPath;
+  if (useManagedSubdirectory) {
+    const child = resolve(selectedPath, '.noderag-managed');
+    const childBefore = await existingPath(child);
+    if (childBefore !== null && (!childBefore.isDirectory() || childBefore.isSymbolicLink())) {
+      throw new Error('storage_managed_subdirectory_invalid');
+    }
+    if (childBefore === null) await mkdir(child, { mode: 0o700 });
+    target = await realpath(child);
   }
   const info = await lstat(target);
   if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('storage_path_not_directory');
-  await chmod(target, 0o700);
-  const mode = (await lstat(target)).mode & 0o777;
-  if (options.policy === 'dsm' && mode !== 0o700 && mode !== 0o750) {
-    throw new Error('storage_mode_not_enforced');
+  if (existing === null || useManagedSubdirectory || basename(target) === '.noderag-managed') {
+    await chmod(target, 0o700);
   }
+  const mode = (await lstat(target)).mode & 0o777;
 
   const probe = resolve(target, `.noderag-storage-probe-${randomUUID()}`);
   const renamed = `${probe}.verified`;
@@ -82,6 +129,7 @@ export const probeStorage = async (managedPath: string, options: StorageProbeOpt
   if (options.requireEncrypted === true && !encrypted)
     throw new Error('storage_encryption_required');
   const warnings = [
+    ...(useManagedSubdirectory ? ['managed-subdirectory-created'] : []),
     ...(mode === 0o700 || mode === 0o750 ? [] : ['posix-mode-not-enforced']),
     ...(roots(options.syncRoots).some((root) => contains(root, target))
       ? ['synology-drive-sync-root']
@@ -92,7 +140,10 @@ export const probeStorage = async (managedPath: string, options: StorageProbeOpt
   ];
   return {
     requestedPath: managedPath,
+    selectedPath,
     resolvedPath: target,
+    managedPath: target,
+    managedSubdirectory: useManagedSubdirectory,
     filesystem,
     encrypted,
     mode: mode.toString(8).padStart(4, '0'),

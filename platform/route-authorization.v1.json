@@ -92,11 +92,94 @@
       "searchOnlyAllowed": false
     },
     {
+      "method": "GET",
+      "path": "/v1/research",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/research",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/research/memberships",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/research/:id/items",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/research/:id/page-memberships",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/research/:id/items",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/research/:id/pages",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/research/:id/items/:itemId",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
       "method": "POST",
       "path": "/v1/search",
       "scope": "silo",
       "action": "search",
       "emptyBehavior": "empty_result",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": true
+    },
+    {
+      "method": "POST",
+      "path": "/v1/search/evidence",
+      "scope": "silo",
+      "action": "read_chunk",
+      "emptyBehavior": "not_found",
       "routeClass": "read",
       "csrfBrowser": false,
       "idempotency": false,
@@ -158,6 +241,28 @@
     {
       "method": "GET",
       "path": "/v1/documents/:id/vision-estimate",
+      "scope": "silo",
+      "action": "read_markdown",
+      "emptyBehavior": "not_found",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/documents/:id/extraction-diagnostics",
+      "scope": "silo",
+      "action": "read_markdown",
+      "emptyBehavior": "not_found",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/documents/:id/enhanced-reindex-estimate",
       "scope": "silo",
       "action": "read_markdown",
       "emptyBehavior": "not_found",
@@ -252,6 +357,17 @@
       "routeClass": "mutation",
       "csrfBrowser": true,
       "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/source-folders",
+      "scope": "silo",
+      "action": "configure_source",
+      "emptyBehavior": "not_found",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
       "searchOnlyAllowed": false
     },
     {
@@ -583,6 +699,240 @@
     },
     {
       "method": "GET",
+      "path": "/v1/admin/logs",
+      "scope": "server_admin",
+      "routeClass": "administration",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/chat/providers",
+      "scope": "server_admin",
+      "routeClass": "administration",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/admin/chat/providers/ollama-cloud",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/providers/ollama-cloud/disable",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/providers/ollama-cloud/refresh-models",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/providers/ollama-cloud/test-generation",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/providers/ollama-cloud/test-web-search",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/providers/ollama-cloud/test-web-fetch",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/chat/providers/openai-oauth/status",
+      "scope": "server_admin",
+      "routeClass": "administration",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/admin/chat/providers/openai-oauth",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/providers/openai-oauth/login",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/providers/openai-oauth/login/cancel",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/providers/openai-oauth/refresh-models",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/providers/openai-oauth/test",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/providers/openai-oauth/disconnect",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/chat/configuration",
+      "scope": "server_admin",
+      "routeClass": "administration",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/chat/health",
+      "scope": "server_admin",
+      "routeClass": "administration",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/admin/chat/context",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/context/preview",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/admin/chat/settings",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/chat/exports/capabilities",
+      "scope": "server_admin",
+      "routeClass": "administration",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/admin/chat/models/:profileId",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/storage/probe",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/storage/reconcile/preview",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/chat/storage/reconcile",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/chat/storage/reconcile/:operationId",
+      "scope": "server_admin",
+      "routeClass": "administration",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
       "path": "/v1/admin/vision/status",
       "scope": "server_admin",
       "routeClass": "administration",
@@ -647,6 +997,24 @@
     {
       "method": "POST",
       "path": "/v1/admin/models",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/admin/models/default/status",
+      "scope": "server_admin",
+      "routeClass": "administration",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/models/default/install",
       "scope": "server_admin",
       "routeClass": "mutation",
       "csrfBrowser": true,
@@ -808,6 +1176,24 @@
     },
     {
       "method": "GET",
+      "path": "/v1/admin/calibration/embedding/status",
+      "scope": "server_admin",
+      "routeClass": "administration",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/admin/calibration/embedding/start",
+      "scope": "server_admin",
+      "routeClass": "administration",
+      "csrfBrowser": true,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
       "path": "/v1/admin/backups",
       "scope": "server_admin",
       "routeClass": "administration",
@@ -854,6 +1240,422 @@
     {
       "method": "POST",
       "path": "/v1/admin/evaluation",
+      "scope": "server_admin",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/chats/:chatId",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/chats/:chatId",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/messages",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/messages",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/messages/:messageId/pin",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/context",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/context/compression-preview",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/context/compressions",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/context/compressions/:jobId/cancel",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/research",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/research/refresh",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/research/sources/:sourceId/page",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/research/sources/:sourceId/document",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/research/sources/:sourceId/original",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/citations/:citationId/page",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/citations/:citationId/document",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/citations/:citationId/original",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/web-citations/:citationId",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/artifacts",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/files",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/files",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId/file/:fileName",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/chats/:chatId/files/:fileId",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/artifacts",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/artifacts/directories",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/artifacts/:artifactId/content",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/artifacts/:artifactId/history",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/artifacts/:artifactId/download",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/chats/:chatId/artifacts/:artifactId/content",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/artifacts/:artifactId/rename",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/artifacts/:artifactId/copy",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/chats/:chatId/artifacts/:artifactId",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/artifacts-reconciliation",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/artifacts/:artifactId/exports",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/exports",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/exports/:exportId",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/exports/:exportId/cancel",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/exports/:exportId/download",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/artifacts/:artifactId/ingestions",
+      "scope": "silo",
+      "action": "upload",
+      "emptyBehavior": "not_found",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/runs/:runId/stop",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/chats/:chatId/runs/:runId/retry",
+      "scope": "authenticated",
+      "routeClass": "mutation",
+      "csrfBrowser": true,
+      "idempotency": true,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/chats/:chatId/events",
+      "scope": "authenticated",
+      "routeClass": "read",
+      "csrfBrowser": false,
+      "idempotency": false,
+      "searchOnlyAllowed": false
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/admin/chat/entitlements/:principalId",
       "scope": "server_admin",
       "routeClass": "mutation",
       "csrfBrowser": true,

@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs';
 import { lstat, readdir } from 'node:fs/promises';
-import { join, relative, resolve, sep } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import type { Pool } from 'pg';
 import { databaseInteger } from '../store/database.js';
 import type { ArchiveEntrySource, BackupDataClass, BackupProduct } from './archive.js';
@@ -21,6 +21,7 @@ export interface BackupExecutionOptions {
   readonly destination: string;
   readonly passphrase: string;
   readonly dataRoot: string;
+  readonly chatRoot?: string;
   readonly policy: BackupClassificationPolicy;
   readonly migrationHead: string;
   readonly postgresMajor: number;
@@ -110,7 +111,7 @@ const databaseEntries = async function* (
 const managedFiles = async function* (
   root: string,
   directory: string,
-  archivePrefix: 'documents' | 'models',
+  archivePrefix: 'documents' | 'models' | '.noderag-chat',
   dataClass: BackupDataClass,
 ): AsyncGenerator<ArchiveEntrySource> {
   const absoluteRoot = resolve(root);
@@ -119,6 +120,9 @@ const managedFiles = async function* (
     throw new Error('backup-file-root-escaped');
   let children;
   try {
+    const directoryInformation = await lstat(current);
+    if (directoryInformation.isSymbolicLink()) throw new Error('backup-managed-symlink-rejected');
+    if (!directoryInformation.isDirectory()) throw new Error('backup-managed-root-invalid');
     children = await readdir(current, { withFileTypes: true });
   } catch (error) {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return;
@@ -139,7 +143,12 @@ const managedFiles = async function* (
     yield {
       path: `${archivePrefix}/${managed}`,
       class: dataClass,
-      owner: ownerMatch === null ? `${archivePrefix}:installation` : `document:${ownerMatch[1]}`,
+      owner:
+        archivePrefix === '.noderag-chat'
+          ? 'chat-storage:installation'
+          : ownerMatch === null
+            ? `${archivePrefix}:installation`
+            : `document:${ownerMatch[1]}`,
       content: createReadStream(path),
     };
   }
@@ -161,6 +170,13 @@ const allEntries = async function* (
       join(resolve(options.dataRoot), 'models'),
       'models',
       'derived',
+    );
+  if (options.product === 'full' && options.chatRoot !== undefined)
+    yield* managedFiles(
+      dirname(resolve(options.chatRoot)),
+      resolve(options.chatRoot),
+      '.noderag-chat',
+      'source-of-truth',
     );
 };
 
@@ -193,7 +209,10 @@ export const executeBackup = async (
   try {
     await preflightBackup({
       destination: options.destination,
-      activeRoots: [options.dataRoot],
+      activeRoots: [
+        options.dataRoot,
+        ...(options.chatRoot === undefined ? [] : [options.chatRoot]),
+      ],
       passphrase: options.passphrase,
       requiredFreeBytes: options.requiredFreeBytes,
       postgresClientMajor: options.postgresClientMajor,

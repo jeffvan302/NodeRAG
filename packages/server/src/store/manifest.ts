@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import { z } from 'zod';
@@ -18,7 +19,12 @@ const manifestSchema = z.object({
 
 export type MigrationManifest = z.infer<typeof manifestSchema>;
 
-const repositoryRoot = resolve(process.env['NODERAG_REPOSITORY_ROOT'] ?? process.cwd());
+const inferredRepositoryRoot = [process.cwd(), resolve(process.cwd(), '../..')].find((candidate) =>
+  existsSync(resolve(candidate, 'platform/migration-checksums.v1.json')),
+);
+const repositoryRoot = resolve(
+  process.env['NODERAG_REPOSITORY_ROOT'] ?? inferredRepositoryRoot ?? process.cwd(),
+);
 const configuredMigrationsDirectory = process.env['NODERAG_MIGRATIONS_DIRECTORY'];
 
 export const defaultManifestPath = resolve(

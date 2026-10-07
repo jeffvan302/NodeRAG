@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "stage": "C05",
+  "name": "Research Attachments and Citations",
+  "recordedAt": "2026-09-15T07:26:45.6115243-04:00",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "boundary": {
+    "researchToolsEnabled": true,
+    "ragToolsEnabled": false,
+    "internetEnabled": false,
+    "ollamaMeaning": "ollama_cloud_only",
+    "ollamaServiceRoot": "https://ollama.com",
+    "ollamaChatEndpoint": "https://ollama.com/api/chat",
+    "futureInternetSearchEndpoint": "https://ollama.com/api/web_search",
+    "futureInternetFetchEndpoint": "https://ollama.com/api/web_fetch",
+    "futureInternetProvider": "ollama_cloud",
+    "localOllamaAccepted": false,
+    "openAiInternetSearchEnabled": false,
+    "synologyDsmExecution": "deferred_to_C11"
+  },
+  "implementation": {
+    "migration": {
+      "path": "packages/server/migrations/000023_chat_research.sql",
+      "sha256": "50f8a62e2934e2d18ccd25cc977e71b8eacef72738fb80682be4c351d07ff679"
+    },
+    "researchServiceSha256": "80f096a06100666eb4f0cc5c4202cf094a35b89d3a3a05a4a9568319921ff231",
+    "runnerSha256": "b5664955ec17c983fad69c197f6589ad6c4c6a6e294e5cf07118e2853e6d4d97",
+    "ollamaCloudAdapterSha256": "d0e8098790bd31198b6e4fe30210ec8874ee8b3194b1d2ee7bb3e1bbf2a59cc6",
+    "openAiAdapterSha256": "2d2e0cbce5291cc31a8d92fa055ee433507afcf46e8e20723c6f5ca7121a5133",
+    "routesSha256": "64e82a99da74cf0fad5796559d1a538d3c368768aa24c894f94b6498f52ce382",
+    "restoreTargetSha256": "71b8bf1f8a367390b3ca1eed37a41e2bcf5add46caa2fe77ef480b22a5caad80",
+    "integrationTestSha256": "3146b17c9f9d652acc052948130adf73e3e5c2bc5c10d98c3c8642e90a56860d",
+    "providerUnitTestSha256": "ce65b07e941bf2d7627d7e5be8c07cfe684a215bb5a2b14d80cb5d9bb6e29010",
+    "chatUiSha256": "5456dcf2e9c95e7803e4051cc955b145a22221491b87da93244ab7a97534e903",
+    "pdfViewerSha256": "5a15c12c140a9a971913f1fa86968b754d7d31a99e605bcfd9e0217efa8a00d0",
+    "browserTestSha256": "5a55717e75314b0a23aca37394db36234748137e8f317cb457ff26f51bdd9f35",
+    "routeAuthorizationSha256": "56ceda76932ea7688671fd0498439f5464c1691d7dcd3a2c2e063696b6c3661c",
+    "openApiSha256": "a904068420d368fc787bfee2b2ba43ace00b6c2f387c4f73587a1c530ba385a4",
+    "backupPolicySha256": "427ddb43b78317f724a2a7125858149fd4e32e4696fd57ba4ba1e6f017db33c7"
+  },
+  "verification": {
+    "chatResearchIntegration": {
+      "result": "passed",
+      "tests": 5,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "combinedChatAndRecoveryIntegration": {
+      "result": "passed",
+      "files": 5,
+      "tests": 35,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "providerToolBindingUnit": { "result": "passed", "tests": 13 },
+    "fullBrowser": { "result": "passed", "tests": 25, "wcagAAndAA": "passed" },
+    "fullUnit": { "result": "passed", "files": 47, "tests": 195 },
+    "migrationInventory": { "result": "passed", "head": "000023_chat_research" },
+    "workspaceTypecheck": { "result": "passed", "projects": 6 },
+    "workspaceLint": { "result": "passed" },
+    "workspaceFormat": { "result": "passed" },
+    "dependencyBoundaries": { "result": "passed", "modules": 168, "dependencies": 324 },
+    "buildAndSmoke": { "result": "passed" },
+    "licenseInventory": { "result": "passed", "licenseClasses": 7 },
+    "sbom": { "result": "passed", "runtimePackages": 267 },
+    "secretScan": { "result": "passed" },
+    "combinedQualityGate": { "result": "passed" }
+  },
+  "faultEvidence": [
+    "cross-owner Research collection denial",
+    "grant revocation between live provider tool calls",
+    "changed source produces stale status without substitution",
+    "malformed Ollama Cloud tool arguments produce a normalized safe error",
+    "prompt-injection text remains untrusted and cannot expose RAG, internet, or local Ollama",
+    "old citations remain pinned after a confirmed Research refresh",
+    "full restore repairs the nullable conversation/current-Research-revision dependency"
+  ],
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "remaining": [
+    "C06 adds permission-scoped wider RAG search and bounded canonical Markdown reads.",
+    "C07 is the only stage that exposes Ollama Cloud web search/fetch to Chat.",
+    "Real Synology DSM execution remains the C11 package gate."
+  ]
+}

@@ -1,10 +1,16 @@
 #!/bin/sh
 set -eu
 
-: "${SYNOPKG_PKGDEST:?SYNOPKG_PKGDEST is required}"
-: "${SYNOPKG_PKGVAR:?SYNOPKG_PKGVAR is required}"
+preflight_stage="${NODERAG_PREFLIGHT_STAGE:-runtime}"
 node_bin="${NODERAG_NODE_BIN:-/var/packages/Node.js_v22/target/usr/local/bin/node}"
-fail() { echo "NodeRag prerequisite failed: $1" >&2; exit 78; }
+fail() {
+  message="NodeRag prerequisite failed: $1"
+  if [ -n "${SYNOPKG_TEMP_LOGFILE:-}" ]; then
+    printf '%s\n' "${message}" >"${SYNOPKG_TEMP_LOGFILE}" 2>/dev/null || true
+  fi
+  printf '%s\n' "${message}" >&2
+  exit 78
+}
 
 architecture="${NODERAG_PREFLIGHT_ARCH:-$(uname -m)}"
 [ "${architecture}" = "x86_64" ] || [ "${architecture}" = "amd64" ] || fail "x86_64 architecture is required"
@@ -21,8 +27,15 @@ fi
 
 memory_kib="${NODERAG_PREFLIGHT_MEMORY_KIB:-$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)}"
 [ "${memory_kib}" -ge "${NODERAG_MIN_MEMORY_KIB:-7864320}" ] || fail "at least 8 GB physical RAM is required"
-available_kib="$(df -Pk "${SYNOPKG_PKGVAR}" | awk 'NR==2 {print $4}')"
-[ "${available_kib}" -ge "${NODERAG_MIN_DISK_KIB:-2097152}" ] || fail "at least 2 GiB free package storage is required"
+
+if [ "${preflight_stage}" != "preinstall" ]; then
+  [ -n "${SYNOPKG_PKGDEST:-}" ] || fail "DSM did not provide the installed package directory"
+  [ -n "${SYNOPKG_PKGVAR:-}" ] || fail "DSM did not provide the permanent package-data directory"
+  [ -d "${SYNOPKG_PKGVAR}" ] || fail "the permanent package-data directory is unavailable"
+  available_kib="$(df -Pk "${SYNOPKG_PKGVAR}" | awk 'NR==2 {print $4}')"
+  [ -n "${available_kib}" ] || fail "free package storage could not be measured"
+  [ "${available_kib}" -ge "${NODERAG_MIN_DISK_KIB:-2097152}" ] || fail "at least 2 GiB free package storage is required"
+fi
 
 "${node_bin}" -e '
   const port = Number(process.env.NODERAG_PORT || 8787);

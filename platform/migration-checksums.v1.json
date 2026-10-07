@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "expectedHead": "000011_recovery_hardening",
+  "expectedHead": "000029_chat_files",
   "migrations": [
     {
       "id": "000001_foundation",
@@ -66,6 +66,114 @@
       "id": "000011_recovery_hardening",
       "path": "packages/server/migrations/000011_recovery_hardening.sql",
       "sha256": "989221319bbd3a50af4894510f54f8be3b4f5abe43ea7580dbe2a1e3aced2f76",
+      "direction": "up-only"
+    },
+    {
+      "id": "000012_vision_batching",
+      "path": "packages/server/migrations/000012_vision_batching.sql",
+      "sha256": "5ffe7e835a382d7a0ae7ebd68c5cf5c22289eae33b153d0f013faa4c3be6562f",
+      "direction": "up-only"
+    },
+    {
+      "id": "000013_research_collections",
+      "path": "packages/server/migrations/000013_research_collections.sql",
+      "sha256": "4c8a715f45c77f49914ef757803596f54ebcb27ccd3172ffac09af4ec963b2b7",
+      "direction": "up-only"
+    },
+    {
+      "id": "000014_pdf_layout_blocks",
+      "path": "packages/server/migrations/000014_pdf_layout_blocks.sql",
+      "sha256": "3f9c4284a95f6c4a648f0e84a8d954313a6e28894e47f7082e32078c09e3832c",
+      "direction": "up-only"
+    },
+    {
+      "id": "000015_pdf_hybrid_vision",
+      "path": "packages/server/migrations/000015_pdf_hybrid_vision.sql",
+      "sha256": "3d76279f4f8fa4f446a7edf077c1e3afbd9ced40d66ab177dadc66572c1552eb",
+      "direction": "up-only"
+    },
+    {
+      "id": "000016_vision_configuration_defaults",
+      "path": "packages/server/migrations/000016_vision_configuration_defaults.sql",
+      "sha256": "e5eac9d495ab857ddfc9a6d29b84b7ede5f763ccc5a115ebba2d142e397f6896",
+      "direction": "up-only"
+    },
+    {
+      "id": "000017_ingestion_log_window",
+      "path": "packages/server/migrations/000017_ingestion_log_window.sql",
+      "sha256": "d95564c2839873a90cd4ddf7ad0cc12bab27edf2bf03da28417dddf8545224dd",
+      "direction": "up-only"
+    },
+    {
+      "id": "000018_research_page_references",
+      "path": "packages/server/migrations/000018_research_page_references.sql",
+      "sha256": "575989abf0a19f7f3c28e2889d42e1b7a8070ca8d440c7cf2e5214d52873b616",
+      "direction": "up-only"
+    },
+    {
+      "id": "000019_chat_provider_foundation",
+      "path": "packages/server/migrations/000019_chat_provider_foundation.sql",
+      "sha256": "58c0570e01f666a08f2b77d7f5fadb4f4003d33fca0bfeac9b5e55f6e60e959f",
+      "direction": "up-only"
+    },
+    {
+      "id": "000020_chat_openai_oauth",
+      "path": "packages/server/migrations/000020_chat_openai_oauth.sql",
+      "sha256": "86d2eafa59c96e095609d49fb7ea941de346af36578666c02d056c2c82cc5aac",
+      "direction": "up-only"
+    },
+    {
+      "id": "000021_chat_configuration",
+      "path": "packages/server/migrations/000021_chat_configuration.sql",
+      "sha256": "b163fe25803e2ba443af57ae9523b8e46e14733389b1a81ceb28490c02d5a425",
+      "direction": "up-only"
+    },
+    {
+      "id": "000022_chat_core",
+      "path": "packages/server/migrations/000022_chat_core.sql",
+      "sha256": "bd57efd2914b46211b4588e27d5906f619519ab0bbb2d85c365a31a266354f96",
+      "direction": "up-only"
+    },
+    {
+      "id": "000023_chat_research",
+      "path": "packages/server/migrations/000023_chat_research.sql",
+      "sha256": "50f8a62e2934e2d18ccd25cc977e71b8eacef72738fb80682be4c351d07ff679",
+      "direction": "up-only"
+    },
+    {
+      "id": "000024_chat_rag",
+      "path": "packages/server/migrations/000024_chat_rag.sql",
+      "sha256": "4985ae3ead0f1e5683437e1ffe7817517bfab935deee67aaf6726313188c2312",
+      "direction": "up-only"
+    },
+    {
+      "id": "000025_chat_web",
+      "path": "packages/server/migrations/000025_chat_web.sql",
+      "sha256": "594502253560f0d41bc89abd49c090552816193e532ab3ee2172d1024cbbf3c7",
+      "direction": "up-only"
+    },
+    {
+      "id": "000026_chat_artifacts",
+      "path": "packages/server/migrations/000026_chat_artifacts.sql",
+      "sha256": "c93a2d80a7ac477b602fcfa5fdd9582cfc9788a3a4c88b0450a3d4141dc11530",
+      "direction": "up-only"
+    },
+    {
+      "id": "000027_chat_exports",
+      "path": "packages/server/migrations/000027_chat_exports.sql",
+      "sha256": "017d6faedc158c310266f13ef93fe061ea25867d9eb8c4fec15e502ed5ede59e",
+      "direction": "up-only"
+    },
+    {
+      "id": "000028_chat_managed_context",
+      "path": "packages/server/migrations/000028_chat_managed_context.sql",
+      "sha256": "cfeff5307581cbcfa73b404939dd2f2ad60b1bb781f023b87103540b234b2256",
+      "direction": "up-only"
+    },
+    {
+      "id": "000029_chat_files",
+      "path": "packages/server/migrations/000029_chat_files.sql",
+      "sha256": "16e2128ced2f3b6220e93b2b4ac577b76e2f25cfab9312123e0f7ff60690109e",
       "direction": "up-only"
     }
   ]

@@ -9,7 +9,7 @@ pnpm package:candidate
 pnpm package:candidate:verify
 ```
 
-The first command builds or reuses the pinned spksrc volume, assembles the deterministic PostgreSQL/pgvector runtime, builds the application/UI, and writes `spk/artifacts/noderag-1.0.0-rc.1-x86_64.spk`. The verifier performs archive inspection and runs the package-user lifecycle simulation. The SPK and generated runtime are build outputs and are intentionally ignored by Git.
+The first command builds or reuses the pinned spksrc volume, assembles the deterministic PostgreSQL/pgvector runtime, builds the application/UI, and writes `spk/artifacts/noderag-1.0.0-45-x86_64.spk`. The verifier performs archive inspection and runs the package-user lifecycle simulation, including Chat state and a DSM-like pre-install environment without permanent package paths. The SPK and generated runtime are build outputs and are intentionally ignored by Git.
 
 ## Startup sequence
 
@@ -27,7 +27,7 @@ Shutdown is the reverse dependency order: worker, API, temporary API if present,
 
 ## Storage policy
 
-Production package startup selects `NODERAG_STORAGE_POLICY=dsm`. A managed bulk-data target must resolve below `/volumeN`, report ext4 or btrfs, retain mode 0700/0750, pass write/fsync/rename/read, and have projected capacity plus rebuild reserve. Administrators may declare encrypted roots, require encryption, and identify Synology Drive or indexing roots so the probe returns actionable warnings.
+Production package startup selects `NODERAG_STORAGE_POLICY=dsm`. A managed bulk-data target must resolve below `/volumeN`, report ext4 or btrfs, pass write/fsync/rename/read, and have projected capacity plus rebuild reserve. The safe setup default is `/var/packages/noderag/var/data/documents`, which DSM resolves onto the package's selected volume. When an administrator selects an existing ACL-managed shared folder, NodeRag preserves that folder and creates a dedicated `.noderag-managed` child for its writes. It requests mode 0700 on directories it creates and reports a warning instead of rejecting valid Synology ACL storage solely because its POSIX mode projection differs. Administrators may declare encrypted roots, require encryption, and identify Synology Drive or indexing roots so the probe returns actionable warnings.
 
 Relocation is intentionally two-phase: copy to a temporary sibling while a single-writer guard is held, compare a complete path/size/SHA-256 manifest, then activate. If activation fails, the source is restored. The old source tree remains with a dated `retained` suffix until a separate explicit cleanup. PostgreSQL tablespace movement additionally requires the package maintenance/stop boundary; it must not be attempted by copying a live cluster.
 

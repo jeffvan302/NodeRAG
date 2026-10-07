@@ -108,6 +108,14 @@ export class SecretVault {
     return Buffer.concat([decipher.update(row.ciphertext), decipher.final()]).toString('utf8');
   }
 
+  async remove(database: SqlClient, provider: string, name: string): Promise<boolean> {
+    const removed = await database.query(
+      `DELETE FROM noderag.encrypted_secret WHERE provider = $1 AND name = $2`,
+      [provider, name],
+    );
+    return removed.rowCount === 1;
+  }
+
   matchesFingerprint(secret: string, fingerprint: string): boolean {
     const actual = Buffer.from(this.fingerprint(secret), 'utf8');
     const expected = Buffer.from(fingerprint, 'utf8');

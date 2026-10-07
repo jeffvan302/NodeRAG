@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "stage": "C09",
+  "name": "Deterministic DOCX/PDF Export and Exact-Revision RAG Promotion",
+  "recordedAt": "2026-09-15T10:42:00-04:00",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "boundary": {
+    "internetProvider": "ollama_cloud",
+    "ollamaServiceRoot": "https://ollama.com",
+    "ollamaChatEndpoint": "https://ollama.com/api/chat",
+    "ollamaWebSearchEndpoint": "https://ollama.com/api/web_search",
+    "ollamaWebFetchEndpoint": "https://ollama.com/api/web_fetch",
+    "localOllamaAccepted": false,
+    "selfHostedOllamaAccepted": false,
+    "customOllamaAccepted": false,
+    "converterNetworkAccepted": false,
+    "converterShellAccepted": false,
+    "synologyDsmExecution": "deferred_to_C11"
+  },
+  "implementation": {
+    "migration": {
+      "path": "packages/server/migrations/000027_chat_exports.sql",
+      "sha256": "017d6faedc158c310266f13ef93fe061ea25867d9eb8c4fec15e502ed5ede59e"
+    },
+    "normalizedDocumentSha256": "e922726c45aeb25d7a13fac0627e8c1c5d6d59747d23eb25c8f05d2b47e1ac7c",
+    "diagramRendererSha256": "730036aa81e18be73e7d1b28d363b6476ab7fbe53d0524076bdc0a0fd6b18a18",
+    "generatorSha256": "ee0f91907a0fe3af6b34ea013f0236cf5f9a29dd78fff9a26de3b163166d68b0",
+    "exportServiceSha256": "61e766b2f16d426111c2b7eb437c5646fe101d62f73552241237d8c293ca1f83",
+    "exportRoutesSha256": "210b801564f4e3f0936816b2c5cc160c05dc422e750847e91d999858fd30642c",
+    "generatedFontsSha256": "cfc1dbb2d7087f9dc2cb44bc401cb81d46eb87affea64d9f9b41772187d3a0ca",
+    "artifactDrawerSha256": "f2bf2dc8bb90ee7186b034968acd86ab5c30cff406113022657343a0ff1cf982",
+    "unitTestSha256": "07c1bb1022002c453bb63c74567f9ed82a447ba095c848ba7f74fae31fbe2622",
+    "integrationTestSha256": "f4b3466dd70dacc0ab1c1706fc41341ff44c427cfd9faa2d0bd39d0c48c65c73",
+    "browserTestSha256": "07d94df7e9795802021b47b01edba2bedde651eeef920ad19552472fb596c328",
+    "routeAuthorizationSha256": "67158fd8b675cf40f3fabcded50fb2c356a2947b64ef72c675e14683f99ee0f8",
+    "openApiSha256": "4c385c220bf65bf2a8a0eff709c7eadcb9e6f9f13d5cb41d1334f48b026886cc",
+    "backupPolicySha256": "2935c7e0ed5ea4b5f902a8c30358775c7a7559b321600ed62edb8ec2a389ff4f",
+    "migrationInventorySha256": "f898aba06a2832164771edb49e4bc33404d46ff4aa103760aacba8435ab507bf",
+    "sbomSha256": "f84f29421be0348c5206622fbfd321a5c285cf0460d764300575ca1e1f721279",
+    "thirdPartyNoticesSha256": "ba4e82d49064d9cbdfac6c94676ba7ccf515f2f3fb55798394096f45480afec2",
+    "productionBuildSha256": "c2e44cd93f0e53b8cd0f30e1cefb2afa99a48978957e5f11ade0c84df9db0048",
+    "productionSmokeSha256": "cdbb2b0226c337a5688bcd9154389a26d4bd6800db83d3d91a336b2c7ec989f1"
+  },
+  "formatPolicy": {
+    "revision": "safe-office-pdf.v1",
+    "normalizedDocumentRevision": "chat-document.v1",
+    "exportRevision": "chat-export.v1",
+    "maximumSourceCharacters": 10485760,
+    "maximumBlocks": 50000,
+    "maximumTableColumns": 50,
+    "maximumTableRows": 500,
+    "maximumWarnings": 200,
+    "defaultMaximumOutputBytes": 67108864,
+    "defaultTimeoutMilliseconds": 120000,
+    "defaultMaximumAttempts": 2,
+    "passiveDocxOnly": true,
+    "passivePdfOnly": true,
+    "externalResourceFetching": false
+  },
+  "verification": {
+    "chatExportUnit": { "result": "passed", "tests": 7 },
+    "chatExportIntegration": {
+      "result": "passed",
+      "tests": 7,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "fullIntegration": {
+      "result": "passed",
+      "files": 18,
+      "tests": 115,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "fullBrowser": { "result": "passed", "tests": 28, "wcagAAndAA": "passed" },
+    "fullUnit": { "result": "passed", "files": 50, "tests": 212 },
+    "migrationInventory": { "result": "passed", "head": "000027_chat_exports" },
+    "workspaceTypecheck": { "result": "passed", "projects": 6 },
+    "workspaceLint": { "result": "passed" },
+    "workspaceFormat": { "result": "passed" },
+    "dependencyBoundaries": { "result": "passed", "modules": 182, "dependencies": 368 },
+    "buildAndSmoke": { "result": "passed" },
+    "linuxNoNetworkConverterProbe": { "result": "passed", "architecture": "linux/amd64" },
+    "licenseInventory": { "result": "passed", "licenseClasses": 11 },
+    "sbom": { "result": "passed", "runtimePackages": 309 },
+    "secretScan": { "result": "passed" },
+    "combinedQualityGate": { "result": "passed" }
+  },
+  "faultEvidence": [
+    "malformed or active OOXML and PDF packages are rejected",
+    "remote images, raw HTML, and unsupported structures degrade visibly without network access",
+    "Unicode font subsets remain selectable and generated outputs successfully re-ingest",
+    "long structured documents, wide tables, equations, and bounded diagrams are exercised",
+    "queued cancellation and post-publication cancellation retain no partial output",
+    "expired worker leases reclaim safely and simultaneous workers claim a job only once",
+    "converter crashes exhaust bounded retries without leaking host paths",
+    "disk-full classification returns a stable safe error",
+    "exact old artifact revisions remain promotable after a newer working revision exists",
+    "upload grants, silo isolation, hashes, signatures, idempotency, and provenance are enforced",
+    "editing an artifact after promotion cannot mutate the accepted RAG document"
+  ],
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "remaining": [
+    "C10 adds managed context, compression snapshots, archived segments, and reconciliation.",
+    "C10 completes external .noderag-chat archive/import and existing-folder recovery.",
+    "Real Synology DSM execution and a new SPK remain the C11 package gate."
+  ]
+}

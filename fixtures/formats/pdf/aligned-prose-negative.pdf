@@ -1,0 +1,43 @@
+%PDF-1.4
+%NodeRag synthetic layout fixture
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R /F2 6 0 R /F3 7 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 289 >>
+stream
+BT /F2 18 Tf 72 730 Td (Aligned prose is not a table) Tj ET
+BT /F1 12 Tf 72 690 Td (Revenue is collected from several sources.) Tj ET
+BT /F1 12 Tf 72 670 Td (Revenue is reviewed under the annual policy.) Tj ET
+BT /F1 12 Tf 72 650 Td (Revenue is reported in the financial statements.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000043 00000 n 
+0000000092 00000 n 
+0000000149 00000 n 
+0000000295 00000 n 
+0000000635 00000 n 
+0000000732 00000 n 
+0000000834 00000 n 
+trailer << /Size 8 /Root 1 0 R >>
+startxref
+939
+%%EOF

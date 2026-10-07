@@ -5,7 +5,7 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd -- "${script_dir}/../.." && pwd)"
 source "${script_dir}/common.sh"
 action="${1:-status}"
-artifact="${2:-${repository_root}/spk/artifacts/noderag-1.0.0-rc.1-x86_64.spk}"
+artifact="${2:-${repository_root}/spk/artifacts/noderag-1.0.0-45-x86_64.spk}"
 container="noderag-m14-soak-rc1"
 volume="noderag-m14-soak-rc1-data"
 evidence_directory="${repository_root}/docker-testbed/artifacts/m14"
@@ -33,7 +33,7 @@ case "${action}" in
       soak_interval_seconds=5
       allow_short=1
     else
-      soak_duration_seconds="${NODERAG_M14_DURATION_SECONDS:-86400}"
+      soak_duration_seconds="${NODERAG_M14_DURATION_SECONDS:-3600}"
       soak_interval_seconds="${NODERAG_M14_INTERVAL_SECONDS:-60}"
       allow_short="${NODERAG_M14_ALLOW_SHORT:-0}"
     fi

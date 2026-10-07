@@ -1,6 +1,7 @@
 import { lstat, mkdir, open, readdir, rename, rm, statfs } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import type { Pool } from 'pg';
+import { probeChatStorage } from '../chat/storage.js';
 import { withTransaction } from '../store/database.js';
 import type {
   ArchiveEntryConsumer,
@@ -36,10 +37,17 @@ export interface RestoreDatabaseTarget {
     rows: AsyncIterable<Readonly<Record<string, unknown>>>,
   ): Promise<void>;
   consumeSecrets(rows: AsyncIterable<Readonly<Record<string, unknown>>>): Promise<void>;
+  setRestoredChatStorage?(storage: RestoredChatStorage): Promise<void> | void;
   verify(manifest: BackupInnerManifest): Promise<Readonly<Record<string, unknown>>>;
   activate(operationId: number, verification: Readonly<Record<string, unknown>>): Promise<void>;
   rollback(): Promise<void>;
   cleanup(retainStaging: boolean): Promise<void>;
+}
+
+export interface RestoredChatStorage {
+  readonly requestedPath: string;
+  readonly resolvedPath: string;
+  readonly manifestId: string;
 }
 
 export interface RestoreExecutionOptions {
@@ -70,7 +78,7 @@ export const requiredRestoreCapacity = (
   entries: readonly { readonly path: string; readonly bytes: number }[],
 ): bigint => {
   const payload = entries
-    .filter((entry) => /^(documents|models)\//u.test(entry.path))
+    .filter((entry) => /^(documents|models|\.noderag-chat)\//u.test(entry.path))
     .reduce((total, entry) => total + BigInt(entry.bytes), 0n);
   return payload + payload / 5n;
 };
@@ -134,7 +142,8 @@ const jsonRows = async function* (
 };
 
 const safeStagingPath = (stagingRoot: string, archivePath: string): string => {
-  if (!/^(documents|models)\//u.test(archivePath)) throw new Error('restore-file-class-invalid');
+  if (!/^(documents|models|\.noderag-chat)\//u.test(archivePath))
+    throw new Error('restore-file-class-invalid');
   const destination = resolve(stagingRoot, archivePath);
   const root = resolve(stagingRoot);
   if (!destination.startsWith(`${root}${sep}`)) throw new Error('restore-path-escaped-staging');
@@ -171,7 +180,7 @@ const activateStagedFiles = async (
   const restored: Array<{ target: string; retained: string | null }> = [];
   await mkdir(retainedRoot, { recursive: true, mode: 0o700 });
   try {
-    for (const family of ['documents', 'models'] as const) {
+    for (const family of ['documents', 'models', '.noderag-chat'] as const) {
       const staged = join(stagingRoot, family);
       const target = join(resolve(dataRoot), family);
       try {
@@ -274,6 +283,53 @@ export const resetInstallationLocalState = async (database: Pick<Pool, 'query'>)
      SET vision_enabled = false, ollama_base_url = NULL, ollama_secret_id = NULL,
          updated_by = NULL, updated_at = now()`,
   );
+  await database.query(
+    `UPDATE noderag.chat_provider_connection
+     SET enabled = false, updated_by = NULL, updated_at = now()`,
+  );
+  await database.query(
+    `UPDATE noderag.chat_provider_capability
+     SET status = 'disabled', latency_ms = NULL, safe_error_code = NULL,
+         metadata = '{}'::jsonb, tested_at = NULL, updated_at = now()`,
+  );
+  await database.query(
+    `UPDATE noderag.chat_run
+     SET status = 'failed', lease_owner = NULL, leased_until = NULL, heartbeat_at = NULL,
+         safe_error_code = 'restore-review-required', error_retryable = false,
+         finished_at = COALESCE(finished_at,now()), updated_at = now(), status_version = status_version + 1
+     WHERE status IN ('queued','running','cancelling')`,
+  );
+  await database.query(
+    `UPDATE noderag.chat_message
+     SET state = 'failed', completed_at = now(),
+         metadata = metadata || '{"restoreReviewRequired":true}'::jsonb
+     WHERE state = 'streaming'`,
+  );
+  await database.query(
+    `UPDATE noderag.chat_export_job
+     SET state = 'failed', lease_owner = NULL, leased_until = NULL, heartbeat_at = NULL,
+         error_code = 'restore-review-required',
+         error_detail = 'The export was active when the backup was captured; start it again.',
+         finished_at = COALESCE(finished_at,now()), updated_at = now()
+     WHERE state IN ('queued','running','retry_wait')`,
+  );
+  await database.query(
+    `UPDATE noderag.chat_context_compression_job
+     SET state = 'failed', lease_owner = NULL, leased_until = NULL, heartbeat_at = NULL,
+         safe_error_code = 'restore-review-required', error_retryable = false,
+         finished_at = COALESCE(finished_at,now()), updated_at = now(),
+         status_version = status_version + 1
+     WHERE state IN ('queued','running','cancelling')`,
+  );
+  await database.query(
+    `UPDATE noderag.chat_import_operation
+     SET state = 'failed', safe_error_code = 'restore-review-required',
+         diagnostics = diagnostics || '{"restoreReviewRequired":true}'::jsonb,
+         finished_at = COALESCE(finished_at,now())
+     WHERE state IN ('pending','validating')`,
+  );
+  await database.query('DELETE FROM noderag.chat_web_usage_minute');
+  await database.query('DELETE FROM noderag.chat_log_cursor');
   await database.query('UPDATE noderag.source SET schedule_enabled = false, next_crawl_at = NULL');
   await database.query('UPDATE noderag.backup_schedule SET enabled = false, next_run_at = NULL');
   await database.query(
@@ -378,6 +434,21 @@ export const executeRestore = async (
           options.operationId,
           options.database.fileActivationMode ?? 'replace',
         );
+        const hasChatStorage = restored.manifest.entries.some((entry) =>
+          entry.path.startsWith('.noderag-chat/'),
+        );
+        if (hasChatStorage) {
+          if (
+            !restored.manifest.entries.some((entry) => entry.path === '.noderag-chat/manifest.json')
+          )
+            throw new Error('restore-chat-storage-manifest-missing');
+          const chatStorage = await probeChatStorage(options.dataRoot);
+          await options.database.setRestoredChatStorage?.({
+            requestedPath: resolve(options.dataRoot),
+            resolvedPath: chatStorage.chatRoot,
+            manifestId: chatStorage.manifest.manifestId,
+          });
+        }
         await options.pool.query(
           `UPDATE noderag.restore_operation SET state = 'activating', verification = $2 WHERE id = $1`,
           [options.operationId, verification],

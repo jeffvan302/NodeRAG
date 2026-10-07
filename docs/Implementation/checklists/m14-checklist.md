@@ -78,7 +78,7 @@ quality gate with 92 unit tests, all 51 PostgreSQL integration tests, and the ex
 journeys pass. Restored GitHub Actions billing, authoritative CI, exact-artifact qualification, and
 a fresh soak remain required.
 
-- [ ] Candidate version is `1.0.0-rc.1`; SPK version is `1.0.0-1` with beta marker.
+- [ ] Candidate version is `1.0.0-rc.1`; SPK version is `1.0.0-3` with beta marker.
 - [ ] Node 22 remains supported; official source/date/EOL are recorded.
 - [ ] Lockfile, migrations/head, OpenAPI, routes, settings defaults, parser revisions, model,
       package metadata/runtime recipe, SBOM, notices, and release notes are frozen and verified.

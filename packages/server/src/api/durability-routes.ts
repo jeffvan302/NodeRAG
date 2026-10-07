@@ -10,9 +10,11 @@ import { readinessPermits } from '../application/readiness-policy.js';
 import { SiloScope, withSiloScope } from '../identity/scope.js';
 import {
   detachSource,
+  browseSourceFolders,
   enqueueSourceCrawl,
   registerSource,
   sourceDigest,
+  validateSourceGlobs,
   validateSourceRoot,
 } from '../ingest/sources.js';
 import { setupStatus } from '../setup/bootstrap.js';
@@ -39,6 +41,10 @@ const sourceListQuerySchema = z.object({
       value === undefined ? undefined : value.split(',').map((item) => idSchema.parse(item.trim())),
     ),
 });
+const sourceFolderQuerySchema = z.object({
+  siloId: z.coerce.number().int().min(1).max(32_767),
+  path: z.string().min(1).max(4096).optional(),
+});
 const crawlBodySchema = z.object({ siloId: z.number().int().min(1).max(32_767) });
 const sourcePatchSchema = z.object({
   siloId: z.number().int().min(1).max(32_767),
@@ -59,9 +65,15 @@ const documentPurgeBodySchema = z.object({
   siloId: z.number().int().min(1).max(32_767),
   confirmDocumentId: z.number().int().positive(),
 });
-const documentReindexBodySchema = z.object({ siloId: z.number().int().min(1).max(32_767) });
+const documentReindexBodySchema = z.object({
+  siloId: z.number().int().min(1).max(32_767),
+  enhanced: z.boolean().default(true),
+});
 const siloPurgeBodySchema = z.object({ confirmSlug: z.string().min(2).max(63) });
 const eventQuerySchema = z.object({ once: z.coerce.boolean().default(false) });
+const ingestionLogQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(2000).default(1000),
+});
 
 const problem = (status: number, code: string, requestId: string) => ({
   type: `https://noderag.local/problems/${code}`,
@@ -86,6 +98,34 @@ const requireIdempotencyKey = (request: FastifyRequest): string => {
 };
 
 const stableDigest = (value: unknown): string => JSON.stringify(value);
+
+export const sourceCreationFailure = (
+  error: unknown,
+  fallback = 'source-create-failed',
+): { readonly status: number; readonly code: string } => {
+  const message = error instanceof Error ? error.message : '';
+  const databaseOrSystemCode =
+    typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string'
+      ? error.code
+      : '';
+  if (databaseOrSystemCode === '23505') return { status: 409, code: 'source-already-connected' };
+  if (databaseOrSystemCode === '23503') return { status: 404, code: 'silo-not-found' };
+  if (databaseOrSystemCode === 'ENOENT') return { status: 404, code: 'source-folder-not-found' };
+  if (databaseOrSystemCode === 'EACCES' || databaseOrSystemCode === 'EPERM')
+    return { status: 403, code: 'source-folder-unreadable' };
+  if (databaseOrSystemCode === 'ENOTDIR') return { status: 400, code: 'source-root-not-directory' };
+  if (message === 'source-folder-not-found')
+    return { status: 404, code: 'source-folder-not-found' };
+  if (message === 'source-folder-unreadable')
+    return { status: 403, code: 'source-folder-unreadable' };
+  if (
+    message.startsWith('source-root') ||
+    ['invalid-source-glob', 'too-many-source-globs', 'invalid-source-schedule'].includes(message)
+  ) {
+    return { status: 400, code: message };
+  }
+  return { status: 500, code: fallback };
+};
 
 const readinessAllows = async (pool: Pool, routeClass: 'read' | 'mutation'): Promise<boolean> =>
   readinessPermits(readinessStateSchema.parse((await setupStatus(pool)).state), routeClass);
@@ -183,6 +223,28 @@ export const registerDurabilityRoutes = (
   app: FastifyInstance,
   options: DurabilityRoutesOptions,
 ): void => {
+  app.get('/v1/source-folders', async (request, reply) => {
+    const principal = await requirePrincipal(request, options.authenticate);
+    if (principal === null)
+      return reply.code(401).send(problem(401, 'authentication_required', request.id));
+    if (!(await readinessAllows(options.pool, 'read')))
+      return reply.code(503).send(problem(503, 'read_not_ready', request.id));
+    const query = sourceFolderQuerySchema.safeParse(request.query);
+    if (!query.success) return reply.code(400).send(problem(400, 'invalid_request', request.id));
+    const scope = await SiloScope.resolve(options.pool, principal.principalId, 'configure_source', {
+      requestedSiloIds: [query.data.siloId],
+    });
+    if (!scope.includes(query.data.siloId))
+      return reply.code(404).send(problem(404, 'not_found', request.id));
+    try {
+      return reply.send(await browseSourceFolders(query.data.path, options.sourceRoots));
+    } catch (error) {
+      const code = error instanceof Error ? error.message : 'source-folder-browse-failed';
+      const status = code === 'source-folder-not-found' ? 404 : 400;
+      return reply.code(status).send(problem(status, code, request.id));
+    }
+  });
+
   app.post('/v1/sources', async (request, reply) => {
     const principal = await requirePrincipal(request, options.authenticate);
     if (principal === null)
@@ -199,12 +261,12 @@ export const registerDurabilityRoutes = (
     if (!scope.includes(body.data.siloId))
       return reply.code(404).send(problem(404, 'silo_not_found', request.id));
     try {
-      await validateSourceRoot(body.data.uri, options.sourceRoots);
+      const verifiedUri = await validateSourceRoot(body.data.uri, options.sourceRoots);
       const key = requireIdempotencyKey(request);
       const registration = {
         siloId: body.data.siloId,
         principalId: principal.principalId,
-        uri: body.data.uri,
+        uri: verifiedUri,
         includeGlobs: body.data.includeGlobs,
         excludeGlobs: body.data.excludeGlobs,
         scheduleIntervalMinutes: body.data.scheduleIntervalMinutes,
@@ -230,12 +292,18 @@ export const registerDurabilityRoutes = (
     } catch (error) {
       if (error instanceof IdempotencyConflictError)
         return reply.code(409).send(problem(409, 'idempotency_conflict', request.id));
-      const code = error instanceof Error ? error.message : 'source-create-failed';
-      if (code === 'idempotency_key_required')
-        return reply.code(400).send(problem(400, code, request.id));
-      if (code.startsWith('source-root'))
-        return reply.code(400).send(problem(400, code, request.id));
-      throw error;
+      if (error instanceof Error && error.message === 'idempotency_key_required')
+        return reply.code(400).send(problem(400, error.message, request.id));
+      const failure = sourceCreationFailure(error);
+      request.log.error(
+        {
+          errorName: error instanceof Error ? error.name : 'unknown',
+          code: failure.code,
+          requestId: request.id,
+        },
+        'source creation failed',
+      );
+      return reply.code(failure.status).send(problem(failure.status, failure.code, request.id));
     }
   });
 
@@ -359,14 +427,20 @@ export const registerDurabilityRoutes = (
     if (!scope.includes(body.data.siloId))
       return reply.code(404).send(problem(404, 'not_found', request.id));
     try {
-      if (body.data.uri !== undefined) await validateSourceRoot(body.data.uri, options.sourceRoots);
+      const verifiedUri =
+        body.data.uri === undefined
+          ? undefined
+          : await validateSourceRoot(body.data.uri, options.sourceRoots);
+      if (body.data.includeGlobs !== undefined) validateSourceGlobs(body.data.includeGlobs);
+      if (body.data.excludeGlobs !== undefined) validateSourceGlobs(body.data.excludeGlobs);
+      const update = { ...body.data, ...(verifiedUri === undefined ? {} : { uri: verifiedUri }) };
       const result = await executeIdempotent(
         options.pool,
         {
           principalId: principal.principalId,
           operation: `source-update:${String(sourceId.data)}`,
           key: requireIdempotencyKey(request),
-          request: stableDigest(body.data),
+          request: stableDigest(update),
         },
         async (database) => {
           await database.query(`SELECT set_config('app.silo_ids', $1, true)`, [
@@ -393,14 +467,14 @@ export const registerDurabilityRoutes = (
             [
               sourceId.data,
               body.data.siloId,
-              body.data.uri ?? null,
-              body.data.includeGlobs ?? null,
-              body.data.excludeGlobs ?? null,
-              body.data.scheduleIntervalMinutes !== undefined,
-              body.data.scheduleIntervalMinutes ?? null,
-              body.data.scheduleEnabled ?? null,
-              body.data.operatorNote !== undefined,
-              body.data.operatorNote ?? null,
+              update.uri ?? null,
+              update.includeGlobs ?? null,
+              update.excludeGlobs ?? null,
+              update.scheduleIntervalMinutes !== undefined,
+              update.scheduleIntervalMinutes ?? null,
+              update.scheduleEnabled ?? null,
+              update.operatorNote !== undefined,
+              update.operatorNote ?? null,
             ],
           );
           const row = updated.rows[0];
@@ -414,7 +488,7 @@ export const registerDurabilityRoutes = (
               principal.principalId,
               body.data.siloId,
               sourceId.data,
-              body.data.scheduleEnabled ?? false,
+              update.scheduleEnabled ?? false,
             ],
           );
           return { status: 200, headers: {}, body: row };
@@ -424,9 +498,18 @@ export const registerDurabilityRoutes = (
     } catch (error) {
       if (error instanceof IdempotencyConflictError)
         return reply.code(409).send(problem(409, 'idempotency_conflict', request.id));
-      const code = error instanceof Error ? error.message : 'source-update-failed';
-      const status = code === 'source-not-found' ? 404 : 400;
-      return reply.code(status).send(problem(status, code, request.id));
+      if (error instanceof Error && error.message === 'source-not-found')
+        return reply.code(404).send(problem(404, error.message, request.id));
+      const failure = sourceCreationFailure(error, 'source-update-failed');
+      request.log.error(
+        {
+          errorName: error instanceof Error ? error.name : 'unknown',
+          code: failure.code,
+          requestId: request.id,
+        },
+        'source update failed',
+      );
+      return reply.code(failure.status).send(problem(failure.status, failure.code, request.id));
     }
   });
 
@@ -541,14 +624,28 @@ export const registerDurabilityRoutes = (
     const scope = await SiloScope.resolve(options.pool, principal.principalId, 'upload');
     if (scope.siloIds.length === 0) return reply.send({ items: [] });
     const jobs = await options.pool.query(
-      `SELECT id, kind, source_id AS "sourceId", document_id AS "documentId",
-              silo_id AS "siloId", state, priority, logical_attempt AS "logicalAttempt",
-              max_attempts AS "maximumAttempts", lease_epoch AS "leaseEpoch",
-              heartbeat_at AS "heartbeatAt", progress, checkpoint, retry_at AS "retryAt",
-              cancel_requested_at AS "cancelRequestedAt", result, error_class AS "errorClass",
-              structured_error AS error, created_at AS "createdAt", updated_at AS "updatedAt"
-       FROM noderag.job WHERE silo_id = ANY ($1::smallint[])
-       ORDER BY created_at DESC, id DESC LIMIT 200`,
+      `SELECT job.id, job.kind, job.source_id AS "sourceId",
+              job.document_id AS "documentId", job.silo_id AS "siloId", job.state,
+              job.priority, job.logical_attempt AS "logicalAttempt",
+              job.max_attempts AS "maximumAttempts", job.lease_epoch AS "leaseEpoch",
+              job.heartbeat_at AS "heartbeatAt", job.progress, job.checkpoint,
+              job.retry_at AS "retryAt", job.cancel_requested_at AS "cancelRequestedAt",
+              job.result, job.error_class AS "errorClass", job.structured_error AS error,
+              job.created_at AS "createdAt", job.updated_at AS "updatedAt",
+              job.finished_at AS "finishedAt", document.name AS "documentName",
+              document.relative_path AS "documentPath", source.uri AS "sourceUri"
+       FROM noderag.job job
+       LEFT JOIN noderag.document document
+         ON document.id = job.document_id AND document.silo_id = job.silo_id
+       LEFT JOIN noderag.source source
+         ON source.id = job.source_id AND source.silo_id = job.silo_id
+       WHERE job.silo_id = ANY ($1::smallint[])
+       ORDER BY CASE
+                  WHEN job.state IN ('pending', 'leased', 'retry_wait', 'paused') THEN 0
+                  WHEN job.state = 'failed' THEN 1
+                  ELSE 2
+                END,
+                job.updated_at DESC, job.id DESC LIMIT 200`,
       [scope.siloIds],
     );
     return reply.send({ items: jobs.rows });
@@ -562,13 +659,23 @@ export const registerDurabilityRoutes = (
     if (!jobId.success) return reply.code(400).send(problem(400, 'invalid_request', request.id));
     const scope = await SiloScope.resolve(options.pool, principal.principalId, 'upload');
     const found = await options.pool.query(
-      `SELECT id, kind, source_id AS "sourceId", document_id AS "documentId",
-              silo_id AS "siloId", state, priority, frozen_config AS "frozenConfig",
-              logical_attempt AS "logicalAttempt", max_attempts AS "maximumAttempts",
-              lease_epoch AS "leaseEpoch", heartbeat_at AS "heartbeatAt", progress,
-              checkpoint, retry_at AS "retryAt", cancel_requested_at AS "cancelRequestedAt",
-              result, error_class AS "errorClass", structured_error AS error
-       FROM noderag.job WHERE id = $1 AND silo_id = ANY ($2::smallint[])`,
+      `SELECT job.id, job.kind, job.source_id AS "sourceId",
+              job.document_id AS "documentId", job.silo_id AS "siloId", job.state,
+              job.priority, job.frozen_config AS "frozenConfig",
+              job.logical_attempt AS "logicalAttempt", job.max_attempts AS "maximumAttempts",
+              job.lease_epoch AS "leaseEpoch", job.heartbeat_at AS "heartbeatAt", job.progress,
+              job.checkpoint, job.retry_at AS "retryAt",
+              job.cancel_requested_at AS "cancelRequestedAt", job.result,
+              job.error_class AS "errorClass", job.structured_error AS error,
+              job.created_at AS "createdAt", job.updated_at AS "updatedAt",
+              job.finished_at AS "finishedAt", document.name AS "documentName",
+              document.relative_path AS "documentPath", source.uri AS "sourceUri"
+       FROM noderag.job job
+       LEFT JOIN noderag.document document
+         ON document.id = job.document_id AND document.silo_id = job.silo_id
+       LEFT JOIN noderag.source source
+         ON source.id = job.source_id AND source.silo_id = job.silo_id
+       WHERE job.id = $1 AND job.silo_id = ANY ($2::smallint[])`,
       [jobId.data, scope.siloIds],
     );
     return found.rows[0] === undefined
@@ -697,14 +804,18 @@ export const registerDurabilityRoutes = (
           principalId: principal.principalId,
           operation: `document-reindex:${String(documentId.data)}`,
           key: requireIdempotencyKey(request),
-          request: stableDigest({ documentId: documentId.data, siloId: body.data.siloId }),
+          request: stableDigest({
+            documentId: documentId.data,
+            siloId: body.data.siloId,
+            enhanced: body.data.enhanced,
+          }),
         },
         async (database) => {
           await database.query(`SELECT set_config('app.silo_ids', $1, true)`, [
             scope.postgresArray(),
           ]);
-          const document = await database.query<{ extension: string }>(
-            `SELECT extension FROM noderag.document
+          const document = await database.query<{ extension: string; state: string }>(
+            `SELECT extension, state FROM noderag.document
              WHERE id = $1 AND silo_id = $2 AND state <> 'purging' FOR UPDATE`,
             [documentId.data, body.data.siloId],
           );
@@ -713,22 +824,37 @@ export const registerDurabilityRoutes = (
           const queued = await database.query<{ id: unknown }>(
             `INSERT INTO noderag.job (kind, document_id, silo_id, priority, payload)
              VALUES ('extract', $1, $2, 3,
-                     jsonb_build_object('format', $3::text, 'reason', 'manual-reindex'))
+                     jsonb_build_object(
+                       'format', $3::text,
+                       'reason', CASE WHEN $4::boolean AND $3::text='pdf'
+                                      THEN 'enhanced-pdf-reindex' ELSE 'manual-reindex' END,
+                       'targetExtractionVersion', CASE WHEN $4::boolean AND $3::text='pdf'
+                                                       THEN 'pdf-layout.v3-hybrid' ELSE NULL END,
+                       'replaceExisting', $4::boolean AND $3::text='pdf',
+                       'previousDocumentState', $5::text))
              ON CONFLICT (document_id, kind)
                WHERE document_id IS NOT NULL
                  AND state IN ('pending', 'leased', 'retry_wait', 'paused')
              DO UPDATE SET state = 'pending', run_after = now(), retry_at = NULL,
                            cancel_requested_at = NULL, attempts = 0,
-                           logical_attempt = 0, updated_at = now()
+                           logical_attempt = 0, payload = EXCLUDED.payload, updated_at = now()
              RETURNING id`,
-            [documentId.data, body.data.siloId, row.extension],
+            [documentId.data, body.data.siloId, row.extension, body.data.enhanced, row.state],
           );
           const jobId = databaseInteger(queued.rows[0]?.id, 'reindex job id');
           await database.query(
-            `UPDATE noderag.document SET state = 'pending', error_code = NULL,
-                                            error_detail = NULL
+            `UPDATE noderag.document
+             SET state = CASE WHEN $3::boolean AND state IN
+                                    ('ready', 'source_missing', 'awaiting_vision')
+                              THEN state ELSE 'pending' END,
+                 error_code = NULL, error_detail = NULL,
+                 metadata = metadata || jsonb_build_object(
+                   'enhancedReindex', jsonb_build_object(
+                     'state', 'queued', 'targetExtractionVersion',
+                     CASE WHEN $3::boolean THEN 'pdf-layout.v3-hybrid' ELSE NULL END,
+                     'queuedAt', now()))
              WHERE id = $1 AND silo_id = $2`,
-            [documentId.data, body.data.siloId],
+            [documentId.data, body.data.siloId, body.data.enhanced && row.extension === 'pdf'],
           );
           await database.query(
             `INSERT INTO noderag.job_event (job_id, sequence, event_type, detail)
@@ -737,7 +863,17 @@ export const registerDurabilityRoutes = (
              FROM noderag.job_event WHERE job_id = $1`,
             [jobId],
           );
-          return { status: 202, headers: {}, body: { accepted: true, jobId } };
+          return {
+            status: 202,
+            headers: {},
+            body: {
+              accepted: true,
+              jobId,
+              enhanced: body.data.enhanced && row.extension === 'pdf',
+              targetExtractionVersion:
+                body.data.enhanced && row.extension === 'pdf' ? 'pdf-layout.v3-hybrid' : null,
+            },
+          };
         },
       );
       return reply.code(result.response.status).send(result.response.body);
@@ -807,6 +943,54 @@ export const registerDurabilityRoutes = (
           ),
         );
     }
+  });
+
+  app.get('/v1/admin/logs', async (request, reply) => {
+    const principal = await requirePrincipal(request, options.authenticate);
+    if (principal === null)
+      return reply.code(401).send(problem(401, 'authentication_required', request.id));
+    if (!principal.serverAdmin)
+      return reply.code(403).send(problem(403, 'server_admin_required', request.id));
+    const query = ingestionLogQuerySchema.safeParse(request.query);
+    if (!query.success) return reply.code(400).send(problem(400, 'invalid_request', request.id));
+    const [rows, count] = await Promise.all([
+      options.pool.query(
+        `SELECT event.id, event.created_at AS "createdAt", event.event_type AS "eventType",
+              event.detail, job.id AS "jobId", job.kind, job.state,
+              job.logical_attempt AS "logicalAttempt", job.max_attempts AS "maximumAttempts",
+              job.progress, job.error_class AS "errorClass", job.structured_error AS error,
+              document.id AS "documentId", document.name AS "documentName",
+              document.relative_path AS "documentPath", silo.id AS "siloId",
+              silo.display_name AS "siloName"
+       FROM noderag.job_event event
+       JOIN noderag.job job ON job.id = event.job_id
+       LEFT JOIN noderag.document document ON document.id = job.document_id
+       LEFT JOIN noderag.silo silo ON silo.id = job.silo_id
+       WHERE event.created_at >= now() - interval '24 hours'
+         AND job.kind IN ('crawl', 'extract', 'vision', 'embed')
+       ORDER BY event.created_at DESC, event.id DESC
+       LIMIT $1`,
+        [query.data.limit],
+      ),
+      options.pool.query<{ count: string }>(
+        `SELECT count(*)::text AS count
+         FROM noderag.job_event event
+         JOIN noderag.job job ON job.id = event.job_id
+         WHERE event.created_at >= now() - interval '24 hours'
+           AND job.kind IN ('crawl', 'extract', 'vision', 'embed')`,
+      ),
+    ]);
+    const generatedAt = new Date();
+    const itemCount = Number(count.rows[0]?.count ?? rows.rows.length);
+    return reply.send({
+      generatedAt: generatedAt.toISOString(),
+      windowStartedAt: new Date(generatedAt.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+      windowHours: 24,
+      itemCount,
+      returnedCount: rows.rows.length,
+      truncated: itemCount > rows.rows.length,
+      items: rows.rows,
+    });
   });
 
   app.get('/v1/admin/health', async (request, reply) => {

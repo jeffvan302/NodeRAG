@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { concludedRuntimeLicense } from './reviewed-licenses.mjs';
 
 const npmExecPath = process.env['npm_execpath'];
 const command = npmExecPath === undefined ? 'corepack' : process.execPath;
@@ -22,13 +23,25 @@ const approved = new Set([
   'CC0-1.0',
   'ISC',
   'MIT',
+  'OFL-1.1',
+  'PSF-2.0',
   '(MIT OR CC0-1.0)',
   'PostgreSQL',
   'Python-2.0',
+  'Unlicense',
 ]);
-const licenses = Object.keys(inventory);
-const blocked = licenses.filter((license) => !approved.has(license));
+const licenses = new Set();
+const blocked = [];
+for (const [declaredLicense, entries] of Object.entries(inventory)) {
+  for (const entry of entries) {
+    for (const version of entry.versions) {
+      const concluded = concludedRuntimeLicense(entry.name, version, declaredLicense);
+      licenses.add(concluded);
+      if (!approved.has(concluded)) blocked.push(`${entry.name}@${version} (${declaredLicense})`);
+    }
+  }
+}
 if (blocked.length > 0) {
   throw new Error(`Unapproved runtime licenses: ${blocked.join(', ')}`);
 }
-console.info(`Runtime license inventory passed for ${licenses.length} license classes.`);
+console.info(`Runtime license inventory passed for ${licenses.size} concluded license classes.`);

@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "stage": "pdf-layout-stage-4",
+  "recordedAt": "2026-09-07T04:33:51.619Z",
+  "environment": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.20.0",
+    "target": "WSL/Docker-compatible testbed",
+    "dsmPerformanceClaimed": false
+  },
+  "entryProofs": [
+    "docs/Implementation/proofs/pdf-layout-stage-1-proof.json",
+    "docs/Implementation/proofs/pdf-layout-stage-2-proof.json",
+    "docs/Implementation/proofs/pdf-layout-stage-3-proof.json"
+  ],
+  "revisions": {
+    "migrationHead": "000015_pdf_hybrid_vision",
+    "pdfExtractionVersion": "pdf-layout.v3-hybrid",
+    "parserRevision": "pdfjs-dist@6.3.289",
+    "layoutPolicyRevision": "native-layout.v1",
+    "confidencePolicyRevision": "pdf-confidence.v1",
+    "visionPromptRevision": "vision-transcription.v3-layout",
+    "visionSchemaRevision": "vision-result.v3-layout-blocks",
+    "visionPreprocessingRevision": "vision-preprocess.v1",
+    "cropPolicyRevision": "pdf-crop.v1-margin-015"
+  },
+  "implementation": {
+    "regionalCrop": {
+      "marginRatio": 0.015,
+      "coordinates": "normalized page-relative bounds",
+      "clamped": true,
+      "renderScale": 2
+    },
+    "routing": {
+      "cleanNative": "zero provider calls",
+      "uncertainBlock": "bounded pdf-region request",
+      "unreadablePage": "full pdf-page request"
+    },
+    "provider": {
+      "defaultImagesPerCall": 5,
+      "parallelCallsIndependent": true,
+      "strictOrderedLayoutBlocks": true,
+      "timeoutsRetriesBackoffAndDispatchMarkers": true
+    },
+    "reconciliation": {
+      "regionalResult": "replaces only the selected native block",
+      "fullPageResult": "replaces rather than appends the unreadable page",
+      "lowConfidence": "native fallback or placeholder retained and retryable",
+      "provenance": "persisted per block and surrounded by invisible canonical comments",
+      "embedding": "provenance comments excluded while reconstructed content is retained"
+    },
+    "enhancedReindex": {
+      "estimateRequired": true,
+      "immutableOriginalUsed": true,
+      "priorChunksRemainSearchableDuringExtractionAndEmbedding": true,
+      "replacementChunkSwapTransactional": true,
+      "terminalFailureRestoresPriorSearchableState": true
+    }
+  },
+  "corpusComparison": {
+    "command": "pnpm exec tsx scripts/measure-pdf-hybrid-vision.ts",
+    "fixtures": 10,
+    "providerImages": 3,
+    "providerBatches": 3,
+    "cacheEntries": 3,
+    "cacheHits": 1,
+    "cleanDigitalProviderCalls": 0,
+    "routingFailures": 0,
+    "locatorFailures": 0,
+    "duplicateVisionBlocks": 0,
+    "batchSizes": [1, 1, 1],
+    "gates": {
+      "cleanDigitalZeroCalls": true,
+      "expectedRoutingPassed": true,
+      "dualUnitLocatorsPassed": true,
+      "noDuplicateVisionBlocks": true,
+      "batchingBoundedToFive": true
+    }
+  },
+  "verification": {
+    "migrationVerification": {
+      "status": "passed",
+      "migrations": 15,
+      "expectedHead": "000015_pdf_hybrid_vision"
+    },
+    "typecheck": { "status": "passed", "workspaceProjects": 6 },
+    "lint": { "status": "passed", "warningsAllowed": 0 },
+    "format": { "status": "passed" },
+    "dependencyBoundaries": { "status": "passed", "modules": 144, "edges": 262 },
+    "unit": { "status": "passed", "files": 38, "tests": 143 },
+    "postgresIntegration": { "status": "passed", "files": 10, "tests": 57 },
+    "browserAndAccessibility": { "status": "passed", "tests": 19 },
+    "productionBuild": { "status": "passed" },
+    "builtServerSmoke": { "status": "passed" },
+    "openApi": { "status": "passed" },
+    "licenses": { "status": "passed", "concludedClasses": 7 },
+    "sbom": { "status": "passed", "runtimePackages": 264 },
+    "secretScan": { "status": "passed" },
+    "boundedRepeatRun": {
+      "status": "passed",
+      "cycles": 10,
+      "elapsedSeconds": 35.66,
+      "scope": "complete ten-fixture native-plus-hybrid corpus per cycle"
+    }
+  },
+  "acceptance": {
+    "digitalPdfZeroCalls": true,
+    "singleUncertainTableUsesOneCrop": true,
+    "scansUseFullPageVision": true,
+    "nativeVisionDuplicationAbsent": true,
+    "malformedAndLowConfidenceRemainRetryable": true,
+    "cacheAndCropRevisionBehaviorPassed": true,
+    "fiveImageBatchingAndParallelismIndependent": true,
+    "workerLeaseRecoveryPassed": true,
+    "enhancedReindexAtomicChunkSwapPassed": true,
+    "enhancedReindexFailureRetentionPassed": true,
+    "searchCitationAndViewerRegressionPassed": true,
+    "purgeBackupRestoreAndAuthorizationRegressionPassed": true
+  },
+  "longDurationQualification": {
+    "minimumSeconds": 3600,
+    "minimumDurationRevision": "Reduced from 24 hours to 1 hour by operator direction on 2026-09-15.",
+    "status": "required-for-exact-release-candidate",
+    "performedByThisImplementationRun": false,
+    "reason": "No intermediate Synology/package release was authorized. The exact future release candidate must run the existing M14 soak and DSM-025 procedures before release certification."
+  },
+  "artifacts": [
+    "docs/Implementation/pdf-layout-block-contract.md",
+    "docs/Implementation/pdf-layout-hybrid-operations.md",
+    "scripts/measure-pdf-layout-baseline.ts",
+    "scripts/measure-pdf-layout-quality.ts",
+    "scripts/compare-pdf-confidence-policies.ts",
+    "scripts/measure-pdf-hybrid-vision.ts"
+  ],
+  "gate": "passed",
+  "certification": "testbed-implementation-complete",
+  "releaseQualificationPending": true,
+  "dsmCertificationRequired": true
+}

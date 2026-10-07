@@ -17,6 +17,16 @@ if (new Set(ids).size !== ids.length || ids.join('\n') !== [...ids].sort().join(
   throw new Error('Migration IDs must be unique and sorted.');
 }
 if (manifest.expectedHead !== ids.at(-1)) throw new Error('Migration head is not the final ID.');
+const runtimeSchemaRevision = await readFile(
+  resolve(root, 'packages/server/src/store/schema-revision.ts'),
+  'utf8',
+);
+const declaredRuntimeHead = /CURRENT_SCHEMA_REVISION\s*=\s*'([^']+)'/u.exec(
+  runtimeSchemaRevision,
+)?.[1];
+if (declaredRuntimeHead !== manifest.expectedHead) {
+  throw new Error('Runtime schema revision does not match the migration manifest head.');
+}
 
 for (const migration of manifest.migrations) {
   if (migration.direction !== 'up-only') throw new Error(`${migration.id} is not forward-only.`);

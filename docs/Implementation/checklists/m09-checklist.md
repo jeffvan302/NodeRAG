@@ -31,7 +31,7 @@ Recorded: 2026-09-04
 
 ## Search, preview, and documents
 
-- [x] Meaning, Keyword, and Both map to vector, keyword, and hybrid retrieval.
+- [x] Meaning, Semantic, Keyword, and Both map to vector, sentence-refined semantic, keyword, and hybrid retrieval.
 - [x] Visible silo chips remain a requested subset of server-authoritative scope.
 - [x] UI filters cover source, path, format, created/modified, page, image, and table criteria.
 - [x] Results group by document and show breadcrumbs, metadata, score, and server-qualified page/sheet/percentage labels.

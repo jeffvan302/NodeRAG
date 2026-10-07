@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "migrationHead": "000011_recovery_hardening",
+  "migrationHead": "000029_chat_files",
   "unknownPolicy": "fail",
   "classes": {
     "source-of-truth": "Always include in full recovery and portable export.",
@@ -93,10 +93,28 @@
       "portable": "include"
     },
     {
+      "table": "document_block",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "include"
+    },
+    {
       "table": "document_image",
       "class": "source-of-truth",
       "full": "include",
       "portable": "include"
+    },
+    {
+      "table": "research_collection",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "research_reference",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
     },
     { "table": "chunk", "class": "derived", "full": "include", "portable": "exclude" },
     { "table": "job", "class": "ephemeral", "full": "exclude", "portable": "exclude" },
@@ -242,6 +260,234 @@
       "class": "installation-local",
       "full": "exclude",
       "portable": "exclude"
+    },
+    {
+      "table": "chat_provider_connection",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_provider_capability",
+      "class": "derived",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_model_profile",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_entitlement",
+      "class": "security-history",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_known_model_capacity",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_context_settings_revision",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_context_component_test",
+      "class": "derived",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_settings_revision",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_configuration_current",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_conversation_configuration_revision",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_conversation",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_message",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_run",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_event",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_log_cursor",
+      "class": "derived",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_usage_daily",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_research_attachment_revision",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_research_attachment_collection",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_research_snapshot_item",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_citation",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_tool_call",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_rag_citation",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_web_citation",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_web_usage_minute",
+      "class": "derived",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_artifact",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_artifact_revision",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_file",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_log_segment",
+      "class": "derived",
+      "full": "exclude",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_export_job",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_export_event",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_artifact_ingestion",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_context_compression_job",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_context_snapshot",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_context_compression_event",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_archive_manifest_revision",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_import_operation",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_import_event",
+      "class": "behavioral-provenance",
+      "full": "include",
+      "portable": "exclude"
+    },
+    {
+      "table": "chat_import_conflict",
+      "class": "security-history",
+      "full": "include",
+      "portable": "exclude"
     }
   ],
   "fileClasses": [
@@ -252,6 +498,12 @@
       "portable": "include"
     },
     { "pathPrefix": "models/", "class": "derived", "full": "optional", "portable": "exclude" },
+    {
+      "pathPrefix": ".noderag-chat/",
+      "class": "source-of-truth",
+      "full": "include",
+      "portable": "exclude"
+    },
     { "pathPrefix": "tmp/", "class": "ephemeral", "full": "exclude", "portable": "exclude" },
     { "pathPrefix": "run/", "class": "ephemeral", "full": "exclude", "portable": "exclude" },
     { "pathPrefix": "secrets/", "class": "secrets", "full": "exclude", "portable": "exclude" }

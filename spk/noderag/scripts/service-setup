@@ -21,6 +21,17 @@ NODERAG_PGSOCKET="${SYNOPKG_PKGVAR}/postgres/socket"
 NODERAG_PG_PASSWORD_FILE="${SYNOPKG_PKGVAR}/secrets/postgres.password"
 NODERAG_MODEL_ROOT="${NODERAG_MODEL_ROOT:-${SYNOPKG_PKGVAR}/models}"
 NODERAG_MODEL_PATH="${NODERAG_MODEL_PATH:-${NODERAG_MODEL_ROOT}/model.onnx}"
+NODERAG_CHAT_ENABLED="${NODERAG_CHAT_ENABLED:-1}"
+NODERAG_CHAT_PROVIDERS_ENABLED="${NODERAG_CHAT_PROVIDERS_ENABLED:-${NODERAG_CHAT_ENABLED}}"
+NODERAG_CHAT_CONTEXT_ENABLED="${NODERAG_CHAT_CONTEXT_ENABLED:-${NODERAG_CHAT_ENABLED}}"
+NODERAG_CHAT_UI_ENABLED="${NODERAG_CHAT_UI_ENABLED:-${NODERAG_CHAT_ENABLED}}"
+NODERAG_CHAT_RESEARCH_TOOLS_ENABLED="${NODERAG_CHAT_RESEARCH_TOOLS_ENABLED:-${NODERAG_CHAT_ENABLED}}"
+NODERAG_CHAT_RAG_TOOLS_ENABLED="${NODERAG_CHAT_RAG_TOOLS_ENABLED:-${NODERAG_CHAT_ENABLED}}"
+NODERAG_CHAT_WEB_TOOLS_ENABLED="${NODERAG_CHAT_WEB_TOOLS_ENABLED:-${NODERAG_CHAT_ENABLED}}"
+NODERAG_CHAT_ARTIFACTS_ENABLED="${NODERAG_CHAT_ARTIFACTS_ENABLED:-${NODERAG_CHAT_ENABLED}}"
+NODERAG_CHAT_EXPORTS_ENABLED="${NODERAG_CHAT_EXPORTS_ENABLED:-${NODERAG_CHAT_ENABLED}}"
+NODERAG_CHAT_IMPORT_ENABLED="${NODERAG_CHAT_IMPORT_ENABLED:-${NODERAG_CHAT_ENABLED}}"
+NODERAG_CHAT_CODEX_HOME="${NODERAG_CHAT_CODEX_HOME:-${SYNOPKG_PKGVAR}/chat/openai-codex-home}"
 NODERAG_BUNDLED_POSTGRES=0
 [ -x "${NODERAG_PG_ROOT}/bin/postgres" ] && NODERAG_BUNDLED_POSTGRES=1
 
@@ -57,6 +68,20 @@ noderag_run_worker() {
   fi
   if command -v nice >/dev/null 2>&1; then exec nice -n 10 "$@"; fi
   exec "$@"
+}
+
+noderag_default_source_roots() {
+  noderag_roots=''
+  for noderag_volume in /volume[0-9]*; do
+    [ -d "${noderag_volume}" ] || continue
+    if [ -z "${noderag_roots}" ]; then
+      noderag_roots="${noderag_volume}"
+    else
+      noderag_roots="${noderag_roots}:${noderag_volume}"
+    fi
+  done
+  if [ -z "${noderag_roots}" ]; then noderag_roots='/volume1/NodeRag'; fi
+  printf '%s\n' "${noderag_roots}"
 }
 
 noderag_pid_running() {
@@ -163,6 +188,32 @@ noderag_database_environment() {
   : "${NODERAG_POSTGRES_PASSWORD_FILE:?PostgreSQL password file is required}"
 }
 
+noderag_configure_resources() {
+  noderag_saved_threads="${NODERAG_EMBED_THREADS:-}"
+  if [ -z "${noderag_saved_threads}" ] && [ "${NODERAG_BUNDLED_POSTGRES}" = 1 ]; then
+    noderag_saved_threads="$(
+      PGPASSWORD="$(cat "${NODERAG_PG_PASSWORD_FILE}")" \
+        "${NODERAG_PG_ROOT}/bin/psql" -h "${NODERAG_PGSOCKET}" -U noderag -d noderag \
+        -tAc "SELECT embed_threads FROM noderag.settings WHERE id=1" 2>/dev/null || true
+    )"
+    noderag_saved_threads="$(printf '%s' "${noderag_saved_threads}" | tr -d '[:space:]')"
+  fi
+  case "${noderag_saved_threads}" in
+    ''|*[!0-9]*) noderag_saved_threads=4 ;;
+  esac
+  noderag_processor_limit="$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '4')"
+  case "${noderag_processor_limit}" in
+    ''|*[!0-9]*) noderag_processor_limit=4 ;;
+  esac
+  [ "${noderag_processor_limit}" -gt 32 ] && noderag_processor_limit=32
+  [ "${noderag_processor_limit}" -lt 1 ] && noderag_processor_limit=1
+  [ "${noderag_saved_threads}" -gt "${noderag_processor_limit}" ] && \
+    noderag_saved_threads="${noderag_processor_limit}"
+  [ "${noderag_saved_threads}" -lt 1 ] && noderag_saved_threads=1
+  NODERAG_EMBED_THREADS="${noderag_saved_threads}"
+  export NODERAG_EMBED_THREADS
+}
+
 noderag_status() {
   noderag_pid_running "${NODERAG_PID_FILE}" server.cjs &&
     noderag_pid_running "${NODERAG_WORKER_PID_FILE}" worker.cjs &&
@@ -187,18 +238,20 @@ noderag_start() {
     noderag_start_postgres
   fi
   noderag_database_environment
-
-  rm -f "${SYNOPKG_PKGVAR}/run/embedder.required"
-  if [ "${NODERAG_TEST_EMBEDDER:-0}" = 1 ] || [ -f "${NODERAG_MODEL_PATH}" ]; then
-    : >"${SYNOPKG_PKGVAR}/run/embedder.required"
-    NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
-    NODERAG_TEST_EMBEDDER="${NODERAG_TEST_EMBEDDER:-0}" \
-    NODERAG_MODEL_ROOT="${NODERAG_MODEL_ROOT}" \
-    NODERAG_MODEL_PATH="${NODERAG_MODEL_PATH}" \
-      noderag_run_embedder "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/embedder.cjs" \
-      >>"${NODERAG_EMBEDDER_LOG_FILE}" 2>&1 &
-    printf '%s\n' "$!" >"${NODERAG_EMBEDDER_PID_FILE}"
+  noderag_configure_resources
+  if [ -z "${NODERAG_SOURCE_ROOTS:-}" ]; then
+    NODERAG_SOURCE_ROOTS="$(noderag_default_source_roots)"
   fi
+  export NODERAG_SOURCE_ROOTS
+
+  : >"${SYNOPKG_PKGVAR}/run/embedder.required"
+  NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
+  NODERAG_TEST_EMBEDDER="${NODERAG_TEST_EMBEDDER:-0}" \
+  NODERAG_MODEL_ROOT="${NODERAG_MODEL_ROOT}" \
+  NODERAG_MODEL_PATH="${NODERAG_MODEL_PATH}" \
+    noderag_run_embedder "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/embedder.cjs" \
+    >>"${NODERAG_EMBEDDER_LOG_FILE}" 2>&1 &
+  printf '%s\n' "$!" >"${NODERAG_EMBEDDER_PID_FILE}"
 
   NODERAG_HOST=127.0.0.1 \
   NODERAG_PORT="${NODERAG_PORT:-8787}" \
@@ -213,9 +266,20 @@ noderag_start() {
   NODERAG_LOG_ROOT="${SYNOPKG_PKGVAR}/log" \
   NODERAG_MODEL_ROOT="${NODERAG_MODEL_ROOT}" \
   NODERAG_MODEL_IMPORT_ROOTS="${NODERAG_MODEL_IMPORT_ROOTS:-/volume1/NodeRag}" \
+  NODERAG_MODEL_DOWNLOAD_HOSTS="${NODERAG_MODEL_DOWNLOAD_HOSTS:-huggingface.co,cdn-lfs.huggingface.co,cdn-lfs-us-1.hf.co,cas-bridge.xethub.hf.co,.aws.cdn.hf.co}" \
   NODERAG_PG_DUMP="${NODERAG_PG_ROOT}/bin/pg_dump" \
   NODERAG_STORAGE_POLICY="${NODERAG_STORAGE_POLICY:-dsm}" \
   NODERAG_EMBEDDER_SOCKET="${NODERAG_EMBEDDER_SOCKET}" \
+  NODERAG_CHAT_PROVIDERS_ENABLED="${NODERAG_CHAT_PROVIDERS_ENABLED}" \
+  NODERAG_CHAT_CONTEXT_ENABLED="${NODERAG_CHAT_CONTEXT_ENABLED}" \
+  NODERAG_CHAT_UI_ENABLED="${NODERAG_CHAT_UI_ENABLED}" \
+  NODERAG_CHAT_RESEARCH_TOOLS_ENABLED="${NODERAG_CHAT_RESEARCH_TOOLS_ENABLED}" \
+  NODERAG_CHAT_RAG_TOOLS_ENABLED="${NODERAG_CHAT_RAG_TOOLS_ENABLED}" \
+  NODERAG_CHAT_WEB_TOOLS_ENABLED="${NODERAG_CHAT_WEB_TOOLS_ENABLED}" \
+  NODERAG_CHAT_ARTIFACTS_ENABLED="${NODERAG_CHAT_ARTIFACTS_ENABLED}" \
+  NODERAG_CHAT_EXPORTS_ENABLED="${NODERAG_CHAT_EXPORTS_ENABLED}" \
+  NODERAG_CHAT_IMPORT_ENABLED="${NODERAG_CHAT_IMPORT_ENABLED}" \
+  NODERAG_CHAT_CODEX_HOME="${NODERAG_CHAT_CODEX_HOME}" \
     "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/server.cjs" >>"${NODERAG_LOG_FILE}" 2>&1 &
   printf '%s\n' "$!" >"${NODERAG_PID_FILE}"
   if ! noderag_wait_http; then noderag_stop; return 1; fi
@@ -226,6 +290,16 @@ noderag_start() {
   NODERAG_MIGRATION_MANIFEST="${SYNOPKG_PKGDEST}/platform/migration-checksums.v1.json" \
   NODERAG_MIGRATIONS_DIRECTORY="${SYNOPKG_PKGDEST}/migrations" \
   NODERAG_PG_DUMP="${NODERAG_PG_ROOT}/bin/pg_dump" \
+  NODERAG_CHAT_PROVIDERS_ENABLED="${NODERAG_CHAT_PROVIDERS_ENABLED}" \
+  NODERAG_CHAT_CONTEXT_ENABLED="${NODERAG_CHAT_CONTEXT_ENABLED}" \
+  NODERAG_CHAT_UI_ENABLED="${NODERAG_CHAT_UI_ENABLED}" \
+  NODERAG_CHAT_RESEARCH_TOOLS_ENABLED="${NODERAG_CHAT_RESEARCH_TOOLS_ENABLED}" \
+  NODERAG_CHAT_RAG_TOOLS_ENABLED="${NODERAG_CHAT_RAG_TOOLS_ENABLED}" \
+  NODERAG_CHAT_WEB_TOOLS_ENABLED="${NODERAG_CHAT_WEB_TOOLS_ENABLED}" \
+  NODERAG_CHAT_ARTIFACTS_ENABLED="${NODERAG_CHAT_ARTIFACTS_ENABLED}" \
+  NODERAG_CHAT_EXPORTS_ENABLED="${NODERAG_CHAT_EXPORTS_ENABLED}" \
+  NODERAG_CHAT_IMPORT_ENABLED="${NODERAG_CHAT_IMPORT_ENABLED}" \
+  NODERAG_CHAT_CODEX_HOME="${NODERAG_CHAT_CODEX_HOME}" \
     noderag_run_worker "${NODERAG_NODE_BIN}" "${SYNOPKG_PKGDEST}/bin/worker.cjs" \
     >>"${NODERAG_WORKER_LOG_FILE}" 2>&1 &
   printf '%s\n' "$!" >"${NODERAG_WORKER_PID_FILE}"

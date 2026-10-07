@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "milestone": "M14",
   "candidate": "1.0.0-rc.1",
-  "recordedAt": "2026-09-05T03:16:01Z",
+  "recordedAt": "2026-09-06T18:39:09Z",
   "implementationBaseCommit": "3d71e4476e190a6545ce0f7826ddced17f73e8f2",
   "candidateCommit": null,
   "proofClosureCommit": null,
@@ -11,7 +11,7 @@
   "contracts": {
     "releaseMetadata": "platform/release-candidate.v1.json",
     "releaseFreeze": "platform/release-freeze.v1.json",
-    "migrationHead": "000011_recovery_hardening",
+    "migrationHead": "000012_vision_batching",
     "openApi": "platform/openapi.m14.json",
     "settingsDefaults": "platform/settings-defaults.v1.json",
     "parserRevisions": "platform/parser-revisions.v1.json",
@@ -19,23 +19,23 @@
     "sbom": "platform/sbom.spdx.json"
   },
   "artifact": {
-    "name": "noderag-1.0.0-rc.1-x86_64.spk",
+    "name": "noderag-1.0.0-18-x86_64.spk",
     "sha256": null,
-    "localValidationSha256": "9a77dc37740d8bdb7a1c9886b755a01669b45315fcc82c838a06b1d91030ceeb",
-    "repeatBuildDeterministic": null,
+    "localValidationSha256": "d047b8b23d756303c649a282cbae6ebe9b813288d9c8b4c95ab06cb050da1a90",
+    "repeatBuildDeterministic": true,
     "taggedCandidateHealthVersion": null
   },
   "tests": {
     "localQuality": {
       "status": "passed",
-      "unitFiles": 28,
-      "unitTests": 91,
-      "dependencyModules": 119,
-      "dependencyEdges": 195,
-      "sbomRuntimePackages": 150
+      "unitFiles": 34,
+      "unitTests": 123,
+      "dependencyModules": 134,
+      "dependencyEdges": 231,
+      "sbomRuntimePackages": 264
     },
-    "postgresIntegration": { "status": "passed", "files": 10, "tests": 51 },
-    "browserE2e": { "status": "passed", "tests": 7 },
+    "postgresIntegration": { "status": "passed", "files": 10, "tests": 53 },
+    "browserE2e": { "status": "passed", "tests": 17 },
     "evaluation": {
       "status": "passed",
       "frozenCases": 60,
@@ -63,7 +63,8 @@
     }
   },
   "soak": {
-    "minimumSeconds": 86400,
+    "minimumSeconds": 3600,
+    "minimumDurationRevision": "Reduced from 24 hours to 1 hour by operator direction on 2026-09-15.",
     "evidence": null,
     "passed": false,
     "abortedRuns": [
@@ -153,6 +154,102 @@
       "scope": "m14-ollama-cloud-setup",
       "cause": "The first-run vision form did not expose the bearer API key already supported by the backend secret vault, defaulted to a Docker-host address instead of Ollama Cloud, and the client treated every configured address as a host root, so entering https://ollama.com/api/chat would request /api/chat/api/chat.",
       "resolution": "Add a masked optional Ollama API-key field that is submitted only when populated and encrypted only after activation succeeds; default the form to https://ollama.com/api/chat with an explicit off-network/provider-cost warning; accept host-root, /api, and full /api/chat address forms; authenticate both model discovery and chat; and use prompt-carried schema plus strict local validation for canonical Ollama Cloud because its native format enforcement is currently unavailable. Local quality, 91 unit tests, 51 PostgreSQL integration tests, and 7 browser tests pass. The affected candidate and its 4-sample soak were invalidated; replacement CI qualification and a fresh full soak remain pending."
+    },
+    {
+      "at": "2026-09-05T09:00:00Z",
+      "scope": "m14-dsm-package-admission",
+      "cause": "A live DSM manual-install attempt rejected the initial archive as an invalid file. The packaging audit found a missing required pre-install hook, a DSM 6-sized primary icon, nonstandard archive paths and permissions, an invalid reverse-proxy field, and DSM integration files outside their required payload locations.",
+      "resolution": "Rebuild the archive with the complete lifecycle set, DSM 7 icon sizes, standard archive members and modes, payload checksum, valid proxy_target resource, and payload-local desktop and port configuration. Static validation and the full non-root lifecycle simulator passed; the next live attempt progressed to DSM privilege admission."
+    },
+    {
+      "at": "2026-09-05T09:15:00Z",
+      "scope": "m14-dsm-privilege-admission",
+      "cause": "DSM rejected package revision 1 as root-privileged even though its privilege metadata had a package-user default. That file also contained a custom sc-prefixed account and a partial per-action override list, leaving avoidable ambiguity for DSM's admission validator.",
+      "resolution": "Issue package revision 2 with the exact minimal DSM 7 privilege declaration containing only defaults.run-as=package, use DSM's package-name internal identity, and reject root actions, capabilities, and setuid/setgid files in the package verifier. The revised SPK builds reproducibly and passes archive plus full non-root lifecycle validation; a new live DSM attempt is required."
+    },
+    {
+      "at": "2026-09-05T09:36:06Z",
+      "scope": "m14-dsm-install-lifecycle",
+      "cause": "DSM accepted package revision 2 through security admission and the final Run after install confirmation, then returned a generic package-install failure. The pre-install hook required permanent package target and data paths even though preinst runs before post-install preparation, and it wrote prerequisite failures only to hidden standard error.",
+      "resolution": "Issue package revision 3 with a side-effect-free pre-install stage that does not require permanent package paths, defer storage validation to post-install, write prerequisite and preparation failures to DSM's package message file, publish install progress, and simulate pre-install with those paths explicitly absent before exercising Run after install. The revised SPK builds reproducibly and passes the complete non-root lifecycle; a new live DSM attempt is required."
+    },
+    {
+      "at": "2026-09-05T10:32:11Z",
+      "scope": "m14-dsm-setup-key-and-public-origin",
+      "cause": "Package revision 4 reached the first-run setup page through the DSM alias, but obtaining its one-time setup key still required shell access. Browser mutations through a public HTTPS hostname would also compare their Origin header with the internal loopback address and could be rejected after sign-in.",
+      "resolution": "Issue package revision 5 with DSM-generated install-wizard key presentation, upgrade-wizard recovery of an existing unconsumed key, owner-only token persistence, and proxy-aware HTTPS session and CSRF handling that trusts forwarding headers only from the local DSM proxy. The exact SPK passed 104 unit tests, 51 PostgreSQL integration tests, 10 browser tests, build smoke, deterministic repeat-build comparison, and the complete non-root package lifecycle. Public WAN port 443 reachability and certificate routing still require live network validation."
+    },
+    {
+      "at": "2026-09-05T21:09:38Z",
+      "scope": "m14-dsm-managed-storage-acl",
+      "cause": "Package revision 5 displayed the Docker-only /var/lib/noderag/documents path during DSM first-run setup and attempted chmod 0700 on any selected existing folder. A Synology ACL could grant the noderag package identity Read/Write access without making it the POSIX owner, so the mode change failed and every storage-probe cause was reduced to the misleading message that NodeRag could not write.",
+      "resolution": "Issue package revision 6 with the package-owned /var/packages/noderag/var/data/documents DSM default. Preserve existing shared-folder ACLs and modes, create and save a dedicated .noderag-managed child when an existing folder is selected, retain the full write/fsync/rename/read verification, and return specific permission, path, filesystem, encryption, capacity, and durability errors. The exact SPK passed 106 unit tests, 51 PostgreSQL integration tests, 11 browser tests, build smoke, deterministic repeat-build comparison, and a non-root package lifecycle that verifies the selected /volume1 parent remains unchanged. Live DSM confirmation remains required."
+    },
+    {
+      "at": "2026-09-05T22:30:50Z",
+      "scope": "m14-dsm-http-browser-compatibility",
+      "cause": "The browser client called crypto.randomUUID() directly when creating an idempotency key. Browsers do not expose that function when NodeRag is opened through a plain HTTP NAS address, so saving the verified storage selection failed in the browser before the API request was sent.",
+      "resolution": "Issue package revision 8 with a compatibility generator that prefers randomUUID, creates a standards-shaped UUID from getRandomValues when randomUUID is unavailable, and retains a non-secret uniqueness fallback for older clients. The storage browser test explicitly removes randomUUID and completes the probe and save workflow. All 109 unit tests and 11 browser tests pass."
+    },
+    {
+      "at": "2026-09-06T02:54:35Z",
+      "scope": "m14-dsm-first-run-model-calibration",
+      "cause": "The first-run model screen described the external Qwen model as included but only advanced setup progress. The production SPK intentionally excludes the 600 MB model, and its embedding worker was launched only when that not-yet-installed file existed. Calibration therefore reached a missing worker/model and the global handler reduced the failure to internal_error.",
+      "resolution": "Issue package revision 9 with resumable checksum-verified installation of the pinned model and tokenizer artifacts, visible byte and percentage progress, allowlisted HTTPS redirect handling, and automatic installation when an existing setup is already parked at calibration. Start an idle lazy-loading embedding worker before model acquisition, retry runtime loading when artifacts become available, and return actionable calibration problem codes. All 112 unit tests, 51 PostgreSQL integration tests, and 12 browser tests pass. The exact SPK also passed deterministic repeat-build comparison and the non-root package lifecycle, including a healthy first start with no model file present."
+    },
+    {
+      "at": "2026-09-06T03:06:48Z",
+      "scope": "m14-hugging-face-model-redirect",
+      "cause": "Package revision 9's strict model-download allowlist omitted the current us.aws.cdn.hf.co regional CDN host reached by the official huggingface.co model redirect, so the checksum-verified installer correctly stopped with model_download_url_forbidden before downloading the model.",
+      "resolution": "Issue package revision 10 with a bounded .aws.cdn.hf.co suffix rule while retaining HTTPS-only requests and manual redirect validation. The exact live redirect is accepted, suffix look-alike domains are rejected by regression coverage, and the model remains protected by its pinned SHA-256 before activation. All 113 unit tests, 51 PostgreSQL integration tests, and 12 browser tests pass; the exact revision 10 package lifecycle and deterministic repeat build also pass."
+    },
+    {
+      "at": "2026-09-06T05:37:20Z",
+      "scope": "m14-dsm-calibration-gateway-timeout",
+      "cause": "After the model downloaded and passed checksum installation, setup step 6 kept the browser request open while the NAS initialized the 600 MB ONNX model and synchronously embedded all 20 representative chunks. DSM's Web Station reverse proxy stopped waiting first and returned HTTP 504 even though the NodeRag process could still be calibrating.",
+      "resolution": "Issue package revision 11 with administrator-scoped background calibration. The start request returns immediately, duplicate clicks reuse the running operation, short authenticated status requests report model-loading and measurement progress, failures retain safe actionable codes, and the warm model is measured across all 20 chunks. All 115 unit tests, 51 PostgreSQL integration tests, and 12 browser tests pass. The exact revision 11 SPK also passes deterministic repeat-build comparison and the complete non-root package lifecycle."
+    },
+    {
+      "at": "2026-09-06T06:03:21Z",
+      "scope": "m14-dsm-input-folder-registration",
+      "cause": "Input-folder creation allowed filesystem, invalid-pattern, and duplicate-row exceptions to escape the route and become a generic internal_error. It discarded the canonical path returned by verification, did not explicitly prove the directory could be opened, and stored a requested repeat interval while hard-coding schedule_enabled=false.",
+      "resolution": "Issue package revision 12 with canonical readable-folder verification; safe, specific source-creation problem mapping and request references; duplicate-connection handling; clearer include-pattern guidance for all supported formats; and automatic schedule activation plus first due time whenever a repeat interval is provided. All 117 unit tests, 51 PostgreSQL integration tests, and 13 browser tests pass. The exact revision 12 SPK also passes deterministic repeat-build comparison and the complete non-root package lifecycle."
+    },
+    {
+      "at": "2026-09-06T06:17:56Z",
+      "scope": "m14-input-folder-operations-ui",
+      "cause": "The API already supported source crawl, update, and detach operations, but the Ingest page rendered connected folders as read-only status rows. A manual source could not be queued from the UI, schedule and pattern fields could not be changed after creation, and no disconnect action was presented.",
+      "resolution": "Issue package revision 13 with per-folder Crawl now, Edit schedule and patterns, and Disconnect folder controls. Clearing the repeat interval selects manual mode; entering a whole-minute interval enables scheduling and recalculates the next crawl. The disconnect confirmation explains that external files are untouched and managed copies remain searchable as detached records. Backend updates now canonicalize replacement paths and validate patterns before saving. All 117 unit tests, 51 PostgreSQL integration tests, and 13 browser tests pass. The exact revision 13 SPK also passes deterministic repeat-build comparison and the complete non-root package lifecycle."
+    },
+    {
+      "at": "2026-09-06T06:57:59Z",
+      "scope": "m14-vision-batching-and-live-queue-identity",
+      "cause": "Vision parallelism controlled only the number of simultaneous one-image requests, so providers capable of accepting several images per chat call could not be used efficiently. Live ingestion rows also displayed only a job kind and numeric ID, leaving operators unable to identify the document currently being extracted or embedded.",
+      "resolution": "Issue package revision 14 with an independent 1–16 images-per-call setting defaulted to 5, an exact configured-size activation test, ordered multi-image Ollama requests with indexed strict-schema responses, batch-aware call estimates, and batched PDF, DOCX, and XLSX processing. Job list and detail responses now include the document name, source-relative path, and source folder, and the Ingest queue displays the applicable work item. Migration 000012_vision_batching upgrades existing installations safely. All 119 unit tests, 52 PostgreSQL integration tests, and 13 browser tests pass. The exact revision 14 SPK passes deterministic repeat-build comparison and the complete non-root package lifecycle."
+    },
+    {
+      "at": "2026-09-06T07:48:52Z",
+      "scope": "m14-document-ingestion-workflow-visibility",
+      "cause": "The Ingest page exposed extraction, vision, and embedding as separate rows, so two documents could look like six duplicate ingests. The first normal logical attempt was always shown as 'attempt 1 of 5', folder scans were mixed with document work, embedding progress combined chunking and vector creation, and completed history made active work difficult to find.",
+      "resolution": "Issue package revision 15 with one aggregate row per document, explicit 1/3 Markdown ingestion, 2/3 chunking, and 3/3 embedding stages, and a zero-to-100 progress reset plus stage timestamp at each chunking/embedding boundary. Show retry wording only after a real failure, report the next automatic attempt and safe error code, warn when heartbeats are overdue, apply workflow controls to all eligible internal jobs, list folder scans separately, and hide successful/cancelled history by default without deleting durable diagnostics. Active jobs are prioritized in the bounded job-list response. All 119 unit tests, 52 PostgreSQL integration tests, and 14 browser tests pass. The exact 64,532,480-byte revision 15 SPK passes deterministic repeat-build comparison and the complete non-root package lifecycle."
+    },
+    {
+      "at": "2026-09-06T08:41:38Z",
+      "scope": "m14-large-document-embedding-progress",
+      "cause": "Embedding reused the chunking counter after cache inspection, so a 491-passage document could display 491 of 491 while vectors were still being generated. Fixed groups of 16 were sent to a sequential local model and emitted no heartbeat until the entire group returned, producing false stalled warnings, risking lease expiry, and making the percentage-derived ETA misleading. A temporary failure also regenerated vectors from completed groups.",
+      "resolution": "Issue package revision 16 with distinct cache-check, embedded, reused, completed, and remaining counters; current passage-group and measured-throughput details; and a remaining-token ETA. Start with two passages and adapt each next group from 1 to 16 toward a 20-second completion target. Pulse the durable lease every 20 seconds during an active model call, commit each completed group as a zero-reference resumable cache checkpoint, and reuse it on automatic retry. Record non-destructive extraction-quality warnings for repeated lines, corrupt text indicators, symbol-heavy lines, and token-dense passages. All 123 unit tests, 53 PostgreSQL integration tests, and 15 browser tests pass. The exact 64,542,720-byte revision 16 SPK passes the complete non-root package lifecycle and a byte-identical repeat build with SHA-256 f23a1158a92f0525119df1c8184b5d4b6e30bb18e5c997b8e8bbf9316cc5bb50."
+    },
+    {
+      "at": "2026-09-06T17:52:40Z",
+      "scope": "m14-markdown-document-reader",
+      "cause": "The Documents page displayed canonical Markdown as a raw preformatted text block. Headings, tables, task lists, blockquotes, and code were difficult to scan, and fenced diagrams could not be viewed without copying the document into another application.",
+      "resolution": "Issue package revision 17 with a responsive GitHub-style Markdown reader, one-click preview/source switching, copy support, and lazily loaded Mermaid diagrams. Treat raw HTML as text, block unavailable relative resources, require an explicit choice before loading remote images, sanitize rendered markup, and isolate sanitized diagram SVG in an image object. All 123 unit tests, 53 PostgreSQL integration tests, and 16 browser tests pass, including malicious-HTML, remote-image, source-view, table, task-list, and Mermaid coverage. The exact 65,515,520-byte revision 17 SPK passes the complete non-root package lifecycle and a byte-identical repeat build with SHA-256 8801ffeed68e62e7d3ccd9ad4de78720d0529306bbd399de0d705eb99b46cfbc."
+    },
+    {
+      "at": "2026-09-06T18:31:29Z",
+      "scope": "m14-markdown-search-result-reader",
+      "cause": "Non-PDF search results opened only the extracted source-passage context modal, so operators had to leave search and find the document again to use the rich Markdown reader. Search citations could not be followed through the full rendered document or navigated with the PDF viewer's arrow-key pattern.",
+      "resolution": "Issue package revision 18 with direct rich-reader opening for native Markdown/text and canonical Word/Excel Markdown. Match and mark the cited rendered block with the stored character position as fallback; keep active confidence visible; use Right/Left for proportional document scrolling and Down/Up for next/previous displayed search passages with automatic Markdown/PDF viewer switching; restore each result's cited position; cache one document while navigating its results; and toggle Source passage in the same modal. All 123 unit tests, 53 PostgreSQL integration tests, and 17 browser tests pass. The exact 65,515,520-byte revision 18 SPK passes the complete non-root package lifecycle and a byte-identical repeat build with SHA-256 d047b8b23d756303c649a282cbae6ebe9b813288d9c8b4c95ab06cb050da1a90."
     }
   ],
   "gate": "in-progress",

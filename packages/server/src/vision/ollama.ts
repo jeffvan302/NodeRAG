@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import {
+  ollamaVisionBatchJsonSchema,
   ollamaVisionJsonSchema,
+  layoutVisionResponseSchema,
   visionResponseSchema,
   VISION_PROVIDER_CONTRACT_VERSION,
   VisionProviderError,
@@ -31,6 +33,14 @@ const chatResponseSchema = z
       .passthrough(),
   })
   .passthrough();
+
+const indexedVisionResponseSchema = visionResponseSchema.extend({
+  imageIndex: z.number().int().positive(),
+});
+
+const visionBatchResponseSchema = z
+  .object({ results: z.array(indexedVisionResponseSchema) })
+  .strict();
 
 export interface OllamaVisionConfig {
   readonly baseUrl: string;
@@ -174,9 +184,119 @@ export class OllamaVisionProvider implements VisionProvider {
   }
 
   async analyse(input: VisionProviderRequest): Promise<ValidatedVisionResponse> {
+    const content = await this.chat(
+      [input],
+      `${input.prompt}\n\nReturn exactly one valid JSON object matching this JSON Schema. Do not add a Markdown fence, language label, commentary, or reasoning. The first character must be { and the last character must be }.\n${JSON.stringify(input.schema)}`,
+      input.schema,
+    );
+    const result =
+      input.sourceKind === 'pdf-page' || input.sourceKind === 'pdf-region'
+        ? layoutVisionResponseSchema.safeParse(content)
+        : visionResponseSchema.safeParse(content);
+    if (
+      !result.success ||
+      ((input.sourceKind === 'pdf-page' || input.sourceKind === 'pdf-region') &&
+        result.data.layoutBlocks?.some(({ sourceImageIndex }) => sourceImageIndex !== 1) === true)
+    ) {
+      throw new VisionProviderError('vision-content-schema-invalid', 'transient', {
+        cause: result.success
+          ? new Error('vision-layout-source-image-index-invalid')
+          : result.error,
+      });
+    }
+    return result.data;
+  }
+
+  async analyseMany(
+    inputs: readonly VisionProviderRequest[],
+  ): Promise<readonly ValidatedVisionResponse[]> {
+    if (inputs.length === 0) return [];
+    if (inputs.length === 1) return [await this.analyse(inputs[0] as VisionProviderRequest)];
+    const requireLayoutBlocks = inputs.every(
+      ({ sourceKind }) => sourceKind === 'pdf-page' || sourceKind === 'pdf-region',
+    );
+    const schema = ollamaVisionBatchJsonSchema(inputs.length, requireLayoutBlocks);
+    const numberedInstructions = inputs
+      .map(
+        (input, index) =>
+          `Image ${String(index + 1)}: ${input.prompt} Source type: ${input.sourceKind}.${
+            input.pageNumber === null ? '' : ` Cited page: ${String(input.pageNumber)}.`
+          }`,
+      )
+      .join('\n');
+    const content = await this.chat(
+      inputs,
+      [
+        `Analyse all ${String(inputs.length)} supplied images independently, in their supplied order.`,
+        numberedInstructions,
+        'Return exactly one valid JSON object with a results array. Include each image exactly once, using its one-based imageIndex.',
+        'Do not add a Markdown fence, language label, commentary, or reasoning. The first character must be { and the last character must be }.',
+        `JSON Schema:\n${JSON.stringify(schema)}`,
+      ].join('\n\n'),
+      schema,
+    );
+    const parsed = visionBatchResponseSchema.safeParse(content);
+    if (!parsed.success || parsed.data.results.length !== inputs.length) {
+      throw new VisionProviderError('vision-content-schema-invalid', 'transient', {
+        cause: parsed.success ? new Error('vision-batch-result-count-invalid') : parsed.error,
+      });
+    }
+    const byIndex = new Map(
+      parsed.data.results.map((result) => [result.imageIndex, result] as const),
+    );
+    if (byIndex.size !== inputs.length) {
+      throw new VisionProviderError('vision-content-schema-invalid', 'transient', {
+        cause: new Error('vision-batch-image-index-invalid'),
+      });
+    }
+    return inputs.map((input, index) => {
+      const result = byIndex.get(index + 1);
+      if (result === undefined) {
+        throw new VisionProviderError('vision-content-schema-invalid', 'transient', {
+          cause: new Error('vision-batch-image-index-missing'),
+        });
+      }
+      if (input.sourceKind === 'pdf-page' || input.sourceKind === 'pdf-region') {
+        const layoutCandidate = {
+          kind: result.kind,
+          markdown: result.markdown,
+          alt: result.alt,
+          confidence: result.confidence,
+          ...(result.layoutBlocks === undefined ? {} : { layoutBlocks: result.layoutBlocks }),
+        };
+        const layout = layoutVisionResponseSchema.safeParse(layoutCandidate);
+        if (
+          !layout.success ||
+          layout.data.layoutBlocks?.some(
+            ({ sourceImageIndex }) => sourceImageIndex !== index + 1,
+          ) === true
+        ) {
+          throw new VisionProviderError('vision-content-schema-invalid', 'transient', {
+            cause: layout.success
+              ? new Error('vision-layout-source-image-index-invalid')
+              : layout.error,
+          });
+        }
+      }
+      return {
+        kind: result.kind,
+        markdown: result.markdown,
+        alt: result.alt,
+        confidence: result.confidence,
+        ...(result.layoutBlocks === undefined ? {} : { layoutBlocks: result.layoutBlocks }),
+      };
+    });
+  }
+
+  private async chat(
+    inputs: readonly VisionProviderRequest[],
+    prompt: string,
+    schema: Readonly<Record<string, unknown>>,
+  ): Promise<unknown> {
+    const first = inputs[0];
+    if (first === undefined) throw new Error('vision-batch-empty');
     let response: Response;
     try {
-      const schemaPrompt = `${input.prompt}\n\nReturn exactly one valid JSON object matching this JSON Schema. Do not add a Markdown fence, language label, commentary, or reasoning. The first character must be { and the last character must be }.\n${JSON.stringify(input.schema)}`;
       response = await this.request(this.chatUrl, {
         method: 'POST',
         headers: {
@@ -188,20 +308,20 @@ export class OllamaVisionProvider implements VisionProvider {
           messages: [
             {
               role: 'user',
-              content: schemaPrompt,
-              images: [Buffer.from(input.bytes).toString('base64')],
+              content: prompt,
+              images: inputs.map((input) => Buffer.from(input.bytes).toString('base64')),
             },
           ],
           stream: false,
           think: false,
           keep_alive: this.keepAlive,
           options: { temperature: 0, num_ctx: this.contextWindow },
-          ...(this.isCloud ? {} : { format: input.schema }),
+          ...(this.isCloud ? {} : { format: schema }),
         }),
-        signal: input.signal,
+        signal: first.signal,
       });
     } catch (error) {
-      const code = input.signal.aborted ? 'vision-provider-timeout' : 'vision-provider-unreachable';
+      const code = first.signal.aborted ? 'vision-provider-timeout' : 'vision-provider-unreachable';
       throw new VisionProviderError(code, 'transient', { cause: error });
     }
     if (!response.ok) throw providerHttpError(response.status);
@@ -223,13 +343,7 @@ export class OllamaVisionProvider implements VisionProvider {
     } catch (error) {
       throw new VisionProviderError('vision-content-malformed', 'transient', { cause: error });
     }
-    const result = visionResponseSchema.safeParse(content);
-    if (!result.success) {
-      throw new VisionProviderError('vision-content-schema-invalid', 'transient', {
-        cause: result.error,
-      });
-    }
-    return result.data;
+    return content;
   }
 }
 
@@ -237,20 +351,30 @@ export const activateOllamaVision = async (
   provider: OllamaVisionProvider,
   sample: Uint8Array,
   signal: AbortSignal,
+  maximumImagesPerCall = 1,
 ): Promise<{ readonly model: OllamaModel; readonly sample: ValidatedVisionResponse }> => {
   const model = await provider.assertModelAvailable(signal);
-  const result = await provider.analyse({
-    bytes: sample,
-    mediaType: 'image/png',
-    sourceKind: 'document-image',
-    pageNumber: null,
-    imageId: 'bundled-table-activation',
-    prompt:
-      'This is the NodeRag activation image. Transcribe it as a Markdown table. Return only the requested JSON object.',
-    schema: ollamaVisionJsonSchema,
-    signal,
-  });
-  if (result.kind !== 'table' || !result.markdown.includes('|')) {
+  const results = await provider.analyseMany(
+    Array.from({ length: maximumImagesPerCall }, (_, index) => ({
+      bytes: sample,
+      mediaType: 'image/png' as const,
+      sourceKind: 'document-image' as const,
+      pageNumber: null,
+      imageId: `bundled-table-activation-${String(index + 1)}`,
+      prompt:
+        'This is a NodeRag activation image. Transcribe it as a Markdown table. Return only the requested JSON object.',
+      schema: ollamaVisionJsonSchema,
+      signal,
+    })),
+  );
+  const invalid =
+    results.length !== maximumImagesPerCall ||
+    results.some((result) => result.kind !== 'table' || !result.markdown.includes('|'));
+  if (invalid) {
+    throw new VisionProviderError('vision-capability-test-failed', 'permanent');
+  }
+  const result = results[0];
+  if (result === undefined) {
     throw new VisionProviderError('vision-capability-test-failed', 'permanent');
   }
   return { model, sample: result };

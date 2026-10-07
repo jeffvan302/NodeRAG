@@ -224,6 +224,54 @@ describe.sequential('M07 vision and bad-PDF recovery', () => {
     expect(cache.rows).toContainEqual({ refcount: 1 });
   });
 
+  it('persists a bounded regional PDF dispatch and its revisioned layout cache', async () => {
+    provider.online = true;
+    provider.confidence = 0.99;
+    const documentId = await upload(
+      'complex-table.pdf',
+      'application/pdf',
+      await readFile(fixture('pdf', 'complex-table.pdf')),
+      'm07-regional-pdf',
+    );
+    expect(
+      await drainDocumentJobs({
+        pool,
+        files,
+        embedder: new DeterministicEmbedder(),
+        leaseOwner: 'm07-region-worker',
+        vision,
+      }),
+    ).toBe(2);
+    const dispatch = await pool.query<{ request_kind: string }>(
+      `SELECT request_kind FROM noderag.vision_dispatch
+       WHERE image_id IN (
+         SELECT external_id FROM noderag.document_image WHERE document_id = $1
+       ) ORDER BY id DESC LIMIT 1`,
+      [documentId],
+    );
+    expect(dispatch.rows[0]?.request_kind).toBe('pdf-region');
+    const cached = await pool.query<{
+      source_policy_revision: string;
+      layout_blocks: unknown[];
+    }>(
+      `SELECT cache.source_policy_revision, cache.layout_blocks
+       FROM noderag.vision_cache cache
+       JOIN noderag.document_image image ON image.cache_key = cache.cache_key
+       WHERE image.document_id = $1`,
+      [documentId],
+    );
+    expect(cached.rows[0]).toMatchObject({
+      source_policy_revision: 'pdf-crop.v1-margin-015',
+      layout_blocks: [expect.objectContaining({ kind: 'table', sourceImageIndex: 1 })],
+    });
+    const blocks = await pool.query<{ source: string }>(
+      `SELECT source FROM noderag.document_block
+       WHERE document_id = $1 ORDER BY page_ordinal, ordinal`,
+      [documentId],
+    );
+    expect(blocks.rows.filter(({ source }) => source === 'vision')).toHaveLength(1);
+  });
+
   it('activates a bearer-protected reverse proxy only after the live schema test passes', async () => {
     const providerFetch = vi.fn<typeof fetch>(async (input, init) => {
       expect(new Headers(init?.headers).get('authorization')).toBe('Bearer synthetic-token');
@@ -232,14 +280,21 @@ describe.sequential('M07 vision and bad-PDF recovery', () => {
           models: [{ name: 'vision-model:latest', digest: 'sha256:vision-model' }],
         });
       }
+      const body = JSON.parse(String(init?.body)) as {
+        messages?: Array<{ images?: string[] }>;
+      };
+      const imageCount = body.messages?.[0]?.images?.length ?? 0;
       return Response.json({
         message: {
           role: 'assistant',
           content: JSON.stringify({
-            kind: 'table',
-            markdown: '| Asset | State |\n| --- | --- |\n| Pump | Ready |',
-            alt: 'Asset state table',
-            confidence: 0.97,
+            results: Array.from({ length: imageCount }, (_, index) => ({
+              imageIndex: index + 1,
+              kind: 'table',
+              markdown: '| Asset | State |\n| --- | --- |\n| Pump | Ready |',
+              alt: 'Asset state table',
+              confidence: 0.97,
+            })),
           }),
         },
       });
@@ -259,6 +314,7 @@ describe.sequential('M07 vision and bad-PDF recovery', () => {
           baseUrl: 'https://vision.proxy.example/ollama',
           model: 'vision-model:latest',
           bearerToken: 'synthetic-token',
+          maximumImagesPerCall: 7,
         },
       });
       expect(response.statusCode, response.body).toBe(200);
@@ -270,19 +326,40 @@ describe.sequential('M07 vision and bad-PDF recovery', () => {
       const stored = await pool.query<{
         ollama_base_url: string;
         ollama_model_revision: string;
+        ollama_images_per_call: number;
         ollama_secret_id: string | null;
       }>(
-        `SELECT ollama_base_url, ollama_model_revision, ollama_secret_id
+        `SELECT ollama_base_url, ollama_model_revision, ollama_images_per_call, ollama_secret_id
          FROM noderag.settings WHERE id = 1`,
       );
       expect(stored.rows[0]).toMatchObject({
         ollama_base_url: 'https://vision.proxy.example/ollama',
         ollama_model_revision: 'sha256:vision-model',
+        ollama_images_per_call: 7,
       });
       expect(stored.rows[0]?.ollama_secret_id).not.toBeNull();
       await expect(secretVault.reveal(pool, 'ollama', 'bearer-token')).resolves.toBe(
         'synthetic-token',
       );
+      const reusedCredential = await app.inject({
+        method: 'POST',
+        url: '/v1/admin/vision/test',
+        headers: {
+          cookie,
+          origin: 'http://noderag.test',
+          'x-csrf-token': csrf,
+          'idempotency-key': 'm07-provider-activation-reuse-saved-key',
+        },
+        payload: {
+          baseUrl: 'https://vision.proxy.example/ollama',
+          model: 'vision-model:latest',
+        },
+      });
+      expect(reusedCredential.statusCode, reusedCredential.body).toBe(200);
+      expect(reusedCredential.json()).toMatchObject({
+        activated: true,
+        bearerTokenPersisted: true,
+      });
       const status = await app.inject({
         method: 'GET',
         url: '/v1/admin/vision/status',
@@ -290,7 +367,14 @@ describe.sequential('M07 vision and bad-PDF recovery', () => {
       });
       expect(status.statusCode, status.body).toBe(200);
       expect(status.json()).toMatchObject({
-        settings: { credentialConfigured: true, maximumParallel: 2 },
+        settings: {
+          credentialConfigured: true,
+          maximumParallel: 2,
+          maximumImagesPerCall: 3,
+          timeoutMs: 120_000,
+          maximumAttempts: 3,
+          maximumImageDimension: 1650,
+        },
       });
     } finally {
       vi.unstubAllGlobals();
@@ -392,6 +476,15 @@ describe.sequential('M07 vision and bad-PDF recovery', () => {
        FROM generate_series(1, 399) ordinal`,
       [documentId, siloId],
     );
+    await pool.query(
+      `INSERT INTO noderag.document_image
+         (document_id,silo_id,page_ordinal,sequence,image_sha256,width,height,byte_count,state)
+       SELECT $1,$2,500 + ordinal,0,
+              decode(md5(ordinal::text) || md5((ordinal + 100)::text),'hex'),
+              128,96,1024,'pending_vision'
+       FROM generate_series(1,10) ordinal`,
+      [documentId, siloId],
+    );
     const estimate = await app.inject({
       method: 'GET',
       url: `/v1/documents/${String(documentId)}/vision-estimate`,
@@ -408,6 +501,9 @@ describe.sequential('M07 vision and bad-PDF recovery', () => {
       headers: { cookie },
     });
     expect(status.statusCode, status.body).toBe(200);
-    expect(status.json()).toMatchObject({ warnings: ['large-scan-provider-cost-and-time'] });
+    expect(status.json()).toMatchObject({
+      estimate: { pendingImages: 10, projectedCalls: 4 },
+      warnings: ['large-scan-provider-cost-and-time'],
+    });
   });
 });

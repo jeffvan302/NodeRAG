@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "stage": 3,
+  "name": "Block confidence, routing policy, diagnostics, and dry-run estimates",
+  "recordedAt": "2026-09-07T04:01:30.000Z",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "policy": {
+    "revision": "pdf-confidence.v1",
+    "nativeSafeMinimum": 0.82,
+    "regionalVisionMinimum": 0.55,
+    "belowRegionalMinimum": "full-page-vision",
+    "components": [
+      "textIntegrity",
+      "replacementIntegrity",
+      "privateUseIntegrity",
+      "controlCharacterIntegrity",
+      "glyphContinuity",
+      "readingOrder",
+      "classifierMargin",
+      "tableAlignment",
+      "documentConsistency"
+    ],
+    "dispositions": ["native-safe", "regional-vision", "full-page-vision"],
+    "searchConfidenceConflated": false
+  },
+  "calibration": {
+    "corpusFixtures": 10,
+    "confusionMatrix": {
+      "expectedNoneActualNone": 6,
+      "expectedNoneActualRegion": 0,
+      "expectedNoneActualPage": 0,
+      "expectedRegionActualRegion": 2,
+      "expectedRegionActualNone": 0,
+      "expectedRegionActualPage": 0,
+      "expectedPageActualPage": 2,
+      "expectedPageActualNone": 0,
+      "expectedPageActualRegion": 0
+    },
+    "visionRequiredFalseAcceptanceRate": 0,
+    "cleanPageFullVisionRate": 0,
+    "oneBadStructureRemainsVisibleInPageAggregate": true,
+    "routingGate": "passed"
+  },
+  "operatorSurfaces": {
+    "diagnosticsRoute": "GET /v1/documents/:id/extraction-diagnostics",
+    "estimateRoute": "GET /v1/documents/:id/enhanced-reindex-estimate",
+    "authorization": "read_markdown in the document silo",
+    "ui": "PDF document details show extraction version, native-safe/uncertain counts, and warnings",
+    "reindexConfirmation": "shows pages, provisional candidates, batches, and rebuild scope",
+    "progress": ["nativeSafeBlocks", "regionalVisionBlocks", "fullPageVisionPages"]
+  },
+  "estimateContract": {
+    "defaultImagesPerCall": 5,
+    "batchingIndependentFromParallelCalls": true,
+    "durationUsesParallelWaves": true,
+    "unknownProviderDurationRemainsNull": true,
+    "expectedCacheHitsStage3": 0,
+    "provisional": true
+  },
+  "policyComparison": {
+    "command": "pnpm exec tsx scripts/compare-pdf-confidence-policies.ts",
+    "mutationPerformed": false,
+    "changedDecisions": 2,
+    "changes": [
+      "complex-table.pdf: native-safe to regional-vision",
+      "diagram-caption.pdf: native-safe to regional-vision"
+    ],
+    "canonicalMarkdownChangedByComparison": false
+  },
+  "verification": {
+    "workspaceTypecheck": "passed",
+    "unit": { "result": "passed", "files": 3, "tests": 15 },
+    "integration": {
+      "result": "passed",
+      "files": 2,
+      "tests": 20,
+      "coverage": [
+        "confidence persistence",
+        "diagnostics response",
+        "dry-run response",
+        "route authorization inventory",
+        "RLS and zero-grant behavior",
+        "all-format ingestion"
+      ]
+    },
+    "browserAccessibility": { "result": "passed", "tests": 19 },
+    "openApiGenerationAndVerification": "passed",
+    "productionBuild": {
+      "result": "passed",
+      "uiModulesTransformed": 2080,
+      "serverBundles": ["server.cjs", "worker.cjs", "embedder.cjs"]
+    }
+  },
+  "controls": {
+    "diagnosticsRequireDocumentReadGrant": true,
+    "diagnosticsExposeOriginalOrMarkdownContent": false,
+    "confidenceComponentsPersistAcrossRefresh": true,
+    "routingReasonsPersistAcrossWorkerRestart": true,
+    "nativeOutputDeletedByPolicy": false,
+    "dsmPackageBuilt": false
+  },
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "certification": "stage-3-testbed-complete"
+}

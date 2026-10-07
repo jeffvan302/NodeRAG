@@ -7,8 +7,22 @@ import { coordinatedEmbedder } from '../store/resources.js';
 import type { SqlClient } from '../store/database.js';
 import { withSiloScope, type SiloScope } from '../identity/scope.js';
 import type { DocumentFileStore } from '../storage/document-files.js';
+import {
+  combinedMatchConfidence,
+  keywordMatchConfidence,
+  noCutoffRetrievalCalibration,
+  passageLexicalEvidenceConfidence,
+  qwenQ8RetrievalCalibration,
+  vectorMatchConfidence,
+  type RetrievalConfidenceCalibration,
+} from './confidence.js';
+import {
+  semanticSearchEvidence,
+  semanticSentenceCandidates,
+  type SearchEvidence,
+} from './evidence.js';
 
-export type SearchMode = 'vector' | 'keyword' | 'hybrid';
+export type SearchMode = 'vector' | 'semantic' | 'keyword' | 'hybrid';
 
 export interface SearchFilters {
   readonly sourceIds?: readonly number[];
@@ -22,6 +36,7 @@ export interface SearchFilters {
   readonly pageTo?: number;
   readonly hasImages?: boolean;
   readonly hasTables?: boolean;
+  readonly minimumConfidence?: number;
 }
 
 export interface SearchRequest {
@@ -68,6 +83,8 @@ export interface SearchHit {
   readonly text: string;
   readonly markdown: string;
   readonly score: number;
+  readonly confidence: number;
+  readonly evidence: readonly SearchEvidence[];
   readonly headingPath: readonly string[];
   readonly partOf: string | null;
   readonly locator: SearchLocator;
@@ -84,6 +101,7 @@ export interface SearchResponse {
 interface ActiveModel {
   readonly maximum_tokens: number;
   readonly query_prefix: string;
+  readonly document_prefix: string;
   readonly dimensions: number;
   readonly manifest_digest: string;
 }
@@ -121,6 +139,8 @@ export interface CandidateRow {
 export interface RankedCandidate {
   readonly row: CandidateRow;
   readonly score: number;
+  readonly confidence?: number;
+  readonly evidence?: readonly SearchEvidence[];
 }
 
 const candidateColumns = `
@@ -280,6 +300,8 @@ const toHit = (candidate: RankedCandidate): SearchHit => {
     text: row.text,
     markdown: row.text,
     score: candidate.score,
+    confidence: candidate.confidence ?? 0,
+    evidence: candidate.evidence ?? [],
     headingPath: row.heading_path ?? [],
     partOf: row.part_of,
     locator: {
@@ -348,8 +370,20 @@ export const collapseOverlappingHits = (
       const pageStart = pageStartValues.length === 0 ? null : Math.min(...pageStartValues);
       const pageEnd = pageEndValues.length === 0 ? null : Math.max(...pageEndValues);
       const characterStart = Math.min(previous.locator.characterStart, row.locator.characterStart);
+      const evidence = new Map<string, SearchEvidence>();
+      for (const item of [...previous.evidence, ...row.evidence]) {
+        const key = `${item.kind}:${item.text.normalize('NFC').toLocaleLowerCase()}`;
+        const existing = evidence.get(key);
+        if (existing === undefined || item.confidence > existing.confidence) {
+          evidence.set(key, item);
+        }
+      }
       const merged: SearchHit = {
         ...best,
+        confidence: Math.max(previous.confidence, row.confidence),
+        evidence: [...evidence.values()]
+          .sort((left, right) => right.confidence - left.confidence)
+          .slice(0, 4),
         chunkIds: [...new Set([...previous.chunkIds, ...row.chunkIds])],
         text,
         markdown: text,
@@ -376,7 +410,12 @@ export const collapseOverlappingHits = (
       collapsed[collapsed.length - 1] = merged;
     }
   }
-  return collapsed.sort((left, right) => right.score - left.score || left.chunkId - right.chunkId);
+  return collapsed.sort(
+    (left, right) =>
+      right.confidence - left.confidence ||
+      right.score - left.score ||
+      left.chunkId - right.chunkId,
+  );
 };
 
 const activeModel = async (
@@ -384,7 +423,8 @@ const activeModel = async (
   siloIds: readonly number[],
 ): Promise<ActiveModel> => {
   const model = await database.query<ActiveModel>(
-    `SELECT DISTINCT m.maximum_tokens,b.query_prefix,m.dimensions,m.manifest_digest
+    `SELECT DISTINCT m.maximum_tokens,b.query_prefix,m.document_prefix,
+                     m.dimensions,m.manifest_digest
      FROM noderag.silo_build_state state
      JOIN noderag.build b ON b.id=state.build_id
      JOIN noderag.model_manifest m ON m.id=b.model_manifest_id
@@ -414,6 +454,7 @@ export interface ExecuteSearchOptions {
   readonly sourceIp?: string;
   readonly gatewayId?: number;
   readonly request: SearchRequest;
+  readonly calibration?: RetrievalConfidenceCalibration;
 }
 
 export const executeSearch = async (options: ExecuteSearchOptions): Promise<SearchResponse> => {
@@ -424,9 +465,15 @@ export const executeSearch = async (options: ExecuteSearchOptions): Promise<Sear
     return { items: [], normalizedQuery, mode: options.request.mode, elapsedMs: 0 };
   }
   const candidateLimit = Math.min(200, Math.max(20, options.request.limit * 4));
+  const calibration =
+    options.calibration ??
+    (options.request.mode === 'semantic'
+      ? qwenQ8RetrievalCalibration
+      : noCutoffRetrievalCalibration);
   const ranked = await withSiloScope(options.pool, options.scope, async (database) => {
     await database.query('SELECT pg_advisory_xact_lock_shared($1::bigint)', [7_116_011_011]);
     const active = await activeModel(database, options.scope.siloIds);
+    let queryVector: readonly number[] | undefined;
     let vector: string | undefined;
     if (options.request.mode !== 'keyword') {
       const batch = await coordinatedEmbedder(
@@ -439,6 +486,7 @@ export const executeSearch = async (options: ExecuteSearchOptions): Promise<Sear
       });
       const first = batch.vectors[0];
       if (first === undefined) throw new Error('query-vector-missing');
+      queryVector = first;
       vector = vectorLiteral(first, active.dimensions);
     }
     const settings = await database.query<{ ef_search: number }>(
@@ -468,7 +516,7 @@ export const executeSearch = async (options: ExecuteSearchOptions): Promise<Sear
         );
         vectorRows.push(...found.rows);
       }
-      if (options.request.mode !== 'vector') {
+      if (options.request.mode === 'keyword' || options.request.mode === 'hybrid') {
         const found = await database.query<CandidateRow>(
           `SELECT ${candidateColumns},
                   ts_rank_cd(c.search_vector, websearch_to_tsquery('simple', $1)) AS score
@@ -489,14 +537,98 @@ export const executeSearch = async (options: ExecuteSearchOptions): Promise<Sear
     }
     vectorRows.sort((left, right) => Number(right.score) - Number(left.score));
     keywordRows.sort((left, right) => Number(right.score) - Number(left.score));
+    const acceptedVectorRows = vectorRows.filter(
+      (row) => Number(row.score) >= calibration.minimumVectorSimilarity,
+    );
+    const keyFor = (row: CandidateRow): string => `${String(row.silo_id)}:${String(row.id)}`;
+    const vectorConfidence = new Map(
+      acceptedVectorRows.map((row) => [
+        keyFor(row),
+        vectorMatchConfidence(Number(row.score), calibration),
+      ]),
+    );
+    const keywordConfidence = new Map(
+      keywordRows.map((row) => [
+        keyFor(row),
+        keywordMatchConfidence(normalizedQuery, row.text, Number(row.score)),
+      ]),
+    );
+    let semanticCandidates: readonly RankedCandidate[] = [];
+    if (options.request.mode === 'semantic') {
+      if (queryVector === undefined) throw new Error('query-vector-missing');
+      const shortlist = acceptedVectorRows.slice(
+        0,
+        Math.min(50, Math.max(12, options.request.limit * 2)),
+      );
+      const sentenceGroups = shortlist
+        .map((row) => ({ row, sentences: semanticSentenceCandidates(row.text, 6) }))
+        .filter(({ sentences }) => sentences.length > 0);
+      const sentences = sentenceGroups.flatMap(({ sentences: group }) => group);
+      if (sentences.length > 0) {
+        const embedded = await coordinatedEmbedder(
+          options.pool,
+          `semantic:${options.requestId}`,
+          options.embedder,
+        ).embed(
+          sentences.map((sentence) => `${active.document_prefix}${sentence}`),
+          active.maximum_tokens,
+          1,
+          { manifestDigest: active.manifest_digest, dimensions: active.dimensions },
+        );
+        if (embedded.vectors.length !== sentences.length) {
+          throw new Error('semantic-vector-cardinality-mismatch');
+        }
+        let offset = 0;
+        semanticCandidates = sentenceGroups.flatMap(({ row, sentences: group }) => {
+          const vectors = embedded.vectors.slice(offset, offset + group.length);
+          offset += group.length;
+          const evidence = semanticSearchEvidence(group, queryVector, vectors, calibration, 2);
+          const strongest = evidence[0];
+          return strongest === undefined
+            ? []
+            : [
+                {
+                  row,
+                  score: strongest.confidence,
+                  confidence: strongest.confidence,
+                  evidence,
+                },
+              ];
+        });
+        semanticCandidates = [...semanticCandidates].sort(
+          (left, right) =>
+            right.score - left.score ||
+            databaseInteger(left.row.id, 'chunk id') - databaseInteger(right.row.id, 'chunk id'),
+        );
+      }
+    }
     const candidates: readonly RankedCandidate[] =
       options.request.mode === 'hybrid'
-        ? reciprocalRankFusion(vectorRows, keywordRows)
-        : (options.request.mode === 'vector' ? vectorRows : keywordRows).map((row) => ({
-            row,
-            score: Number(row.score),
-          }));
-    let items = collapseOverlappingHits(candidates).slice(0, options.request.limit);
+        ? reciprocalRankFusion(acceptedVectorRows, keywordRows).map((candidate) => ({
+            ...candidate,
+            confidence: combinedMatchConfidence(
+              vectorConfidence.get(keyFor(candidate.row)),
+              keywordConfidence.get(keyFor(candidate.row)) ??
+                passageLexicalEvidenceConfidence(normalizedQuery, candidate.row.text),
+            ),
+          }))
+        : options.request.mode === 'vector'
+          ? acceptedVectorRows.map((row) => ({
+              row,
+              score: Number(row.score),
+              confidence: vectorConfidence.get(keyFor(row)) ?? 0,
+            }))
+          : options.request.mode === 'semantic'
+            ? semanticCandidates
+            : keywordRows.map((row) => ({
+                row,
+                score: Number(row.score),
+                confidence: keywordConfidence.get(keyFor(row)) ?? 0,
+              }));
+    const minimumConfidence = options.request.filters.minimumConfidence ?? 0;
+    let items = collapseOverlappingHits(candidates)
+      .filter((hit) => hit.confidence >= minimumConfidence)
+      .slice(0, options.request.limit);
     if (options.files !== undefined) {
       const availability = new Map<number, boolean>();
       for (const item of items) {
@@ -540,6 +672,8 @@ export const executeSearch = async (options: ExecuteSearchOptions): Promise<Sear
         filters: options.request.filters,
         scope: options.scope.siloIds,
         hitCount: items.length,
+        weakVectorCutoff: calibration.minimumVectorSimilarity,
+        minimumConfidence,
         latencyMs: elapsedMs,
         outcome: 'ok',
       },

@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "stage": "C10",
+  "name": "Managed Context Runtime, Verified Archives, and Owner-Mapped Reconciliation",
+  "recordedAt": "2026-09-15T12:10:00-04:00",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "boundary": {
+    "internetProvider": "ollama_cloud",
+    "ollamaServiceRoot": "https://ollama.com",
+    "ollamaChatEndpoint": "https://ollama.com/api/chat",
+    "ollamaWebSearchEndpoint": "https://ollama.com/api/web_search",
+    "ollamaWebFetchEndpoint": "https://ollama.com/api/web_fetch",
+    "localOllamaAccepted": false,
+    "selfHostedOllamaAccepted": false,
+    "customOllamaAccepted": false,
+    "compressionToolsAccepted": false,
+    "synologyDsmExecution": "deferred_to_C11"
+  },
+  "implementation": {
+    "migration": {
+      "path": "packages/server/migrations/000028_chat_managed_context.sql",
+      "sha256": "cfeff5307581cbcfa73b404939dd2f2ad60b1bb781f023b87103540b234b2256"
+    },
+    "contextRuntimeSha256": "df3d3a4c40e87f94cc007fbf77d14df8ede6ffdf97722c71782b1b965b811380",
+    "compressionRuntimeSha256": "2eb8ffed4f508a6f6dabeb1b0155689eb38f30808177717c7b003c31197a9d29",
+    "logStoreSha256": "d891257af7993c84080d19470bab3196a1655dda3e4aa9f01eb930c89c0f6362",
+    "reconciliationSha256": "212fd6627a77d9137e23d0f75ebd8c225ef8c128b5cec7d860fa774a62bbecc9",
+    "runnerSha256": "2bf3713188de11738e70e80fbd06db523629b898337f403e20f6f2ed68188f9c",
+    "chatRoutesSha256": "fffd1124bf3a0ea8e2a24fe2866c828ea51c477d7fd9cffdd6744d1153b1cba9",
+    "adminRoutesSha256": "4ddb0bd8137ce48d95999408c8572f36d2d9c25245e04ea904ae743b9ecdcbd8",
+    "chatViewSha256": "5901634d2f9190f4cdb3ee430645673206fc9469b9c2d24e6492f90cb9c12dff",
+    "administrationViewSha256": "b79ec71b179886cac48861c84c6ad7b8eade2e020f9815aee8804a73d0fa7b6d",
+    "unitTestSha256": "12ccd4c2358e3ab636f73823f05563282144a4d4b6db24a38c03ad8bbfa0d419",
+    "integrationTestSha256": "30201fc232ae0674fdfca8fca4bdca6ebc49d909498cc47e1fbfc5b732183667",
+    "browserTestSha256": "fd8e52609e69d1208bc832d800a86e777cfa822c9d9f6d23e5e69da87acae0ab",
+    "retentionGoldenSetSha256": "759eb5f64f8f0dea7e5e22693db9073602d61c39c6839854c389e812483f918d",
+    "routeAuthorizationSha256": "fc09e2ad059a583c7433c4e0c90453348376929d5c536dc347ed511b915253ac",
+    "openApiSha256": "bee4aeb9c07dfc3e30ae8903c2f72ee3079c76330dc9814c62fc56ac5c560981",
+    "backupPolicySha256": "bc76a4363e20436ddc700ae1021e6698364acf2f25371e218fd2b1fb9de6187a",
+    "migrationInventorySha256": "04cea0c5f5e8b9de3ff5185acb1c72770edbf46b2fa1a0a9a4c48113547fcb5b",
+    "sbomSha256": "131f9533c76f977d42e5c1e8d62816062b793eea2bf2506e3d8a22c764bac6fb",
+    "thirdPartyNoticesSha256": "9cf00038f42dcf099aefd97dc0e693dd3093b3d03b9b7b34aaecf9195e1eb7c4",
+    "productionServerSha256": "a464b86bf0339a8c6872181dec7c047bb3dfda0eb1976a50090eb9c267478a39"
+  },
+  "contextPolicy": {
+    "estimatorRevision": "chat-token-estimator.v1",
+    "snapshotRevision": "chat-context-snapshot.v1",
+    "layers": ["L1_exact_pins", "L2_narrative", "L3_validated_state", "L4_complete_turns"],
+    "preRequestBudget": true,
+    "postToolBoundaryBudget": true,
+    "unknownCapacityFailsClosed": true,
+    "originalMessagesDeleted": false,
+    "priorValidLayerRetainedOnFailure": true
+  },
+  "archiveAndImportPolicy": {
+    "eventFormat": "canonical_ndjson",
+    "sealedEncoding": "deterministic_gzip",
+    "hashChainVerified": true,
+    "archiveVerifiedBeforePaging": true,
+    "portableManifestContract": "noderag-chat-backup.v1",
+    "ownerMappingRequired": true,
+    "importedToolsEnabled": false,
+    "idempotentReplay": true,
+    "silentRepair": false,
+    "quarantineKinds": [
+      "partial_segment",
+      "checksum_mismatch",
+      "owner_unmapped",
+      "owner_conflict",
+      "future_schema",
+      "duplicate_content",
+      "unsafe_path"
+    ]
+  },
+  "verification": {
+    "contextRuntimeUnit": { "result": "passed", "tests": 12, "goldenCases": 3 },
+    "contextIntegration": {
+      "result": "passed",
+      "tests": 3,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "configurationContextIntegration": {
+      "result": "passed",
+      "tests": 7,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "fullIntegration": {
+      "result": "passed",
+      "files": 19,
+      "tests": 118,
+      "environment": "Docker Linux/amd64 PostgreSQL"
+    },
+    "fullBrowser": { "result": "passed", "tests": 29, "wcagAAndAA": "passed" },
+    "fullUnit": { "result": "passed", "files": 51, "tests": 224 },
+    "migrationInventory": { "result": "passed", "head": "000028_chat_managed_context" },
+    "workspaceTypecheck": { "result": "passed", "projects": 6 },
+    "workspaceLint": { "result": "passed" },
+    "workspaceFormat": { "result": "passed" },
+    "dependencyBoundaries": { "result": "passed", "modules": 185, "dependencies": 381 },
+    "buildAndSmoke": { "result": "passed" },
+    "licenseInventory": { "result": "passed", "licenseClasses": 11 },
+    "sbom": { "result": "passed", "runtimePackages": 309 },
+    "secretScan": { "result": "passed" },
+    "combinedQualityGate": { "result": "passed" }
+  },
+  "faultEvidence": [
+    "unknown model capacity and invalid reserve arithmetic fail before provider dispatch",
+    "complete-turn selection excludes unfinished responses and retains the current prompt",
+    "exact pins have an independent hard limit and remain verbatim",
+    "cumulative tool results are recomputed before any provider continuation",
+    "malformed L3 and oversized L2 output retain prior valid state or fold nothing",
+    "provider timeout, active cancellation, and expired compression leases are durable",
+    "original messages survive compression and folded rows link to verified archives",
+    "empty, partial, reordered, corrupt, and tampered log segments are distinguished safely",
+    "clean import and duplicate replay are deterministic and idempotent",
+    "unmapped/conflicting owners, future schemas, bad checksums, and unsafe paths quarantine",
+    "imported configuration disables Research, RAG, internet, and artifact tools"
+  ],
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "remaining": [
+    "C11 adds combined adversarial security, evaluation, diagnostics, and full recovery evidence.",
+    "C11 runs package-user simulation and mixed-operation soak before building a numbered SPK.",
+    "The exact candidate must pass real Synology DSM acceptance before release is complete."
+  ]
+}

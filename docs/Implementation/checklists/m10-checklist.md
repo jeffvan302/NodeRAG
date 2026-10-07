@@ -13,7 +13,7 @@ Status: testbed-complete
 
 ## Identity, prerequisites, and private database
 
-- [x] Services use DSM `run-as: package` with the declared `sc-noderag` identity and data-share grant.
+- [x] Services use DSM `run-as: package` with the dedicated `noderag` identity and data-share grant.
 - [x] Architecture, DSM 7.2, Node.js 22, physical RAM, free disk, and port guards are fixture-tested in the simulator.
 - [x] First initialization exposes the UI plus health/readiness/setup status while PostgreSQL is absent; no authenticated content/admin surface is registered.
 - [x] First configured start generates a private database password, runs `initdb`, creates the `noderag` database, loads pgvector, and applies the migration checksum manifest through `000008_package_lifecycle`.
@@ -22,7 +22,7 @@ Status: testbed-complete
 
 ## Storage, models, gateways, and operations
 
-- [x] The storage probe resolves canonical paths and, under DSM policy, requires `/volumeN`, ext4/btrfs, mode 0700/0750, write/fsync/rename/read, and projected capacity plus rebuild reserve.
+- [x] The storage probe resolves canonical paths and, under DSM policy, requires `/volumeN`, ext4/btrfs, write/fsync/rename/read, and projected capacity plus rebuild reserve. It preserves existing DSM ACL roots, creates a dedicated managed child, requests private mode on package-created directories, and reports projected-mode differences as warnings.
 - [x] Encrypted-share requirements and Synology Drive/indexing warnings are represented by explicit configured roots.
 - [x] Relocation uses a single-writer lock, verified full SHA-256 manifest, atomic activation/rollback, and retains the old tree.
 - [x] Durable relocation/model-artifact schema records were added in a forward-only migration.

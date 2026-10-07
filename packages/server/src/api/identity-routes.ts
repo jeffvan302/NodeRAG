@@ -8,7 +8,11 @@ import { authenticatePassword, changePasswordInTransaction } from '../identity/p
 import { SiloScope } from '../identity/scope.js';
 import { createSession, revokeSession } from '../identity/sessions.js';
 import { bootstrapFirstAdministrator, setupStatus, verifySetupToken } from '../setup/bootstrap.js';
-import { createRequestAuthenticator, type RequestAuthenticator } from './authentication.js';
+import {
+  createRequestAuthenticator,
+  requestBrowserOrigin,
+  type RequestAuthenticator,
+} from './authentication.js';
 
 const loginSchema = z.object({
   username: z.string().min(3).max(64),
@@ -151,7 +155,11 @@ export const registerIdentityRoutes = (
         ? {}
         : { userAgent: request.headers['user-agent'] }),
     });
-    const secure = options.secureCookie ? '; Secure' : '';
+    const secure =
+      options.secureCookie ||
+      requestBrowserOrigin(request, options.expectedOrigin).startsWith('https://')
+        ? '; Secure'
+        : '';
     reply.header(
       'set-cookie',
       `noderag_session=${encodeURIComponent(session.token)}; HttpOnly; SameSite=Strict; Path=/${secure}`,

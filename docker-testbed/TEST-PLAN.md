@@ -28,16 +28,28 @@ Milestone 0 establishes:
 
 ## Planned expansion
 
-| Milestone range | Testbed capability added |
-|---|---|
-| M1–M2 | Node 22 compatibility runner, pnpm workspace, migrations, local/DSM adapter contracts, static SPK validation |
-| M3–M5 | RLS and partition tests, durable jobs, local watched folders, purge and crash recovery |
-| M6–M7 | Format fixture corpus, memory ceilings, deterministic vision fake, optional live Ollama profile |
-| M8–M9 | REST, MCP, gateway, browser, accessibility, and end-to-end test services |
-| M10 | SPK assembly, archive inspection, lifecycle-script simulation, storage-probe simulation |
-| M11–M12 | Rebuild concurrency, model-manifest changes, evaluation corpus, load and resource tests |
-| M13 | Backup/restore, upgrade, disk-full, process-kill, corrupt-artifact, and network-failure rehearsals |
-| M14 | Clean-room release-candidate build, full regression, soak, SBOM, checksums, and proof bundle |
+| Milestone range | Testbed capability added                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------ |
+| M1–M2           | Node 22 compatibility runner, pnpm workspace, migrations, local/DSM adapter contracts, static SPK validation |
+| M3–M5           | RLS and partition tests, durable jobs, local watched folders, purge and crash recovery                       |
+| M6–M7           | Format fixture corpus, memory ceilings, deterministic vision fake, optional live Ollama profile              |
+| M8–M9           | REST, MCP, gateway, browser, accessibility, and end-to-end test services                                     |
+| M10             | SPK assembly, archive inspection, lifecycle-script simulation, storage-probe simulation                      |
+| M11–M12         | Rebuild concurrency, model-manifest changes, evaluation corpus, load and resource tests                      |
+| M13             | Backup/restore, upgrade, disk-full, process-kill, corrupt-artifact, and network-failure rehearsals           |
+| M14             | Clean-room release-candidate build, full regression, soak, SBOM, checksums, and proof bundle                 |
+
+## Post-candidate Research checkpoint
+
+The Research workspace is intentionally validated on WSL/Linux Docker before any new Synology package
+is built. The checkpoint must prove personal collection creation, a clear no-selection error, `0`-key
+save/remove behavior, confirmation before removal, visible result flags, PDF and Markdown navigation,
+and references spanning two knowledge spaces. Backend integration must additionally prove owner
+isolation, current silo-read enforcement, CSRF/idempotency enforcement, and search-only API-key denial.
+
+Run the normal quality suite, PostgreSQL integration suite, and browser suite. Do not invoke
+`package:thin`, `package:candidate`, or update the SPK revision for this checkpoint. The existing
+Synology artifact remains unchanged until the user explicitly authorizes a later DSM build.
 
 ## Milestone 1 feasibility gate
 

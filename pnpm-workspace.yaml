@@ -19,3 +19,6 @@ allowBuilds:
   protobufjs: false
   sharp: true
   ssh2: false
+
+minimumReleaseAgeExclude:
+  - dompurify@3.4.15

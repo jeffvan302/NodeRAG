@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "stage": "C02",
+  "name": "OpenAI OAuth Administration and live model catalog",
+  "recordedAt": "2026-09-15T04:41:54.4320050-04:00",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "boundary": {
+    "provider": "openai_oauth",
+    "authentication": "chatgptDeviceCode",
+    "sharedServerAccount": true,
+    "browserCredentialInputAccepted": false,
+    "chatExecutionEnabled": false,
+    "appServerAdministrationMethods": [
+      "account/read",
+      "account/login/start",
+      "account/login/cancel",
+      "account/logout",
+      "account/rateLimits/read",
+      "model/list"
+    ],
+    "modelTurnMethodsAccepted": false,
+    "builtInShellOrFilesystemAvailable": false,
+    "internetProvider": "ollama_cloud",
+    "openAiInternetSearchEnabled": false
+  },
+  "implementation": {
+    "migration": {
+      "path": "packages/server/migrations/000020_chat_openai_oauth.sql",
+      "sha256": "86d2eafa59c96e095609d49fb7ea941de346af36578666c02d056c2c82cc5aac"
+    },
+    "protocolAdapter": {
+      "path": "packages/server/src/chat/codex-app-server.ts",
+      "sha256": "825e41249b448e176447c02176e80c6dc92509858d7946edc013bb5635cc86cd"
+    },
+    "oauthManager": {
+      "path": "packages/server/src/chat/openai-oauth.ts",
+      "sha256": "3069bc66f9a8ef55af38d8bb3d222b73ce2b651b8d2ad4ec89f6b56155ac560a"
+    },
+    "routes": {
+      "path": "packages/server/src/api/chat-openai-routes.ts",
+      "sha256": "8bd4dab88ab912d6e0ff3ad1a0e02ea06723ca9f0415164cb325fb718cb69b6f",
+      "adminRouteCount": 7
+    },
+    "protocolUnitTest": {
+      "path": "packages/server/test/codex-app-server.unit.test.ts",
+      "sha256": "5f49c6b11bfab6cfd4b9c70c4942ae49ddda1ef674e819a7b92340fef7e5e81f"
+    },
+    "oauthUnitTest": {
+      "path": "packages/server/test/openai-oauth.unit.test.ts",
+      "sha256": "b407fea339bbb72c1e62d8a9e02b2ae4027e6d415151034f314d28cafa7c5c21"
+    },
+    "providerIntegrationTest": {
+      "path": "packages/server/test/chat-provider.integration.test.ts",
+      "sha256": "a57fb1a97e481eb213b0704bc1007660a14622307a6da0d066eb7dd81e6c7aaf"
+    },
+    "recoveryIntegrationTest": {
+      "path": "packages/server/test/recovery.integration.test.ts",
+      "sha256": "0753acefa76101d7794e0ef1e382c654374e506c9b3248992dc2255072b800ed"
+    },
+    "administrationUi": {
+      "path": "packages/ui/src/workspace.tsx",
+      "sha256": "1b112580518c7f968f7891c1bcc0dbaa8813405c3a2b88407067b95a645a24b7"
+    },
+    "operatorGuide": {
+      "path": "docs/Implementation/chat-openai-oauth-operations.md",
+      "sha256": "50add2a6597fc6d2f0778bdbf34269e3e41fd43bde84d619107618b3fc09a1d7"
+    },
+    "backupPolicySha256": "16587052afe6a9bf4f9be748a41667e1902c983f92623a058fa0966d8fd91ea3",
+    "routeAuthorizationSha256": "7235d25f6bbd16ee0dbe0974bc9d2008d1b7ed640be8a8bf313e9e6fae5db8b1",
+    "openApiSha256": "6aa26ab2d077b52bf724a36f258696bfd08260518eda84a2afb2f14054e085ce",
+    "buildScriptSha256": "b6a7d81cd2a29e3c135aa220d29f94861b3b081c929f24cdc9cf8a1e12c4bb0c",
+    "appServerSmokeSha256": "2acfc97a4272a297cbaf5f0f143a2352d4c7538742153db6480ef56dad6e7598"
+  },
+  "credentialLifecycle": {
+    "isolatedCodexHome": true,
+    "credentialFileMaximumBytes": 524288,
+    "encryptedAtRest": true,
+    "restartRestore": "passed",
+    "stderrRedaction": "passed",
+    "fullEncryptedRecovery": "passed",
+    "restoredProviderState": "disabled_pending_revalidation",
+    "portableExportIncludesCredential": false,
+    "disconnectDeletesCredential": true
+  },
+  "catalog": {
+    "pageSize": 100,
+    "maximumPages": 10,
+    "hiddenModelsStored": false,
+    "futureReasoningEffortsPreserved": true,
+    "missingInputModalities": ["text", "image"],
+    "unknownContextTokensRemainNull": true,
+    "removedSelectionFallsBackToLiveDefault": true
+  },
+  "verification": {
+    "focusedUnit": { "result": "passed", "files": 2, "tests": 14 },
+    "providerIntegration": {
+      "result": "passed",
+      "tests": 13,
+      "environment": "Docker Linux/amd64 Node 22"
+    },
+    "recoveryIntegration": {
+      "result": "passed",
+      "tests": 4,
+      "environment": "Docker Linux/amd64 Node 22",
+      "openAiCredentialRestore": "passed_disabled_pending_revalidation"
+    },
+    "windowsAppServerSmoke": { "result": "passed", "version": "0.147.0" },
+    "dockerSourceAppServerSmoke": { "result": "passed", "version": "0.147.0" },
+    "dockerBuiltAppServerSmoke": { "result": "passed", "version": "0.147.0" },
+    "focusedBrowser": { "result": "passed", "tests": 1, "wcagAAndAA": "passed" },
+    "fullBrowser": { "result": "passed", "tests": 22 },
+    "fullUnit": { "result": "passed", "files": 44, "tests": 177 },
+    "dependencyBoundaries": { "result": "passed", "modules": 156, "dependencies": 283 },
+    "migrationInventory": { "result": "passed", "head": "000020_chat_openai_oauth" },
+    "openApiInventory": { "result": "passed" },
+    "workspaceTypecheck": { "result": "passed", "projects": 6 },
+    "workspaceLint": { "result": "passed" },
+    "workspaceFormat": { "result": "passed" },
+    "buildAndSmoke": { "result": "passed" },
+    "licenseInventory": { "result": "passed", "licenseClasses": 7 },
+    "sbom": { "result": "passed", "runtimePackages": 267 },
+    "secretScan": { "result": "passed" },
+    "combinedQualityGate": { "result": "passed" },
+    "optionalLiveOpenAi": { "result": "not_run", "requiredForDeterministicGate": false },
+    "synologyDsmBinary": { "result": "deferred_to_C11" }
+  },
+  "officialProtocolReference": "https://learn.chatgpt.com/docs/app-server",
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "remaining": [
+    "C03 adds context-window and Chat-default Administration while Chat remains disabled.",
+    "C07 exposes only bounded Ollama Cloud internet search and web fetch to Chat.",
+    "Real Synology DSM app-server execution remains the C11 package gate."
+  ]
+}

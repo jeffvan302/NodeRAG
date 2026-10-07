@@ -4,21 +4,30 @@ import type { Pool } from 'pg';
 import { z } from 'zod';
 import { executeIdempotent, IdempotencyConflictError } from '../application/idempotency.js';
 import type { AuthenticatedPrincipal, RequestAuthenticator } from './authentication.js';
-import { SiloScope } from '../identity/scope.js';
+import { SiloScope, withSiloScope } from '../identity/scope.js';
 import { activateOllamaVision, OllamaVisionProvider } from '../vision/ollama.js';
 import { visionActivationSample } from '../vision/activation-sample.js';
 import type { SecretVault } from '../identity/secrets.js';
+import {
+  PDF_CONFIDENCE_POLICY_REVISION,
+  PDF_CONFIDENCE_THRESHOLDS,
+  PDF_EXTRACTION_VERSION,
+  PDF_LAYOUT_POLICY_REVISION,
+  PDF_PARSER_REVISION,
+} from '../extract/pdf-layout.js';
+import { calculateVisionDispatchEstimate } from '../vision/estimate.js';
 
 const idSchema = z.coerce.number().int().positive();
 const activationSchema = z
   .object({
     baseUrl: z.string().url(),
-    model: z.string().min(1).max(200),
+    model: z.string().min(1).max(200).default('minimax-m3:cloud'),
     bearerToken: z.string().min(1).max(4000).optional(),
     maximumParallel: z.number().int().min(1).max(16).default(2),
+    maximumImagesPerCall: z.number().int().min(1).max(16).default(3),
     timeoutMs: z.number().int().min(1000).max(600_000).default(120_000),
     maximumAttempts: z.number().int().min(1).max(10).default(3),
-    maximumImageDimension: z.number().int().min(256).max(8192).default(2048),
+    maximumImageDimension: z.number().int().min(256).max(8192).default(1650),
   })
   .strict();
 const retrySchema = z
@@ -64,7 +73,9 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
       options.pool.query(
         `SELECT vision_enabled AS "enabled", ollama_base_url AS "baseUrl",
                 ollama_model AS model, ollama_model_revision AS "modelRevision",
-                ollama_parallel AS "maximumParallel", ollama_timeout_ms AS "timeoutMs",
+                ollama_parallel AS "maximumParallel",
+                ollama_images_per_call AS "maximumImagesPerCall",
+                ollama_timeout_ms AS "timeoutMs",
                 ollama_max_attempts AS "maximumAttempts", max_image_px AS "maximumImageDimension",
                 (ollama_secret_id IS NOT NULL) AS "credentialConfigured",
                 vision_activated_at AS "activatedAt",
@@ -84,13 +95,13 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
          FROM noderag.vision_dispatch`,
       ),
       options.pool.query<{
-        projected_calls: number;
+        pending_images: number;
         scan_pages: number;
         average_ms: number | null;
       }>(
         `SELECT
            (SELECT count(*)::integer FROM noderag.document_image
-            WHERE state = 'pending_vision') AS projected_calls,
+            WHERE state = 'pending_vision') AS pending_images,
            (SELECT count(*)::integer FROM noderag.document_page
             WHERE extraction = 'vision') AS scan_pages,
            (SELECT round(avg(elapsed_ms))::integer FROM noderag.vision_cache
@@ -98,7 +109,9 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
       ),
     ]);
     const estimate = projection.rows[0];
-    const projectedCalls = estimate?.projected_calls ?? 0;
+    const pendingImages = estimate?.pending_images ?? 0;
+    const maximumImagesPerCall = Number(settings.rows[0]?.maximumImagesPerCall ?? 3);
+    const projectedCalls = Math.ceil(pendingImages / maximumImagesPerCall);
     const averageMs = estimate?.average_ms ?? null;
     return reply.send({
       settings: settings.rows[0] ?? null,
@@ -106,6 +119,7 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
       dispatches: dispatches.rows[0] ?? { open: 0, failed: 0 },
       estimate: {
         projectedCalls,
+        pendingImages,
         scanPages: estimate?.scan_pages ?? 0,
         averageCallMs: averageMs,
         projectedElapsedMs: averageMs === null ? null : averageMs * projectedCalls,
@@ -124,15 +138,22 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
       return reply.code(403).send(problem(403, 'csrf_rejected', request.id));
     const body = activationSchema.safeParse(request.body);
     if (!body.success) return reply.code(400).send(problem(400, 'invalid_request', request.id));
-    const token = body.data.bearerToken ?? options.runtimeBearerToken;
-    const digestBody = {
-      ...body.data,
-      bearerToken:
-        token === undefined
-          ? null
-          : createHash('sha256').update(token, 'utf8').digest('hex').slice(0, 16),
-    };
     try {
+      const storedToken =
+        body.data.bearerToken === undefined &&
+        options.runtimeBearerToken === undefined &&
+        options.secretVault !== undefined
+          ? ((await options.secretVault.reveal(options.pool, 'ollama', 'bearer-token')) ??
+            undefined)
+          : undefined;
+      const token = body.data.bearerToken ?? options.runtimeBearerToken ?? storedToken;
+      const digestBody = {
+        ...body.data,
+        bearerToken:
+          token === undefined
+            ? null
+            : createHash('sha256').update(token, 'utf8').digest('hex').slice(0, 16),
+      };
       const result = await executeIdempotent(
         options.pool,
         {
@@ -155,6 +176,7 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
               provider,
               visionActivationSample(),
               controller.signal,
+              body.data.maximumImagesPerCall,
             );
             const elapsedMs = Math.max(0, Math.round(performance.now() - started));
             let secretId: number | null = null;
@@ -176,16 +198,18 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
               `UPDATE noderag.settings
                SET vision_enabled = true, ollama_base_url = $1, ollama_model = $2,
                    ollama_model_revision = $3, ollama_parallel = $4,
-                   ollama_timeout_ms = $5, ollama_max_attempts = $6, max_image_px = $7,
-                   vision_activated_at = now(), vision_sample_elapsed_ms = $8,
-                   ollama_secret_id = COALESCE($9::bigint, ollama_secret_id),
-                   updated_at = now(), updated_by = $10
+                   ollama_images_per_call = $5,
+                   ollama_timeout_ms = $6, ollama_max_attempts = $7, max_image_px = $8,
+                   vision_activated_at = now(), vision_sample_elapsed_ms = $9,
+                   ollama_secret_id = COALESCE($10::bigint, ollama_secret_id),
+                   updated_at = now(), updated_by = $11
                WHERE id = 1`,
               [
                 body.data.baseUrl,
                 body.data.model,
                 activation.model.digest ?? activation.model.name,
                 body.data.maximumParallel,
+                body.data.maximumImagesPerCall,
                 body.data.timeoutMs,
                 body.data.maximumAttempts,
                 body.data.maximumImageDimension,
@@ -204,7 +228,7 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
                 sample: activation.sample,
                 elapsedMs,
                 securityWarning: provider.securityWarning(),
-                bearerTokenPersisted: secretId !== null,
+                bearerTokenPersisted: secretId !== null || storedToken !== undefined,
               },
             };
           } finally {
@@ -359,37 +383,253 @@ export const registerVisionRoutes = (app: FastifyInstance, options: VisionRoutes
     if (!documentId.success)
       return reply.code(400).send(problem(400, 'invalid_request', request.id));
     const scope = await SiloScope.resolve(options.pool, principal.principalId, 'read_markdown');
-    const found = await options.pool.query<{
-      silo_id: number;
-      projected_calls: number;
-      scan_pages: number;
-      average_ms: number | null;
-    }>(
-      `SELECT document.silo_id,
-              count(image.id) FILTER (WHERE image.state = 'pending_vision')::integer
-                AS projected_calls,
-              count(DISTINCT page.ordinal) FILTER (WHERE page.extraction = 'vision')::integer
-                AS scan_pages,
-              (SELECT round(avg(elapsed_ms))::integer FROM noderag.vision_cache
-               WHERE elapsed_ms IS NOT NULL) AS average_ms
-       FROM noderag.document document
-       LEFT JOIN noderag.document_page page ON page.document_id = document.id
-       LEFT JOIN noderag.document_image image
-         ON image.document_id = document.id AND image.page_ordinal = page.ordinal
-       WHERE document.id = $1
-       GROUP BY document.id, document.silo_id`,
-      [documentId.data],
+    const found = await withSiloScope(options.pool, scope, (database) =>
+      database.query<{
+        silo_id: number;
+        projected_calls: number;
+        scan_pages: number;
+        average_ms: number | null;
+        images_per_call: number;
+      }>(
+        `SELECT document.silo_id,
+                count(image.id) FILTER (WHERE image.state = 'pending_vision')::integer
+                  AS projected_calls,
+                count(DISTINCT page.ordinal) FILTER (WHERE page.extraction = 'vision')::integer
+                  AS scan_pages,
+                (SELECT round(avg(elapsed_ms))::integer FROM noderag.vision_cache
+                 WHERE elapsed_ms IS NOT NULL) AS average_ms,
+                (SELECT ollama_images_per_call FROM noderag.settings WHERE id = 1)
+                  AS images_per_call
+         FROM noderag.document document
+         LEFT JOIN noderag.document_page page ON page.document_id = document.id
+         LEFT JOIN noderag.document_image image
+           ON image.document_id = document.id AND image.page_ordinal = page.ordinal
+         WHERE document.id = $1
+         GROUP BY document.id, document.silo_id`,
+        [documentId.data],
+      ),
     );
     const row = found.rows[0];
     if (row === undefined || !scope.includes(row.silo_id))
       return reply.code(404).send(problem(404, 'not_found', request.id));
     return reply.send({
       documentId: documentId.data,
-      projectedCalls: row.projected_calls,
+      pendingImages: row.projected_calls,
+      projectedCalls: Math.ceil(row.projected_calls / row.images_per_call),
       scanPages: row.scan_pages,
       averageCallMs: row.average_ms,
-      projectedElapsedMs: row.average_ms === null ? null : row.average_ms * row.projected_calls,
+      projectedElapsedMs:
+        row.average_ms === null
+          ? null
+          : row.average_ms * Math.ceil(row.projected_calls / row.images_per_call),
       warnings: row.scan_pages >= 400 ? ['large-scan-provider-cost-and-time'] : [],
+    });
+  });
+
+  app.get('/v1/documents/:id/extraction-diagnostics', async (request, reply) => {
+    const principal = await options.authenticate(request);
+    if (principal === null)
+      return reply.code(401).send(problem(401, 'authentication_required', request.id));
+    const documentId = idSchema.safeParse((request.params as { id?: unknown }).id);
+    if (!documentId.success)
+      return reply.code(400).send(problem(400, 'invalid_request', request.id));
+    const scope = await SiloScope.resolve(options.pool, principal.principalId, 'read_markdown');
+    const diagnostic = await withSiloScope(options.pool, scope, async (database) => {
+      const found = await database.query<{
+        silo_id: number;
+        extension: string;
+        metadata: Record<string, unknown>;
+      }>('SELECT silo_id,extension,metadata FROM noderag.document WHERE id=$1', [documentId.data]);
+      const document = found.rows[0];
+      if (document === undefined || !scope.includes(document.silo_id)) return null;
+      const pages = await database.query<{
+        ordinal: number;
+        extraction: string;
+        extraction_confidence: number;
+      }>(
+        `SELECT ordinal,extraction,extraction_confidence
+         FROM noderag.document_page WHERE document_id=$1 ORDER BY ordinal`,
+        [documentId.data],
+      );
+      const blocks = await database.query<{
+        page_ordinal: number;
+        kind: string;
+        combined_confidence: number;
+        warning_codes: string[];
+        confidence_components: {
+          routing?: { disposition?: string; reasons?: string[] };
+        };
+      }>(
+        `SELECT page_ordinal,kind,combined_confidence,warning_codes,confidence_components
+         FROM noderag.document_block
+         WHERE document_id=$1 ORDER BY page_ordinal,reading_order,ordinal`,
+        [documentId.data],
+      );
+      return { document, pages, blocks };
+    });
+    if (diagnostic === null) return reply.code(404).send(problem(404, 'not_found', request.id));
+    const { document, pages, blocks } = diagnostic;
+    const extractionMetadata =
+      document.metadata['extractionMetadata'] !== null &&
+      typeof document.metadata['extractionMetadata'] === 'object'
+        ? (document.metadata['extractionMetadata'] as Record<string, unknown>)
+        : {};
+    const dispositions = blocks.rows.map(
+      ({ confidence_components }) => confidence_components.routing?.disposition ?? 'native-safe',
+    );
+    const warnings = [
+      ...new Set(blocks.rows.flatMap(({ warning_codes }) => warning_codes).filter(Boolean)),
+    ].sort();
+    const extractionCounts = {
+      native: pages.rows.filter(({ extraction }) => extraction === 'text').length,
+      vision: pages.rows.filter(({ extraction }) => extraction === 'vision').length,
+      mixed: pages.rows.filter(({ extraction }) => extraction === 'mixed').length,
+    };
+    return reply.send({
+      documentId: documentId.data,
+      format: document.extension,
+      revisions: {
+        pdfExtractionVersion:
+          extractionMetadata['pdfExtractionVersion'] ??
+          (document.extension === 'pdf' ? 'legacy-or-unrecorded' : null),
+        parserRevision: extractionMetadata['parserRevision'] ?? null,
+        layoutPolicyRevision: extractionMetadata['layoutPolicyRevision'] ?? null,
+        confidencePolicyRevision: extractionMetadata['confidencePolicyRevision'] ?? null,
+        visionPromptRevision: extractionMetadata['visionPromptRevision'] ?? null,
+        visionSchemaRevision: extractionMetadata['visionSchemaRevision'] ?? null,
+        cropPolicyRevision: extractionMetadata['cropPolicyRevision'] ?? null,
+      },
+      pageCounts: extractionCounts,
+      blockCounts: {
+        total: blocks.rows.length,
+        nativeSafe: dispositions.filter((value) => value === 'native-safe').length,
+        regionalVision: dispositions.filter((value) => value === 'regional-vision').length,
+        fullPageVision: dispositions.filter((value) => value === 'full-page-vision').length,
+        lowConfidence: blocks.rows.filter(
+          ({ combined_confidence }) => combined_confidence < PDF_CONFIDENCE_THRESHOLDS.nativeSafe,
+        ).length,
+      },
+      thresholds: PDF_CONFIDENCE_THRESHOLDS,
+      warnings,
+      vision: {
+        providerCalls: Number(extractionMetadata['visionProviderCalls'] ?? 0),
+        cacheHits: Number(extractionMetadata['visionCacheHits'] ?? 0),
+        cacheHitRate: (() => {
+          const calls = Number(extractionMetadata['visionProviderCalls'] ?? 0);
+          const hits = Number(extractionMetadata['visionCacheHits'] ?? 0);
+          return calls + hits === 0 ? 0 : hits / (calls + hits);
+        })(),
+        regionalCandidates: Number(extractionMetadata['regionalVisionCandidates'] ?? 0),
+      },
+      extractionElapsedMs: Number(extractionMetadata['extractionElapsedMs'] ?? 0),
+      fallbacks: warnings.filter((warning) => /fallback|unresolved|not-accepted/iu.test(warning)),
+      markdownReader: {
+        endpoint: `/v1/documents/${String(documentId.data)}/markdown`,
+        available: true,
+      },
+      enhancedReindexAvailable:
+        document.extension === 'pdf' &&
+        extractionMetadata['pdfExtractionVersion'] !== PDF_EXTRACTION_VERSION,
+      pages: pages.rows.map((page) => {
+        const pageBlocks = blocks.rows.filter(({ page_ordinal }) => page_ordinal === page.ordinal);
+        return {
+          ordinal: page.ordinal,
+          pageNumber: page.ordinal + 1,
+          extraction: page.extraction,
+          extractionConfidence: page.extraction_confidence,
+          lowConfidenceBlocks: pageBlocks.filter(
+            ({ combined_confidence }) => combined_confidence < PDF_CONFIDENCE_THRESHOLDS.nativeSafe,
+          ).length,
+          routingReasons: [
+            ...new Set(
+              pageBlocks.flatMap(
+                ({ confidence_components }) => confidence_components.routing?.reasons ?? [],
+              ),
+            ),
+          ],
+        };
+      }),
+    });
+  });
+
+  app.get('/v1/documents/:id/enhanced-reindex-estimate', async (request, reply) => {
+    const principal = await options.authenticate(request);
+    if (principal === null)
+      return reply.code(401).send(problem(401, 'authentication_required', request.id));
+    const documentId = idSchema.safeParse((request.params as { id?: unknown }).id);
+    if (!documentId.success)
+      return reply.code(400).send(problem(400, 'invalid_request', request.id));
+    const scope = await SiloScope.resolve(options.pool, principal.principalId, 'read_markdown');
+    const estimate = await withSiloScope(options.pool, scope, (database) =>
+      database.query<{
+        silo_id: number;
+        extension: string;
+        page_count: number;
+        regional_candidates: number;
+        full_page_candidates: number;
+        images_per_call: number;
+        parallel_calls: number;
+        average_ms: number | null;
+        metadata: Record<string, unknown>;
+      }>(
+        `SELECT document.silo_id,document.extension,document.page_count,document.metadata,
+                (SELECT count(*)::integer FROM noderag.document_block block
+                 WHERE block.document_id=document.id
+                   AND block.confidence_components #>> '{routing,disposition}'='regional-vision')
+                  AS regional_candidates,
+                (SELECT count(*)::integer FROM noderag.document_page page
+                 WHERE page.document_id=document.id AND page.extraction='vision')
+                  AS full_page_candidates,
+                settings.ollama_images_per_call AS images_per_call,
+                settings.ollama_parallel AS parallel_calls,
+                (SELECT round(avg(elapsed_ms))::integer FROM noderag.vision_cache
+                 WHERE elapsed_ms IS NOT NULL) AS average_ms
+         FROM noderag.document document CROSS JOIN noderag.settings settings
+         WHERE document.id=$1 AND settings.id=1`,
+        [documentId.data],
+      ),
+    );
+    const row = estimate.rows[0];
+    if (row === undefined || !scope.includes(row.silo_id))
+      return reply.code(404).send(problem(404, 'not_found', request.id));
+    if (row.extension !== 'pdf')
+      return reply.code(400).send(problem(400, 'enhanced-reindex-pdf-only', request.id));
+    const dispatch = calculateVisionDispatchEstimate(
+      row.regional_candidates + row.full_page_candidates,
+      row.images_per_call,
+      row.parallel_calls,
+      row.average_ms,
+    );
+    const extractionMetadata =
+      row.metadata['extractionMetadata'] !== null &&
+      typeof row.metadata['extractionMetadata'] === 'object'
+        ? (row.metadata['extractionMetadata'] as Record<string, unknown>)
+        : {};
+    return reply.send({
+      documentId: documentId.data,
+      pageCount: row.page_count,
+      regionalVisionCandidates: row.regional_candidates,
+      fullPageVisionCandidates: row.full_page_candidates,
+      estimatedImages: dispatch.estimatedImages,
+      expectedCacheHits: 0,
+      imagesPerCall: dispatch.imagesPerCall,
+      parallelCalls: dispatch.parallelCalls,
+      estimatedBatches: dispatch.estimatedBatches,
+      estimatedParallelWaves: dispatch.estimatedParallelWaves,
+      averageCallMs: row.average_ms,
+      provisionalElapsedMs: dispatch.provisionalElapsedMs,
+      currentExtractionVersion: extractionMetadata['pdfExtractionVersion'] ?? null,
+      targetRevisions: {
+        pdfExtractionVersion: PDF_EXTRACTION_VERSION,
+        parserRevision: PDF_PARSER_REVISION,
+        layoutPolicyRevision: PDF_LAYOUT_POLICY_REVISION,
+        confidencePolicyRevision: PDF_CONFIDENCE_POLICY_REVISION,
+      },
+      estimateIsProvisional: true,
+      warnings: [
+        ...(row.page_count >= 400 ? ['large-pdf-provider-cost-and-time'] : []),
+        ...(row.average_ms === null ? ['provider-duration-baseline-unavailable'] : []),
+      ],
     });
   });
 };

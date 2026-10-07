@@ -13,6 +13,7 @@ export interface AcceptDocumentUploadInput {
   readonly filename: string;
   readonly mimeType: string;
   readonly staged: StagedUpload;
+  readonly provenanceMetadata?: Readonly<Record<string, unknown>>;
 }
 
 export interface AcceptedDocumentUpload {
@@ -55,7 +56,7 @@ export const acceptDocumentUpload = async (
           byte_count, original_sha256, uploaded_by, metadata)
        VALUES ($1, $2, $3, $4, $5, $6, $3, $7, $8, $9,
                jsonb_build_object('managedOriginal', $10::text,
-                                  'managedMarkdown', $11::text))`,
+                                  'managedMarkdown', $11::text) || $12::jsonb)`,
       [
         documentId,
         input.siloId,
@@ -68,6 +69,7 @@ export const acceptDocumentUpload = async (
         input.principalId,
         paths.originalRelative,
         paths.markdownRelative,
+        JSON.stringify(input.provenanceMetadata ?? {}),
       ],
     );
     const job = await database.query<{ id: unknown }>(

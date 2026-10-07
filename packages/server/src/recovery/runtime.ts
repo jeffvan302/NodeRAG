@@ -2,6 +2,7 @@ import type { ClientConfig } from 'pg';
 import type { Pool } from 'pg';
 import type { SecretVault } from '../identity/secrets.js';
 import { databaseInteger } from '../store/database.js';
+import { CURRENT_SCHEMA_REVISION } from '../store/schema-revision.js';
 import { executeBackup } from './backup.js';
 import type { BackupProduct } from './archive.js';
 import { loadBackupClassification } from './policy.js';
@@ -156,7 +157,7 @@ export class RecoveryRuntime {
         dataRoot: this.#options.dataRoot,
         compatibility: {
           supportedArchiveVersions: [1],
-          migrationHead: '000011_recovery_hardening',
+          migrationHead: CURRENT_SCHEMA_REVISION,
           postgresMajor,
           modelDimensions,
         },
@@ -189,8 +190,16 @@ export class RecoveryRuntime {
       managed_path: string;
       product: BackupProduct;
       include_models: boolean;
+      chat_root: string | null;
     }>(
-      `SELECT location.managed_path,operation.product,operation.include_models
+      `SELECT location.managed_path,operation.product,operation.include_models,
+              (
+                SELECT settings.storage_resolved_path
+                FROM noderag.chat_configuration_current current
+                JOIN noderag.chat_settings_revision settings
+                  ON settings.id=current.settings_revision_id
+                WHERE current.singleton=true
+              ) AS chat_root
        FROM noderag.backup_operation operation
        JOIN noderag.storage_location location ON location.id=operation.destination_id
        WHERE operation.id=$1 AND operation.state='queued'
@@ -223,8 +232,9 @@ export class RecoveryRuntime {
       destination: row.managed_path,
       passphrase: request.passphrase,
       dataRoot: this.#options.dataRoot,
+      ...(row.chat_root === null ? {} : { chatRoot: row.chat_root }),
       policy,
-      migrationHead: '000011_recovery_hardening',
+      migrationHead: CURRENT_SCHEMA_REVISION,
       postgresMajor,
       postgresClientMajor: clientMajor,
       requiredFreeBytes: Math.ceil(databaseBytes * (request.includeModels ? 2.5 : 1.5)),

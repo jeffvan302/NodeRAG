@@ -31,6 +31,7 @@ export const extractedImageFromVision = (
     visionAlt: result.alt,
     visionRevisions: result.revisions,
     visionCacheKey: result.cacheKey,
+    ...(result.disposition === 'analysed' ? { visionCached: result.cached } : {}),
     ...(result.preprocessedSha256 === undefined
       ? {}
       : { preprocessedSha256: result.preprocessedSha256 }),

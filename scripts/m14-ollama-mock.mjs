@@ -15,17 +15,24 @@ const server = createServer((request, response) => {
       body += part;
     });
     request.on('end', () => {
-      JSON.parse(body);
+      const parsed = JSON.parse(body);
+      const imageCount = parsed.messages?.[0]?.images?.length ?? 0;
+      const visionResult = (imageIndex) => ({
+        ...(imageIndex === null ? {} : { imageIndex }),
+        kind: 'table',
+        markdown: '| Component | State |\n| --- | --- |\n| M14 | healthy |',
+        alt: 'A two-column release-candidate health table.',
+        confidence: 0.99,
+      });
+      const content =
+        imageCount > 1
+          ? { results: Array.from({ length: imageCount }, (_, index) => visionResult(index + 1)) }
+          : visionResult(null);
       response.end(
         JSON.stringify({
           message: {
             role: 'assistant',
-            content: JSON.stringify({
-              kind: 'table',
-              markdown: '| Component | State |\n| --- | --- |\n| M14 | healthy |',
-              alt: 'A two-column release-candidate health table.',
-              confidence: 0.99,
-            }),
+            content: JSON.stringify(content),
           },
         }),
       );

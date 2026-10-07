@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
@@ -201,14 +201,20 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
     await rm(root, { recursive: true, force: true });
   });
 
-  it('supports deterministic vector, keyword, and RRF hybrid modes with bounded filters', async () => {
-    for (const mode of ['vector', 'keyword', 'hybrid'] as const) {
+  it('supports deterministic meaning, semantic, keyword, and hybrid modes with bounded filters', async () => {
+    let exactChunkId = 0;
+    for (const mode of ['vector', 'semantic', 'keyword', 'hybrid'] as const) {
       const result = await app.inject({
         method: 'POST',
         url: '/v1/search',
         headers: { cookie },
         payload: {
-          query: mode === 'vector' ? 'contract notice evidence' : 'ZX-991',
+          query:
+            mode === 'semantic'
+              ? 'legal cobalt register preserves contract notice evidence'
+              : mode === 'vector'
+                ? 'contract notice evidence'
+                : 'ZX-991',
           mode,
           silos: [firstSiloId],
           limit: 10,
@@ -217,16 +223,31 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
       expect(result.statusCode, result.body).toBe(200);
       const items = result.json<{
         items: Array<{
+          chunkId: number;
           documentId: number;
+          confidence: number;
           locator: { characterUnit: string; byteUnit: string };
           document: { originalAvailable: boolean };
+          evidence: Array<{ kind: string; text: string; confidence: number }>;
         }>;
       }>().items;
+      if (mode === 'keyword') exactChunkId = items[0]?.chunkId ?? 0;
       expect(items[0]).toMatchObject({
         documentId: firstDocumentId,
         locator: { characterUnit: 'utf16', byteUnit: 'utf8' },
         document: { originalAvailable: true },
       });
+      if (mode === 'semantic') {
+        expect(items[0]?.evidence).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              kind: 'semantic',
+              text: expect.stringContaining('contract notice evidence'),
+            }),
+          ]),
+        );
+        expect(items[0]?.evidence[0]?.confidence).toBe(items[0]?.['confidence']);
+      }
     }
     const filtered = await app.inject({
       method: 'POST',
@@ -235,6 +256,61 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
       payload: { query: 'ZX-991', mode: 'keyword', filters: { formats: ['pdf'] } },
     });
     expect(filtered.json<{ items: unknown[] }>().items).toEqual([]);
+    const confidenceFiltered = await app.inject({
+      method: 'POST',
+      url: '/v1/search',
+      headers: { cookie },
+      payload: {
+        query: 'ZX-991',
+        mode: 'keyword',
+        filters: { minimumConfidence: 0.95 },
+      },
+    });
+    expect(confidenceFiltered.statusCode, confidenceFiltered.body).toBe(200);
+    expect(confidenceFiltered.json<{ items: unknown[] }>().items).toEqual([]);
+    const evidence = await app.inject({
+      method: 'POST',
+      url: '/v1/search/evidence',
+      headers: { cookie },
+      payload: { query: 'ZX-991', mode: 'hybrid', chunkIds: [exactChunkId] },
+    });
+    expect(evidence.statusCode, evidence.body).toBe(200);
+    expect(
+      evidence.json<{
+        items: Array<{ kind: string; text: string; confidence: number }>;
+        semanticStatus: string;
+        semanticCache: string;
+      }>(),
+    ).toMatchObject({
+      items: expect.arrayContaining([
+        expect.objectContaining({ kind: 'exact', text: 'ZX-991', confidence: 1 }),
+      ]),
+      semanticStatus: 'ready',
+      semanticCache: 'miss',
+    });
+    const cachedEvidence = await app.inject({
+      method: 'POST',
+      url: '/v1/search/evidence',
+      headers: { cookie },
+      payload: { query: 'ZX-991', mode: 'hybrid', chunkIds: [exactChunkId] },
+    });
+    expect(cachedEvidence.statusCode, cachedEvidence.body).toBe(200);
+    expect(cachedEvidence.json()).toMatchObject({
+      items: evidence.json<{ items: unknown[] }>().items,
+      semanticStatus: 'ready',
+      semanticCache: 'hit',
+    });
+    const invalidConfidence = await app.inject({
+      method: 'POST',
+      url: '/v1/search',
+      headers: { cookie },
+      payload: {
+        query: 'ZX-991',
+        mode: 'keyword',
+        filters: { minimumConfidence: 0.96 },
+      },
+    });
+    expect(invalidConfidence.statusCode).toBe(400);
     const table = await app.inject({
       method: 'POST',
       url: '/v1/search',
@@ -242,6 +318,255 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
       payload: { query: 'ZX-991', mode: 'keyword', filters: { hasTables: true } },
     });
     expect(table.statusCode, table.body).toBe(200);
+  });
+
+  it('stores personal research references across knowledge spaces and removes them safely', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/v1/research',
+      headers: {
+        cookie,
+        origin: 'http://noderag.test',
+        'x-csrf-token': csrf,
+        'idempotency-key': 'm08-research-create-001',
+      },
+      payload: { name: 'Legal Notes' },
+    });
+    expect(create.statusCode, create.body).toBe(201);
+    const researchId = create.json<{ id: number }>().id;
+
+    const searchOne = async (siloId: number, query: string) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/search',
+        headers: { cookie },
+        payload: { query, mode: 'keyword', silos: [siloId], limit: 1 },
+      });
+      expect(response.statusCode, response.body).toBe(200);
+      const hit = response.json<{ items: Array<Record<string, unknown>> }>().items[0];
+      expect(hit).toBeDefined();
+      return hit as Record<string, unknown>;
+    };
+    const firstHit = await searchOne(firstSiloId, 'ZX-991');
+    const secondHit = await searchOne(secondSiloId, 'RX-204');
+
+    const save = async (hit: Record<string, unknown>, key: string, query: string) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/v1/research/${String(researchId)}/items`,
+        headers: {
+          cookie,
+          origin: 'http://noderag.test',
+          'x-csrf-token': csrf,
+          'idempotency-key': key,
+        },
+        payload: {
+          siloId: hit['siloId'],
+          documentId: hit['documentId'],
+          chunkId: hit['chunkId'],
+          chunkIds: hit['chunkIds'],
+          text: hit['text'],
+          headingPath: hit['headingPath'],
+          locator: hit['locator'],
+          confidence: hit['confidence'],
+          evidence: hit['evidence'],
+          query,
+          mode: 'keyword',
+        },
+      });
+      expect(response.statusCode, response.body).toBe(201);
+      return response.json<{ researchItemId: number; siloId: number; chunkId: number }>();
+    };
+    const firstSaved = await save(firstHit, 'm08-research-save-001', 'ZX-991');
+    const secondSaved = await save(secondHit, 'm08-research-save-002', 'RX-204');
+    expect(new Set([firstSaved.siloId, secondSaved.siloId])).toEqual(
+      new Set([firstSiloId, secondSiloId]),
+    );
+
+    await pool.query(
+      `INSERT INTO noderag.document_page
+         (document_id,silo_id,ordinal,page_number,label,character_start,character_end,
+          byte_start,byte_end,extraction,extraction_confidence)
+       SELECT document_id,silo_id,1,2,'p. 2',character_start,character_end,
+              byte_start,byte_end,extraction,extraction_confidence
+       FROM noderag.document_page
+       WHERE document_id=$1 AND silo_id=$2 AND ordinal=0`,
+      [firstDocumentId, firstSiloId],
+    );
+    const savePage = async (pageOrdinal: number, key: string) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/v1/research/${String(researchId)}/pages`,
+        headers: {
+          cookie,
+          origin: 'http://noderag.test',
+          'x-csrf-token': csrf,
+          'idempotency-key': key,
+        },
+        payload: {
+          siloId: firstSiloId,
+          documentId: firstDocumentId,
+          anchorChunkId: firstSaved.chunkId,
+          pageOrdinal,
+          confidence: 0.82,
+          evidence: [],
+          query: 'ZX-991',
+          mode: 'keyword',
+        },
+      });
+      expect(response.statusCode, response.body).toBe(201);
+      return response.json<{
+        researchItemId: number;
+        pageOrdinal: number;
+        referenceKind: string;
+      }>();
+    };
+    const firstPage = await savePage(0, 'm08-research-page-001');
+    const secondPage = await savePage(1, 'm08-research-page-002');
+    expect(firstPage).toMatchObject({ pageOrdinal: 0, referenceKind: 'page' });
+    expect(secondPage).toMatchObject({ pageOrdinal: 1, referenceKind: 'page' });
+    expect(secondPage.researchItemId).not.toBe(firstPage.researchItemId);
+
+    const pageMemberships = await app.inject({
+      method: 'GET',
+      url: `/v1/research/${String(researchId)}/page-memberships?documentId=${String(firstDocumentId)}`,
+      headers: { cookie },
+    });
+    expect(pageMemberships.statusCode, pageMemberships.body).toBe(200);
+    expect(pageMemberships.json<{ items: Array<Record<string, unknown>> }>().items).toEqual([
+      expect.objectContaining({
+        researchItemId: firstPage.researchItemId,
+        pageOrdinal: 0,
+        pageNumber: 1,
+      }),
+      expect.objectContaining({
+        researchItemId: secondPage.researchItemId,
+        pageOrdinal: 1,
+        pageNumber: 2,
+      }),
+    ]);
+
+    const collections = await app.inject({
+      method: 'GET',
+      url: '/v1/research',
+      headers: { cookie },
+    });
+    expect(collections.statusCode, collections.body).toBe(200);
+    expect(collections.json<{ items: Array<Record<string, unknown>> }>().items[0]).toMatchObject({
+      id: researchId,
+      name: 'Legal Notes',
+      itemCount: 4,
+    });
+
+    const items = await app.inject({
+      method: 'GET',
+      url: `/v1/research/${String(researchId)}/items`,
+      headers: { cookie },
+    });
+    expect(items.statusCode, items.body).toBe(200);
+    expect(items.json<{ items: unknown[]; total: number; hidden: number }>()).toMatchObject({
+      total: 4,
+      hidden: 0,
+      items: [
+        { researchItemId: firstSaved.researchItemId, query: 'ZX-991', mode: 'keyword' },
+        { researchItemId: secondSaved.researchItemId, query: 'RX-204', mode: 'keyword' },
+        { researchItemId: firstPage.researchItemId, referenceKind: 'page', pageOrdinal: 0 },
+        { researchItemId: secondPage.researchItemId, referenceKind: 'page', pageOrdinal: 1 },
+      ],
+    });
+
+    const memberships = await app.inject({
+      method: 'GET',
+      url: `/v1/research/memberships?chunkIds=${String(firstSaved.chunkId)},${String(secondSaved.chunkId)}`,
+      headers: { cookie },
+    });
+    expect(memberships.statusCode, memberships.body).toBe(200);
+    expect(memberships.json<{ items: Array<Record<string, unknown>> }>().items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          chunkId: firstSaved.chunkId,
+          researchId,
+          researchName: 'Legal Notes',
+        }),
+        expect.objectContaining({
+          chunkId: secondSaved.chunkId,
+          researchId,
+          researchName: 'Legal Notes',
+        }),
+      ]),
+    );
+    expect(memberships.json<{ items: unknown[] }>().items).toHaveLength(2);
+
+    const noConfirmationHeaders = await app.inject({
+      method: 'DELETE',
+      url: `/v1/research/${String(researchId)}/items/${String(firstSaved.researchItemId)}`,
+      headers: { cookie, 'idempotency-key': 'm08-research-remove-no-csrf' },
+    });
+    expect(noConfirmationHeaders.statusCode).toBe(403);
+
+    const removed = await app.inject({
+      method: 'DELETE',
+      url: `/v1/research/${String(researchId)}/items/${String(firstSaved.researchItemId)}`,
+      headers: {
+        cookie,
+        origin: 'http://noderag.test',
+        'x-csrf-token': csrf,
+        'idempotency-key': 'm08-research-remove-001',
+      },
+    });
+    expect(removed.statusCode, removed.body).toBe(200);
+    expect(removed.json()).toMatchObject({ removed: true });
+    await pool.query(
+      'DELETE FROM noderag.document_page WHERE document_id=$1 AND silo_id=$2 AND ordinal=1',
+      [firstDocumentId, firstSiloId],
+    );
+
+    const otherUser = await app.inject({
+      method: 'POST',
+      url: '/v1/admin/principals',
+      headers: {
+        cookie,
+        origin: 'http://noderag.test',
+        'x-csrf-token': csrf,
+        'idempotency-key': 'm08-research-other-user-001',
+      },
+      payload: {
+        username: 'm08-research-other-user',
+        password: 'M08-research-other-user-password!',
+        mustChange: false,
+      },
+    });
+    expect(otherUser.statusCode, otherUser.body).toBe(201);
+    const otherLogin = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: {
+        username: 'm08-research-other-user',
+        password: 'M08-research-other-user-password!',
+      },
+    });
+    expect(otherLogin.statusCode, otherLogin.body).toBe(200);
+    const otherCookie = otherLogin.headers['set-cookie'] as string;
+    const otherCollections = await app.inject({
+      method: 'GET',
+      url: '/v1/research',
+      headers: { cookie: otherCookie },
+    });
+    expect(otherCollections.statusCode, otherCollections.body).toBe(200);
+    expect(otherCollections.json<{ items: unknown[] }>().items).toEqual([]);
+    const otherUserCannotOpen = await app.inject({
+      method: 'GET',
+      url: `/v1/research/${String(researchId)}/items`,
+      headers: { cookie: otherCookie },
+    });
+    expect(otherUserCannotOpen.statusCode).toBe(404);
+
+    const searchOnly = await app.inject({
+      method: 'GET',
+      url: '/v1/research',
+      headers: { authorization: `Bearer ${searchOnlyToken}` },
+    });
+    expect(searchOnly.statusCode).toBe(404);
   });
 
   it('returns pre-split context and keeps search-only credentials away from whole artifacts', async () => {
@@ -400,6 +725,7 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
       '/v1/admin/gateways',
       '/v1/admin/audit',
       '/v1/admin/health',
+      '/v1/admin/logs',
       '/v1/admin/vision/status',
       '/v1/admin/settings',
       '/v1/admin/models',
@@ -1119,7 +1445,28 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
       204,
     );
 
-    expect((await mutate('PUT', '/v1/admin/settings', { efSearch: 120 })).statusCode).toBe(200);
+    const settingsUpdate = await mutate('PUT', '/v1/admin/settings', {
+      efSearch: 120,
+      embedThreads: 1,
+      ingestThreads: 3,
+    });
+    expect(settingsUpdate.statusCode, settingsUpdate.body).toBe(200);
+    expect(settingsUpdate.json()).toMatchObject({
+      efSearch: 120,
+      embedThreads: 1,
+      ingestThreads: 3,
+    });
+    const persistedSettings = await app.inject({
+      method: 'GET',
+      url: '/v1/admin/settings',
+      headers: { cookie },
+    });
+    expect(persistedSettings.statusCode, persistedSettings.body).toBe(200);
+    expect(persistedSettings.json()).toMatchObject({
+      efSearch: 120,
+      embedThreads: 1,
+      ingestThreads: 3,
+    });
     const storageProbe = await mutate('POST', '/v1/admin/storage/probe', {
       managedPath: join(root, 'storage-probe'),
     });
@@ -1129,12 +1476,53 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
       availableBytes: expect.stringMatching(/^\d+$/),
       totalBytes: expect.stringMatching(/^\d+$/),
     });
+    const invalidStorageProbe = await mutate('POST', '/v1/admin/storage/probe', {
+      managedPath: 'relative/storage',
+    });
+    expect(invalidStorageProbe.statusCode, invalidStorageProbe.body).toBe(400);
+    expect(invalidStorageProbe.json()).toMatchObject({ code: 'storage_path_must_be_absolute' });
     const calibration = await mutate('POST', '/v1/admin/calibration/embedding', {});
     expect(calibration.statusCode, calibration.body).toBe(200);
     expect(calibration.json()).toMatchObject({
       chunks: 20,
       charactersPerSecond: expect.any(Number),
       model: 'Qwen3-Embedding-0.6B',
+    });
+    let releaseBackgroundCalibration = (): void => undefined;
+    const backgroundCalibrationGate = new Promise<void>((resolve) => {
+      releaseBackgroundCalibration = resolve;
+    });
+    embeddingGate = async () => backgroundCalibrationGate;
+    const acceptedCalibration = await mutate('POST', '/v1/admin/calibration/embedding/start', {});
+    expect(acceptedCalibration.statusCode, acceptedCalibration.body).toBe(202);
+    expect(acceptedCalibration.json()).toMatchObject({ state: 'running', progress: 1 });
+    const runningCalibration = await app.inject({
+      method: 'GET',
+      url: '/v1/admin/calibration/embedding/status',
+      headers: { cookie },
+    });
+    expect(runningCalibration.statusCode, runningCalibration.body).toBe(200);
+    expect(runningCalibration.json()).toMatchObject({ state: 'running' });
+    releaseBackgroundCalibration();
+    let completedCalibration = runningCalibration;
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      completedCalibration = await app.inject({
+        method: 'GET',
+        url: '/v1/admin/calibration/embedding/status',
+        headers: { cookie },
+      });
+      if (completedCalibration.json<{ state: string }>().state === 'succeeded') break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    embeddingGate = undefined;
+    expect(completedCalibration.json()).toMatchObject({
+      state: 'succeeded',
+      progress: 100,
+      result: {
+        chunks: 20,
+        charactersPerSecond: expect.any(Number),
+        model: 'Qwen3-Embedding-0.6B',
+      },
     });
     expect(
       (
@@ -1190,7 +1578,7 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
 
     const storage = await mutate('POST', '/v1/admin/storage', {
       name: 'm08-test-backup',
-      managedPath: '/var/lib/noderag/m08-test-backup',
+      managedPath: join(root, 'm08-test-backup'),
       purpose: 'backup',
       enabled: true,
     });
@@ -1202,11 +1590,12 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
       managedPath: updatedStoragePath,
       enabled: true,
     });
+    const resolvedUpdatedStoragePath = await realpath(updatedStoragePath);
     expect(storageUpdate.statusCode, storageUpdate.body).toBe(200);
     expect(storageUpdate.json()).toMatchObject({
       id: storageId,
       name: 'm08-test-backup-updated',
-      managedPath: updatedStoragePath,
+      managedPath: resolvedUpdatedStoragePath,
       purpose: 'backup',
       enabled: true,
     });
@@ -1217,7 +1606,7 @@ describe.sequential('M08 retrieval, MCP, and gateway parity', () => {
     });
     expect(storageList.statusCode, storageList.body).toBe(200);
     expect(storageList.json<{ items: Record<string, unknown>[] }>().items).toContainEqual(
-      expect.objectContaining({ id: storageId, managedPath: updatedStoragePath }),
+      expect.objectContaining({ id: storageId, managedPath: resolvedUpdatedStoragePath }),
     );
     const backup = await mutate('POST', '/v1/admin/backups', {
       destinationId: storageId,

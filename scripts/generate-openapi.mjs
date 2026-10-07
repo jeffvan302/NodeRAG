@@ -27,9 +27,11 @@ for (const route of inventory.routes) {
     tags: [
       route.path.startsWith('/v1/admin/')
         ? 'administration'
-        : route.path === '/mcp'
-          ? 'mcp'
-          : (route.path.split('/').filter(Boolean)[1] ?? 'service'),
+        : route.path.startsWith('/chat/')
+          ? 'chat-files'
+          : route.path === '/mcp'
+            ? 'mcp'
+            : (route.path.split('/').filter(Boolean)[1] ?? 'service'),
     ],
     'x-noderag-authorization': {
       scope: route.scope,
@@ -51,30 +53,50 @@ for (const route of inventory.routes) {
           requestBody: {
             required: route.path !== '/v1/admin/backups',
             content: {
-              'application/json': {
-                schema:
-                  route.path === '/v1/search'
-                    ? { $ref: '#/components/schemas/SearchRequest' }
-                    : route.path === '/v1/admin/evaluation'
-                      ? { $ref: '#/components/schemas/EvaluationAdminRequest' }
-                      : route.path === '/mcp'
-                        ? { $ref: '#/components/schemas/JsonRpcRequest' }
-                        : { type: 'object', additionalProperties: true },
-              },
+              ...(route.path === '/v1/chats/:chatId/files' && route.method === 'POST'
+                ? {
+                    'multipart/form-data': {
+                      schema: {
+                        type: 'object',
+                        required: ['file'],
+                        properties: { file: { type: 'string', format: 'binary' } },
+                      },
+                    },
+                  }
+                : {
+                    'application/json': {
+                      schema:
+                        route.path === '/v1/search'
+                          ? { $ref: '#/components/schemas/SearchRequest' }
+                          : route.path === '/v1/admin/evaluation'
+                            ? { $ref: '#/components/schemas/EvaluationAdminRequest' }
+                            : route.path === '/mcp'
+                              ? { $ref: '#/components/schemas/JsonRpcRequest' }
+                              : { type: 'object', additionalProperties: true },
+                    },
+                  }),
             },
           },
         }),
     responses: {
       200: {
         description: 'Successful response',
-        content: {
-          'application/json': {
-            schema:
-              route.path === '/v1/search'
-                ? { $ref: '#/components/schemas/SearchResponse' }
-                : { type: ['object', 'array', 'null'] },
-          },
-        },
+        content:
+          route.path === '/chat/:chatId/file/:fileName'
+            ? Object.fromEntries(
+                ['image/png', 'image/jpeg', 'image/gif', 'image/webp'].map((mediaType) => [
+                  mediaType,
+                  { schema: { type: 'string', format: 'binary' } },
+                ]),
+              )
+            : {
+                'application/json': {
+                  schema:
+                    route.path === '/v1/search'
+                      ? { $ref: '#/components/schemas/SearchResponse' }
+                      : { type: ['object', 'array', 'null'] },
+                },
+              },
       },
       ...(route.method === 'GET'
         ? {}
@@ -145,7 +167,11 @@ const document = {
         required: ['query'],
         properties: {
           query: { type: 'string', minLength: 1, maxLength: 4000 },
-          mode: { type: 'string', enum: ['vector', 'keyword', 'hybrid'], default: 'vector' },
+          mode: {
+            type: 'string',
+            enum: ['vector', 'semantic', 'keyword', 'hybrid'],
+            default: 'vector',
+          },
           silos: {
             type: 'array',
             minItems: 1,
@@ -184,6 +210,13 @@ const document = {
           pageTo: { type: 'integer', minimum: 0 },
           hasImages: { type: 'boolean' },
           hasTables: { type: 'boolean' },
+          minimumConfidence: {
+            type: 'number',
+            minimum: 0.05,
+            maximum: 0.95,
+            default: 0.3,
+            description: 'Hide search hits whose calibrated match confidence is below this value.',
+          },
         },
         additionalProperties: false,
       },
@@ -192,7 +225,7 @@ const document = {
         required: ['items', 'mode', 'elapsedMs', 'nextCursor'],
         properties: {
           items: { type: 'array', items: { $ref: '#/components/schemas/SearchHit' } },
-          mode: { enum: ['vector', 'keyword', 'hybrid'] },
+          mode: { enum: ['vector', 'semantic', 'keyword', 'hybrid'] },
           elapsedMs: { type: 'number', minimum: 0 },
           nextCursor: { type: ['string', 'null'] },
         },
@@ -208,6 +241,8 @@ const document = {
           'documentId',
           'text',
           'score',
+          'confidence',
+          'evidence',
           'locator',
           'document',
         ],
@@ -219,6 +254,28 @@ const document = {
           documentId: { type: 'integer' },
           text: { type: 'string' },
           score: { type: 'number' },
+          confidence: {
+            type: 'number',
+            minimum: 0,
+            maximum: 0.99,
+            description:
+              'Calibrated retrieval match confidence. This estimates evidence strength and is not the probability that an answer is correct.',
+          },
+          evidence: {
+            type: 'array',
+            description:
+              'Sentence-level evidence used by Semantic ranking. Exact and combined modes normally populate this on demand.',
+            items: {
+              type: 'object',
+              required: ['kind', 'text', 'confidence'],
+              properties: {
+                kind: { enum: ['exact', 'semantic'] },
+                text: { type: 'string' },
+                confidence: { type: 'number', minimum: 0, maximum: 1 },
+              },
+              additionalProperties: false,
+            },
+          },
           locator: {
             type: 'object',
             description:

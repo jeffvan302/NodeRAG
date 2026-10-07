@@ -4,18 +4,14 @@ set -euo pipefail
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd -- "${script_dir}/.." && pwd)"
 artifact="${repository_root}/spk/artifacts/noderag-1.0.0-rc.1-x86_64-thin.spk"
-verify_root="${repository_root}/spk/work/m02-verify"
+verify_root="$(mktemp -d "${TMPDIR:-/tmp}/noderag-spk-m02-verify.XXXXXX")"
+trap 'rm -rf -- "${verify_root}"' EXIT
 
 [[ -f "${artifact}" ]] || {
   echo "Thin SPK not found; run pnpm package:thin first." >&2
   exit 66
 }
 bash "${script_dir}/verify-spksrc-vendor.sh"
-case "${verify_root}" in
-  "${repository_root}/spk/work/"*) ;;
-  *) echo "Refusing to replace an unexpected package verification path." >&2; exit 65 ;;
-esac
-rm -rf -- "${verify_root}"
 mkdir -p -- "${verify_root}/outer" "${verify_root}/payload"
 
 while IFS= read -r entry; do
@@ -23,6 +19,13 @@ while IFS= read -r entry; do
     /*|../*|*/../*|*/..) echo "Unsafe outer archive path: ${entry}" >&2; exit 65 ;;
   esac
 done < <(tar -tf "${artifact}")
+outer_members="$(tar -tf "${artifact}")"
+for member in INFO package.tgz scripts/ conf/; do
+  grep -Fx "${member}" <<<"${outer_members}" >/dev/null || {
+    echo "DSM root member is missing or incorrectly prefixed: ${member}" >&2
+    exit 1
+  }
+done
 tar -xf "${artifact}" -C "${verify_root}/outer"
 tar -tzf "${verify_root}/outer/package.tgz" | while IFS= read -r entry; do
   case "${entry}" in
@@ -32,18 +35,24 @@ done
 tar -xzf "${verify_root}/outer/package.tgz" -C "${verify_root}/payload"
 
 for required in INFO LICENSE THIRD-PARTY.md PACKAGE_ICON.PNG PACKAGE_ICON_256.PNG package.tgz conf/privilege conf/resource \
-  conf/port_conf/NodeRag.sc scripts/service-setup scripts/start-stop-status scripts/postinst \
-  WIZARD_UIFILES/install_uifile ui/config; do
+  scripts/preinst scripts/service-setup scripts/start-stop-status \
+  scripts/postinst scripts/preuninst scripts/postuninst scripts/preupgrade scripts/postupgrade \
+  WIZARD_UIFILES/install_uifile.sh WIZARD_UIFILES/upgrade_uifile.sh \
+  WIZARD_UIFILES/uninstall_uifile; do
   [[ -e "${verify_root}/outer/${required}" ]] || { echo "Missing SPK member: ${required}" >&2; exit 1; }
 done
 for required in bin/server.cjs bin/worker.cjs bin/embedder.cjs ui/index.html \
+  ui/config ui/images/icon_16.png ui/images/icon_24.png ui/images/icon_32.png \
+  ui/images/icon_48.png ui/images/icon_64.png ui/images/icon_72.png ui/images/icon_256.png \
+  port_conf/NodeRag.sc \
   bin/vendor/pdf.mjs bin/vendor/pdf.worker.mjs \
   migrations/000001_foundation.sql migrations/000002_identity_foundation.sql \
   migrations/000003_markdown_slice.sql migrations/000004_durable_ingestion.sql \
   migrations/000005_vision_recovery.sql migrations/000006_retrieval_interfaces.sql \
   migrations/000007_operator_ui.sql migrations/000008_package_lifecycle.sql \
   migrations/000009_zero_downtime_rebuilds.sql migrations/000010_evaluation_baselines.sql \
-  migrations/000011_recovery_hardening.sql \
+  migrations/000011_recovery_hardening.sql migrations/000012_vision_batching.sql \
+  migrations/000013_research_collections.sql \
   bin/node_modules/@napi-rs/canvas/index.js \
   bin/node_modules/@napi-rs/canvas-linux-x64-gnu/skia.linux-x64-gnu.node \
   platform/migration-checksums.v1.json platform/sbom.spdx.json; do
@@ -88,11 +97,23 @@ done
 
 grep -q '^package="noderag"$' "${verify_root}/outer/INFO"
 grep -q '^arch="x86_64"$' "${verify_root}/outer/INFO"
-grep -q '^install_dep_packages="Node.js_v22"$' "${verify_root}/outer/INFO"
+grep -q '^install_dep_packages="Node.js_v22:WebStation"$' "${verify_root}/outer/INFO"
+grep -q '^dsmuidir="ui"$' "${verify_root}/outer/INFO"
+grep -q '^dsmappname="SYNO.SDS.NodeRag"$' "${verify_root}/outer/INFO"
+expected_payload_md5="$(md5sum "${verify_root}/outer/package.tgz" | awk '{print $1}')"
+grep -q "^checksum=\"${expected_payload_md5}\"$" "${verify_root}/outer/INFO"
 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "${verify_root}/outer/conf/privilege"
 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "${verify_root}/outer/conf/resource"
-node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "${verify_root}/outer/WIZARD_UIFILES/install_uifile"
-node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "${verify_root}/outer/ui/config"
+install_wizard_output="${verify_root}/install-wizard.json"
+SYNOPKG_TEMP_LOGFILE="${install_wizard_output}" \
+  "${verify_root}/outer/WIZARD_UIFILES/install_uifile.sh"
+node -e '
+  const value = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+  const field = value[0]?.items?.flatMap((item) => item.subitems ?? [])
+    .find((item) => item.key === "wizard_setup_token");
+  if (!/^setup_[a-f0-9]{64}$/.test(field?.defaultValue ?? "")) process.exit(1);
+' "${install_wizard_output}"
+node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "${verify_root}/payload/ui/config"
 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' \
   "${verify_root}/payload/platform/route-authorization.v1.json"
 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' \
@@ -118,9 +139,19 @@ for recovery_contract in \
     "${verify_root}/payload/platform/${recovery_contract}"
 done
 grep -q '"run-as": "package"' "${verify_root}/outer/conf/privilege"
-grep -q '127.0.0.1:8787' "${verify_root}/outer/conf/resource"
+grep -q '"proxy_target": "http://127.0.0.1:8787"' "${verify_root}/outer/conf/resource"
+grep -q '"name": "X-Forwarded-Host"' "${verify_root}/outer/conf/resource"
+grep -q '"name": "X-Forwarded-Proto"' "${verify_root}/outer/conf/resource"
+! grep -q '"proxy"[[:space:]]*:' "${verify_root}/outer/conf/resource"
+node -e 'Promise.all([[process.argv[1],64],[process.argv[2],256]].map(async ([path,size])=>{const m=await require("sharp")(path).metadata();if(m.width!==size||m.height!==size)throw new Error(`${path} must be ${size}x${size}`)}))' \
+  "${verify_root}/outer/PACKAGE_ICON.PNG" "${verify_root}/outer/PACKAGE_ICON_256.PNG"
+[[ "$(stat -c '%a' "${verify_root}/outer/INFO")" = 644 ]]
+[[ "$(stat -c '%a' "${verify_root}/outer/scripts/preinst")" = 755 ]]
+[[ "$(stat -c '%a' "${verify_root}/outer/WIZARD_UIFILES/install_uifile.sh")" = 755 ]]
+[[ "$(stat -c '%a' "${verify_root}/outer/WIZARD_UIFILES/upgrade_uifile.sh")" = 755 ]]
 
 find "${verify_root}/outer/scripts" -type f -print0 | xargs -0 -n1 sh -n
+find "${verify_root}/outer/WIZARD_UIFILES" -type f -name '*.sh' -print0 | xargs -0 -n1 sh -n
 if ! bash "${script_dir}/simulate-thin-spk.sh" "${artifact}"; then
   echo "Thin-SPK simulator encountered a transient Docker start failure; retrying once." >&2
   bash "${script_dir}/simulate-thin-spk.sh" "${artifact}"

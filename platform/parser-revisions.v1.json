@@ -1,6 +1,14 @@
 {
-  "version": 1,
-  "jobParserRevision": 2,
+  "version": 4,
+  "jobParserRevision": 3,
+  "pdfExtractionVersion": "pdf-layout.v3-hybrid",
+  "pdfParserRevision": "pdfjs-dist@6.3.289",
+  "layoutPolicyRevision": "native-layout.v1",
+  "confidencePolicyRevision": "pdf-confidence.v1",
+  "visionPromptRevision": "vision-transcription.v3-layout",
+  "visionSchemaRevision": "vision-result.v3-layout-blocks",
+  "visionPreprocessingRevision": "vision-preprocess.v1",
+  "pdfCropPolicyRevision": "pdf-crop.v1-margin-015",
   "supportedFormats": ["txt", "md", "pdf", "docx", "xlsx"],
   "pageBasis": ["exact", "sheet", "rendered", "explicit", "none"],
   "sources": [
@@ -9,7 +17,10 @@
     "packages/server/src/extract/docx.ts",
     "packages/server/src/extract/index.ts",
     "packages/server/src/extract/office-archive.ts",
+    "packages/server/src/extract/pdf-layout.ts",
     "packages/server/src/extract/pdf.ts",
+    "packages/server/src/vision/contract.ts",
+    "packages/server/src/vision/service.ts",
     "packages/server/src/extract/text.ts",
     "packages/server/src/extract/xlsx.ts",
     "packages/server/src/store/jobs.ts"

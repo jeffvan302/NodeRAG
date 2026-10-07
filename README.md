@@ -25,6 +25,11 @@ private framed embedder, and Preact/Vite UI. For the real local Qwen runtime,
 set `NODERAG_MODEL_ROOT` to the directory containing `tokenizer.json` and
 `tokenizer_config.json`, and set `NODERAG_MODEL_PATH` to the pinned ONNX model.
 Use `NODERAG_TEST_EMBEDDER=1` only in automated tests and package simulation.
+Real-Qwen retrieval rejects cosine matches below the provisional calibrated
+`NODERAG_VECTOR_MINIMUM_SIMILARITY` value (`0.30` by default) and maps accepted
+matches against `NODERAG_VECTOR_HIGH_CONFIDENCE_SIMILARITY` (`0.70` by default)
+for the UI's match-confidence display. Override either value only after a
+versioned evaluation run for the exact model and corpus profile.
 The database secret remains in the ignored
 `docker-testbed/.secrets/` directory and is read from that file rather than
 printed or copied into an environment file.

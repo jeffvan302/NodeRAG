@@ -8,6 +8,7 @@ import {
   type EmbedderModel,
   type EmbedderRequest,
   type EmbedderResponse,
+  type EmbedderRuntimeStatus,
 } from '@noderag/shared';
 
 interface PendingRequest {
@@ -124,6 +125,29 @@ export class FramedEmbedderClient implements Embedder {
       tokenCounts.push(...response.tokenCounts);
     }
     return tokenCounts;
+  }
+
+  async runtimeStatus(): Promise<EmbedderRuntimeStatus> {
+    const response = await this.request({
+      id: randomUUID(),
+      operation: 'status',
+      priority: 0,
+    });
+    if (!response.ok) throw new Error(response.code);
+    if (response.runtimeStatus === undefined) throw new Error('EMBEDDER_RUNTIME_STATUS_MISSING');
+    return response.runtimeStatus;
+  }
+
+  async configureThreads(threads: number): Promise<EmbedderRuntimeStatus> {
+    const response = await this.request({
+      id: randomUUID(),
+      operation: 'configure',
+      priority: 0,
+      threads,
+    });
+    if (!response.ok) throw new Error(response.code);
+    if (response.runtimeStatus === undefined) throw new Error('EMBEDDER_RUNTIME_STATUS_MISSING');
+    return response.runtimeStatus;
   }
 
   async close(): Promise<void> {

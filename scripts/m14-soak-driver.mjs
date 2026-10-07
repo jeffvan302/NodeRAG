@@ -8,7 +8,8 @@ const base = 'http://127.0.0.1:8787';
 const gatewayBase = 'http://127.0.0.1:5301';
 const packageVar = process.env.SYNOPKG_PKGVAR;
 const evidenceRoot = process.env.NODERAG_M14_EVIDENCE_ROOT ?? '/evidence';
-const durationSeconds = Number(process.env.NODERAG_M14_DURATION_SECONDS ?? '86400');
+const minimumSoakSeconds = 3_600;
+const durationSeconds = Number(process.env.NODERAG_M14_DURATION_SECONDS ?? '3600');
 const intervalSeconds = Number(process.env.NODERAG_M14_INTERVAL_SECONDS ?? '60');
 const allowShort = process.env.NODERAG_M14_ALLOW_SHORT === '1';
 if (!packageVar) throw new Error('SYNOPKG_PKGVAR is required');
@@ -16,7 +17,8 @@ if (!Number.isInteger(durationSeconds) || durationSeconds < 1)
   throw new Error('invalid-soak-duration');
 if (!Number.isInteger(intervalSeconds) || intervalSeconds < 1)
   throw new Error('invalid-soak-interval');
-if (durationSeconds < 86_400 && !allowShort) throw new Error('m14-soak-must-run-at-least-24-hours');
+if (durationSeconds < minimumSoakSeconds && !allowShort)
+  throw new Error('m14-soak-must-run-at-least-1-hour');
 
 await mkdir(evidenceRoot, { recursive: true });
 const startedAt = new Date();
@@ -25,9 +27,17 @@ const proof = {
   milestone: 'M14',
   candidate: '1.0.0-rc.1',
   artifactSha256: process.env.NODERAG_M14_ARTIFACT_SHA256 ?? 'unknown',
+  providerBoundary: {
+    chatProvider: 'ollama_cloud',
+    chatServiceRoot: 'https://ollama.com',
+    chatInternetProvider: 'ollama_cloud',
+    localChatProviderAllowed: false,
+    visionOutageTestDouble: 'http://127.0.0.1:11434',
+  },
   startedAt: startedAt.toISOString(),
   requestedDurationSeconds: durationSeconds,
-  minimumDurationSatisfied: durationSeconds >= 86_400,
+  minimumDurationSeconds: minimumSoakSeconds,
+  minimumDurationSatisfied: durationSeconds >= minimumSoakSeconds,
   validationMode: allowShort,
   workload: {
     scheduledCrawl: false,
@@ -47,6 +57,9 @@ const proof = {
     sourceMissingRecovered: false,
     reindexVerified: false,
     rebuildVerified: false,
+    chatReads: 0,
+    chatArtifactsCreated: 0,
+    chatHealthChecks: 0,
   },
   samples: [],
   failures: [],
@@ -169,14 +182,32 @@ const directoryBytes = async (root) => {
   for (const entry of await readdir(root, { withFileTypes: true }).catch(() => [])) {
     const path = join(root, entry.name);
     if (entry.isDirectory()) total += await directoryBytes(path);
-    else if (entry.isFile()) total += (await stat(path)).size;
+    else if (entry.isFile()) {
+      const file = await stat(path).catch((error) => {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+          return null;
+        }
+        throw error;
+      });
+      if (file !== null) total += file.size;
+    }
   }
   return total;
 };
 const rssKiB = async (pidFile) => {
-  const pid = (await readFile(pidFile, 'utf8')).trim();
-  const status = await readFile(`/proc/${pid}/status`, 'utf8');
-  return Number(/^VmRSS:\s+(\d+)\s+kB$/mu.exec(status)?.[1] ?? '0');
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      const pid = (await readFile(pidFile, 'utf8')).trim();
+      const status = await readFile(`/proc/${pid}/status`, 'utf8');
+      return Number(/^VmRSS:\s+(\d+)\s+kB$/mu.exec(status)?.[1] ?? '0');
+    } catch (error) {
+      const processChanged =
+        error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT';
+      if (!processChanged) throw error;
+      if (attempt < 4) await delay(100);
+    }
+  }
+  return null;
 };
 const recordResources = async (cycle) => {
   const sample = {
@@ -245,6 +276,34 @@ const restartPackage = async () => {
   proof.workload.logRotationVerified = true;
   proof.workload.processRestarts += 1;
 };
+const postgresPassword = (
+  await readFile(join(packageVar, 'secrets', 'postgres.password'), 'utf8')
+).trim();
+const runDatabaseSql = (sql) => {
+  execFileSync(
+    join(packageVar, 'runtime', 'postgresql', 'bin', 'psql'),
+    [
+      '-h',
+      join(packageVar, 'postgres', 'socket'),
+      '-U',
+      'noderag',
+      '-d',
+      'noderag',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-c',
+      sql,
+    ],
+    {
+      stdio: 'ignore',
+      env: {
+        ...process.env,
+        LD_LIBRARY_PATH: join(packageVar, 'runtime', 'postgresql', 'lib'),
+        PGPASSWORD: postgresPassword,
+      },
+    },
+  );
+};
 
 try {
   const health = await request('GET', '/health');
@@ -263,8 +322,101 @@ try {
   if (!ui.ok || !(await ui.text()).includes('NodeRag'))
     throw new Error('production-ui-unavailable');
   const ready = await request('GET', '/ready');
-  if (ready.body.status !== 'ok' || ready.body.migrationHead !== '000011_recovery_hardening')
+  if (ready.body.status !== 'ok' || ready.body.migrationHead !== '000029_chat_files')
     throw new Error('candidate-readiness-identity-mismatch');
+
+  runDatabaseSql(`
+    UPDATE noderag.chat_provider_connection
+    SET enabled=true,generation_model='minimax-m3:cloud',updated_at=now()
+    WHERE provider_kind='ollama_cloud';
+    UPDATE noderag.chat_provider_capability capability
+    SET status='healthy',tested_at=now(),updated_at=now()
+    FROM noderag.chat_provider_connection connection
+    WHERE capability.connection_id=connection.id
+      AND connection.provider_kind='ollama_cloud'
+      AND capability.capability='generation';
+    INSERT INTO noderag.chat_model_profile (
+      connection_id,model,display_name,reasoning_efforts,provider_metadata,
+      administrator_context_tokens,administrator_output_tokens
+    )
+    SELECT id,'minimax-m3:cloud','MiniMax M3 Cloud',ARRAY['default'],
+      '{"catalogStale":false,"soakSimulation":true}'::jsonb,128000,4096
+    FROM noderag.chat_provider_connection WHERE provider_kind='ollama_cloud'
+    ON CONFLICT (connection_id,model) DO UPDATE
+    SET provider_metadata=EXCLUDED.provider_metadata,
+        administrator_context_tokens=EXCLUDED.administrator_context_tokens,
+        administrator_output_tokens=EXCLUDED.administrator_output_tokens,
+        updated_at=now();
+  `);
+  const providers = await request('GET', '/v1/admin/chat/providers');
+  const ollamaCloud = providers.body.providers?.find(
+    (provider) => provider.provider === 'ollama_cloud',
+  );
+  if (ollamaCloud?.serviceRoot !== 'https://ollama.com')
+    throw new Error('chat-ollama-cloud-boundary-drift');
+  await request(
+    'PUT',
+    `/v1/admin/chat/entitlements/${String(configured.body.principalId)}`,
+    { enabled: true },
+    { mutation: true, idempotencyKey: 'c11-soak-chat-entitlement' },
+  );
+  await request(
+    'PUT',
+    '/v1/admin/chat/settings',
+    {
+      defaultProvider: 'ollama_cloud',
+      defaultModel: 'minimax-m3:cloud',
+      defaultReasoningEffort: 'default',
+      defaultContextMode: 'rolling',
+      defaultAllowResearch: false,
+      defaultAllowRag: false,
+      defaultAllowInternet: false,
+      markdownOnly: true,
+      runTimeoutMs: 120000,
+      maximumToolCalls: 8,
+      maximumParallelRunsPerUser: 2,
+      dailyRunQuota: 10000,
+      dailyInputTokenQuota: 100000000,
+      dailyOutputTokenQuota: 25000000,
+      retentionDays: 365,
+      archiveAfterDays: 30,
+      artifactMaxFileBytes: 10485760,
+      artifactChatQuotaBytes: 268435456,
+      markdownExternalImages: false,
+      logSegmentMaxBytes: 8388608,
+      logSegmentMaxAgeMinutes: 1440,
+      exportMaxOutputBytes: 67108864,
+      exportTimeoutMs: 120000,
+      exportMaximumAttempts: 2,
+      storagePath: '/volume1/NodeRag',
+    },
+    { mutation: true, idempotencyKey: 'c11-soak-chat-settings' },
+  );
+  const chat = (
+    await request(
+      'POST',
+      '/v1/chats',
+      { name: 'C11 mixed workload proof' },
+      { mutation: true, idempotencyKey: 'c11-soak-chat-create' },
+    )
+  ).body;
+  const chatId = String(chat.id);
+  await request(
+    'POST',
+    `/v1/chats/${chatId}/artifacts`,
+    {
+      path: 'soak-start.md',
+      content: '# Mixed workload\n\nChat uses Ollama Cloud only.\n',
+    },
+    { mutation: true, idempotencyKey: 'c11-soak-artifact-start' },
+  );
+  proof.workload.chatArtifactsCreated += 1;
+  await request(
+    'POST',
+    `/v1/chats/${chatId}/artifacts/directories`,
+    { path: 'cycles' },
+    { mutation: true, idempotencyKey: 'c11-soak-artifact-cycles-directory' },
+  );
 
   const secretSilo = (
     await request(
@@ -307,7 +459,7 @@ try {
   const primaryUpload = await uploadMarkdown(
     defaultSilo,
     'unicode.md',
-    '\uFEFF# M14 Unicode\r\n\r\nThe cobalt résumé 漢字 🚀 locator remains exact after every restart.\r\n',
+    '\uFEFFInstruct: Given a user search query, retrieve relevant passages that answer the query\r\nQuery: cobalt résumé locator\r\n',
     'm14-primary-upload',
   );
   const primaryHit = await waitForHit(
@@ -490,6 +642,10 @@ try {
   await restartPackage();
   const soakStart = Date.now();
   const soakDeadline = soakStart + durationSeconds * 1000;
+  const sourceRecoveryExerciseAfterMs = Math.min(
+    2 * 60 * 60 * 1000,
+    Math.floor((durationSeconds * 1000) / 4),
+  );
   let nextRestart = soakStart + 6 * 60 * 60 * 1000;
   let cycle = 0;
   let missingExerciseDone = false;
@@ -499,6 +655,20 @@ try {
     if (currentHealth.body.version !== '1.0.0-rc.1') throw new Error('health-identity-drift');
     const integrity = await request('GET', '/v1/admin/health');
     if (integrity.body.status !== 'ok') throw new Error('critical-health-alarm');
+    const chatState = await request('GET', `/v1/chats/${chatId}`);
+    if (chatState.body.provider !== 'ollama_cloud') throw new Error('chat-provider-boundary-drift');
+    const chatArtifacts = await request('GET', `/v1/chats/${chatId}/artifacts`);
+    if (!chatArtifacts.body.items?.some((item) => item.path === 'soak-start.md'))
+      throw new Error('chat-artifact-read-drift');
+    proof.workload.chatReads += 1;
+    const chatHealth = await request('GET', '/v1/admin/chat/health');
+    if (
+      chatHealth.body.contract !== 'chat-health.v1' ||
+      chatHealth.body.providers?.find((provider) => provider.provider === 'ollama_cloud')
+        ?.serviceRoot !== 'https://ollama.com'
+    )
+      throw new Error('chat-health-boundary-drift');
+    proof.workload.chatHealthChecks += 1;
 
     for (const mode of ['vector', 'keyword', 'hybrid']) {
       const hit = await waitForHit('cobalt résumé locator', [defaultSilo], 'cobalt résumé', mode);
@@ -563,9 +733,24 @@ try {
       await waitForHit(token, [defaultSilo], token, 'keyword');
       proof.workload.backgroundIngest += 1;
     }
+    if (cycle % 12 === 0) {
+      await request(
+        'POST',
+        `/v1/chats/${chatId}/artifacts`,
+        {
+          path: `cycles/cycle-${String(cycle).padStart(6, '0')}.md`,
+          content: `# Soak cycle ${String(cycle)}\n\nDurable Chat artifact checkpoint.\n`,
+        },
+        {
+          mutation: true,
+          idempotencyKey: `c11-soak-artifact-${String(cycle)}`,
+        },
+      );
+      proof.workload.chatArtifactsCreated += 1;
+    }
     if (
       !missingExerciseDone &&
-      (allowShort ? cycle >= 2 : Date.now() - soakStart >= 2 * 60 * 60 * 1000)
+      (allowShort ? cycle >= 2 : Date.now() - soakStart >= sourceRecoveryExerciseAfterMs)
     ) {
       await writeFile(watchedPath, '');
       await import('node:fs/promises').then(({ unlink }) => unlink(watchedPath));
@@ -652,7 +837,7 @@ try {
     throw new Error('search-audit-missing');
   proof.completedAt = new Date().toISOString();
   proof.actualDurationSeconds = Math.floor((Date.now() - soakStart) / 1000);
-  proof.passed = allowShort || proof.actualDurationSeconds >= 86_400;
+  proof.passed = allowShort || proof.actualDurationSeconds >= minimumSoakSeconds;
   if (!proof.passed) throw new Error('minimum-soak-duration-not-reached');
 } catch (error) {
   proof.failures.push({

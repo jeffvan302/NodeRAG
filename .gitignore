@@ -15,6 +15,7 @@ keys/
 *.log
 test-results/
 playwright-report/
+tmp/
 
 # Package build output
 spk/artifacts/

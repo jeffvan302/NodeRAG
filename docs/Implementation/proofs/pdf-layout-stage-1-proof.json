@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "stage": 1,
+  "name": "Extraction contract, persistence, corpus, and measurement baseline",
+  "recordedAt": "2026-09-07T03:36:30.000Z",
+  "implementationBaseCommit": "a8996f274b362d38d080bb8bb63d995a339a55df",
+  "testbed": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.20.0",
+    "deploymentScope": "WSL/Docker-compatible local testbed; no DSM package claim"
+  },
+  "contract": {
+    "designRecord": "docs/Implementation/pdf-layout-block-contract.md",
+    "designRecordSha256": "af4b094e68d3049cf8d6147052b84fbb8d957057701e426a752b632902843227",
+    "migrationHead": "000014_pdf_layout_blocks",
+    "migrationSha256": "3f9c4284a95f6c4a648f0e84a8d954313a6e28894e47f7082e32078c09e3832c",
+    "pdfExtractionVersion": "pdf-layout.v1-shadow",
+    "parserRevision": "pdfjs-dist@6.3.289",
+    "layoutPolicyRevision": "page-shadow.v1",
+    "confidencePolicyRevision": "page-confidence.v1",
+    "canonicalOutputChanged": false
+  },
+  "corpus": {
+    "fixtureCount": 13,
+    "fixtureCatalog": "fixtures/formats/fixture-catalog.json",
+    "fixtureCatalogSha256": "bb2c12a5eee49c56e0d07995c339837a89d15479e21b0419ae15fa5e02bbafc9",
+    "layoutExpectations": "fixtures/formats/pdf/layout-expectations.json",
+    "layoutExpectationsSha256": "d42c965abbe6c88724e8ef6e74108ef34ac2e56832430aa983e2225204cf1514",
+    "coveredCases": [
+      "heading hierarchy",
+      "legal sections and nested lists",
+      "two- and three-column order",
+      "simple table",
+      "complex-table fallback",
+      "repeated page furniture",
+      "diagram and caption",
+      "aligned-prose negative table control",
+      "hyphenation",
+      "ligatures",
+      "raster-only page",
+      "unusable text-map page"
+    ],
+    "unicodeLocatorCoverage": [
+      "fixtures/formats/md/nfd-accents.md",
+      "fixtures/formats/md/astral-rtl.md",
+      "fixtures/formats/txt/utf8.txt"
+    ]
+  },
+  "baseline": {
+    "command": "pnpm exec tsx scripts/measure-pdf-layout-baseline.ts",
+    "measuredAt": "2026-09-07T03:35:19.616Z",
+    "fixtures": 13,
+    "medianElapsedMs": 5.91,
+    "p95ElapsedMs": 715.32,
+    "maximumPeakRssBytes": 509018112,
+    "notes": [
+      "The p95 includes one-time PDF.js initialization on the first fixture.",
+      "PDF.js emitted standard-font-data warnings for synthetic base-font fixtures; extraction and hashes remained deterministic."
+    ],
+    "markdownSha256": {
+      "aligned-prose-negative.pdf": "dd9a4d4822049868616ceafa12e0aa591f884355c220780435258fa5357ff57e",
+      "complex-table.pdf": "3b7df00df50f16804e2b2c91fefd7000b85b7b25ac2143061deb430d303d7864",
+      "diagram-caption.pdf": "dd6a544b407de0374d9bc7cf4d4276e692a5ebe3114fbb42a5eb8ab62b92cd33",
+      "hyphenated.pdf": "a52f2116951af54e74a3040098feda15196df91530b2b6cf0a3c93d2279328f9",
+      "layout-headings.pdf": "d80ae272b457d6423d0ca82b2f4beb17c69d62ca3a4ef00f61502bf490e33e34",
+      "legal-lists.pdf": "f14f1400fdb8b417f1e81dcaec8c826341e2772866e8d7bca7c1408d13319bd6",
+      "ligatures.pdf": "8e5ab7ec381a41076ce655c992b414af1049caecebcc5f1766632c308b7b4e68",
+      "no-tounicode.pdf": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "repeated-furniture.pdf": "35efcd9b028509838822a8a4ebd8808fc89005e87be1943083f82932da948f36",
+      "scanned.pdf": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "simple-table.pdf": "a1fc271f426ec9dccda9979f8a9428f3a10f7f208d1c64910f0451f9bebe8388",
+      "three-column.pdf": "94d43d2055e900091518622eab860a3f6d981e79e331ad64663f7b3059f1c804",
+      "two-column.pdf": "a862b832914486f21c71db461db2e7bc6eeef421ac09dfb165586797d1500aee"
+    }
+  },
+  "verification": {
+    "migrationVerification": {
+      "result": "passed",
+      "migrationCount": 14,
+      "expectedHead": "000014_pdf_layout_blocks"
+    },
+    "typecheck": {
+      "result": "passed",
+      "workspaceProjects": 6
+    },
+    "unit": {
+      "result": "passed",
+      "files": 2,
+      "tests": 13,
+      "scope": ["extraction-blocks.unit.test.ts", "recovery.unit.test.ts"]
+    },
+    "integration": {
+      "result": "passed",
+      "files": 4,
+      "tests": 25,
+      "scope": [
+        "database.integration.test.ts",
+        "identity.integration.test.ts",
+        "format-ingestion.integration.test.ts",
+        "recovery.integration.test.ts"
+      ]
+    },
+    "productionBuild": {
+      "result": "passed",
+      "uiModulesTransformed": 2080,
+      "serverBundles": ["server.cjs", "worker.cjs", "embedder.cjs"]
+    }
+  },
+  "invariants": {
+    "shadowBlocksReconstructExistingBody": true,
+    "dualUtf16AndUtf8LocatorsVerified": true,
+    "siloRlsVerified": true,
+    "documentAndPageCascadeRelationshipsVerified": true,
+    "portableAndFullBackupClassificationUpdated": true,
+    "blankRestoreAndUpgradeCompatibilityVerified": true,
+    "productionMarkdownHashesFrozen": true
+  },
+  "knownNonBlockingItems": [
+    "Structural classifications remain disabled until Stage 2.",
+    "Vision routing and confidence calibration remain disabled until Stages 3 and 4.",
+    "Live Synology performance and package certification remain deferred until the completed four-stage capability enters an authorized release candidate."
+  ],
+  "gate": "passed",
+  "nextStageAuthorized": true,
+  "certification": "stage-1-testbed-complete"
+}

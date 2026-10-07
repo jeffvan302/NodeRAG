@@ -29,7 +29,7 @@ The finished product must:
 - turn embedded images and unusable/scanned PDF pages into searchable Markdown through remote Ollama vision;
 - enforce silo-scoped access for browser users and API keys;
 - expose equivalent REST, MCP, and browser capabilities;
-- support vector, keyword, and hybrid retrieval with verifiable provenance;
+- support vector, sentence-refined semantic, keyword, and hybrid retrieval with verifiable provenance;
 - survive worker, database, network, and NAS restarts;
 - rebuild chunks or embeddings without taking search offline;
 - purge explicitly deleted content completely;
@@ -52,32 +52,33 @@ Do not modify the two planning documents merely to hide a contradiction. Record 
 
 ### 2.1 Locked implementation decisions
 
-| Area                 | Authoritative v1 decision                                                                                                                                                                                                                                                                |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Platform             | DSM 7.2+, x86_64, minimum 8 GB physical RAM. ARM/aarch64 is excluded.                                                                                                                                                                                                                    |
-| Runtime              | Begin with Synology `Node.js_v22`; re-evaluate before release because Node 22 reaches planned upstream EOL on 2027-04-30. A release after EOL requires a validated supported Synology runtime or maintained bundled Node.                                                                |
-| Database             | PostgreSQL 17 and pgvector bundled inside the SPK. Unix socket only by default.                                                                                                                                                                                                          |
-| Silos                | Silos are access-control and partition boundaries only. They do not own chunk, model, CPU, vision, search-language, or storage settings.                                                                                                                                                 |
-| Capabilities         | Independent `read`, `upload`, and `delete` capabilities per principal and silo. None implies another.                                                                                                                                                                                    |
-| Administration       | `server_admin` is required for silo lifecycle, principals, grants, settings, storage, gateways, builds, backup/restore, and upgrades.                                                                                                                                                    |
-| API keys             | API keys use the same silo grants as users and default to `search_only`, which blocks document downloads, full Markdown, and mutations regardless of other grants.                                                                                                                       |
-| Originals            | Every ingest creates a package-managed original named by document ID. There is no reference-in-place mode and no original-file deduplication in v1.                                                                                                                                      |
-| Canonical Markdown   | Stored as a package-managed file named by document ID. PostgreSQL stores hashes, boundaries, states, and locators, not full page Markdown.                                                                                                                                               |
-| Missing watched file | Retain the managed original and searchable index, set `source_state=missing`, and require review. An unavailable source root must never mark all children missing.                                                                                                                       |
-| Explicit delete      | Always purges the managed original, Markdown, pages, images, chunks, vectors, jobs that exist only for it, and cache entries whose reference count reaches zero.                                                                                                                         |
-| Character offsets    | UTF-16 code units into canonical Markdown; always populated.                                                                                                                                                                                                                             |
-| Byte offsets         | UTF-8 bytes into canonical Markdown; always populated.                                                                                                                                                                                                                                   |
-| Original matching    | `offsets_match_original` only indicates whether canonical Markdown offsets also address the original bytes.                                                                                                                                                                              |
-| Page locators        | Locator object always exists. Page fields are nullable for TXT and Markdown.                                                                                                                                                                                                             |
-| Chunking             | System-wide build profile. Defaults: target 2,000 UTF-16 units, overlap 300, token guard 1,024, snap window 15%, heading prefix enabled.                                                                                                                                                 |
-| Keyword language     | PostgreSQL `simple` configuration initially, for mixed-language safety.                                                                                                                                                                                                                  |
-| Search default       | Vector/Meaning initially. Hybrid is promoted only by measured evaluation.                                                                                                                                                                                                                |
-| Embedding            | Qwen3-Embedding-0.6B ONNX, 1,024 dimensions, last-token pooling, L2 normalization, instructed queries, unprefixed documents.                                                                                                                                                             |
-| Vision               | System-wide provider configuration and global content-hash cache. Direct Ollama Cloud is the setup default with an encrypted bearer API key, editable 1–16 parallel-call limit, and explicit off-network warning; self-hosted Ollama and authenticated reverse proxies remain supported. |
-| Audit privacy        | Do not store raw search text. Store a normalized-query hash and operational metadata. Default retention: 90 days.                                                                                                                                                                        |
-| Distribution         | Private manual SPK upload. No package repository, SynoCommunity submission, or auto-update in v1.                                                                                                                                                                                        |
-| Git workflow         | Commit bounded, passing changes directly to `main`. Do not use milestone branches or pull requests. Do not force-push or rewrite shared history.                                                                                                                                         |
-| Test sequence        | Complete M0–M14 in `docker-testbed`; run one final live DSM certification against the immutable M14 candidate before tagging v1.0.0.                                                                                                                                                     |
+| Area                 | Authoritative v1 decision                                                                                                                                                                                                                                                                                                                            |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Platform             | DSM 7.2+, x86_64, minimum 8 GB physical RAM. ARM/aarch64 is excluded.                                                                                                                                                                                                                                                                                |
+| Runtime              | Begin with Synology `Node.js_v22`; re-evaluate before release because Node 22 reaches planned upstream EOL on 2027-04-30. A release after EOL requires a validated supported Synology runtime or maintained bundled Node.                                                                                                                            |
+| Database             | PostgreSQL 17 and pgvector bundled inside the SPK. Unix socket only by default.                                                                                                                                                                                                                                                                      |
+| Silos                | Silos are access-control and partition boundaries only. They do not own chunk, model, CPU, vision, search-language, or storage settings.                                                                                                                                                                                                             |
+| Capabilities         | Independent `read`, `upload`, and `delete` capabilities per principal and silo. None implies another.                                                                                                                                                                                                                                                |
+| Administration       | `server_admin` is required for the top-level Knowledge Bases lifecycle page and for principals, grants, settings, storage, gateways, builds, backup/restore, and upgrades in Administration.                                                                                                                                                         |
+| API keys             | API keys use the same silo grants as users and default to `search_only`, which blocks document downloads, full Markdown, and mutations regardless of other grants.                                                                                                                                                                                   |
+| Originals            | Every ingest creates a package-managed original named by document ID. There is no reference-in-place mode and no original-file deduplication in v1.                                                                                                                                                                                                  |
+| Canonical Markdown   | Stored as a package-managed file named by document ID. PostgreSQL stores hashes, boundaries, states, and locators, not full page Markdown.                                                                                                                                                                                                           |
+| Missing watched file | Retain the managed original and searchable index, set `source_state=missing`, and require review. An unavailable source root must never mark all children missing.                                                                                                                                                                                   |
+| Explicit delete      | Always purges the managed original, Markdown, pages, images, chunks, vectors, jobs that exist only for it, and cache entries whose reference count reaches zero.                                                                                                                                                                                     |
+| Character offsets    | UTF-16 code units into canonical Markdown; always populated.                                                                                                                                                                                                                                                                                         |
+| Byte offsets         | UTF-8 bytes into canonical Markdown; always populated.                                                                                                                                                                                                                                                                                               |
+| Original matching    | `offsets_match_original` only indicates whether canonical Markdown offsets also address the original bytes.                                                                                                                                                                                                                                          |
+| Page locators        | Locator object always exists. Page fields are nullable for TXT and Markdown.                                                                                                                                                                                                                                                                         |
+| Chunking             | System-wide build profile. Defaults: target 2,000 UTF-16 units, overlap 300, token guard 1,024, snap window 15%, heading prefix enabled.                                                                                                                                                                                                             |
+| Keyword language     | PostgreSQL `simple` configuration initially, for mixed-language safety.                                                                                                                                                                                                                                                                              |
+| Search default       | Both/hybrid in the operator UI. Available modes are Meaning, Semantic, Keyword, and Both. Meaning remains passage-level vector retrieval; Semantic reranks a vector shortlist by accepted sentence evidence and bases confidence/green highlighting on that evidence; matching-word and simple singular/plural strengthening applies only to Both.   |
+| Research collections | Each signed-in user owns personal named research collections. A collection stores passage and citation snapshots across any knowledge spaces the owner can currently read. Lost knowledge-space access hides affected references rather than exposing or silently deleting them. Search-only API keys cannot read or mutate research.                |
+| Embedding            | Qwen3-Embedding-0.6B ONNX, 1,024 dimensions, last-token pooling, L2 normalization, instructed queries, unprefixed documents.                                                                                                                                                                                                                         |
+| Vision               | System-wide provider configuration and global content-hash cache. Direct Ollama Cloud is the setup default with an encrypted bearer API key, editable 1–16 parallel-call limit, a separate 1–16 images-per-call setting defaulting to 5, and an explicit off-network warning; self-hosted Ollama and authenticated reverse proxies remain supported. |
+| Audit privacy        | Do not store raw search text. Store a normalized-query hash and operational metadata. Default retention: 90 days.                                                                                                                                                                                                                                    |
+| Distribution         | Private manual SPK upload. No package repository, SynoCommunity submission, or auto-update in v1.                                                                                                                                                                                                                                                    |
+| Git workflow         | Commit bounded, passing changes directly to `main`. Do not use milestone branches or pull requests. Do not force-push or rewrite shared history.                                                                                                                                                                                                     |
+| Test sequence        | Complete M0–M14 in `docker-testbed`; run one final live DSM certification against the immutable M14 candidate before tagging v1.0.0.                                                                                                                                                                                                                 |
 
 ### 2.2 Source-file behavior
 
@@ -385,6 +386,12 @@ GET    /v1/documents/:id/original
 GET    /v1/chunks/:id
 GET    /v1/chunks/:id/context
 GET    /v1/images/:id
+GET    /v1/research
+POST   /v1/research
+GET    /v1/research/memberships
+GET    /v1/research/:id/items
+POST   /v1/research/:id/items
+DELETE /v1/research/:id/items/:itemId
 ```
 
 Ingestion:
@@ -458,7 +465,7 @@ Search-only API keys may use search, chunks, context, and silo listing only. The
 | M11                     | Zero-downtime rebuilds                                | Chunk/model rebuild and rollback work under search load                                                          |
 | M12                     | Evaluation and testbed-measured defaults              | Quality thresholds and provisional resource/latency thresholds pass on the test corpus                           |
 | M13                     | Backup, restore, upgrade, fault/security hardening    | Blank-install restore and upgrade rollback pass                                                                  |
-| M14                     | Immutable testbed release candidate                   | Clean-room build, full testbed suite, and 24-hour Docker soak pass                                               |
+| M14                     | Immutable testbed release candidate                   | Clean-room build, full testbed suite, and 1-hour Docker soak pass                                                |
 | Final DSM certification | Live-device validation after all milestones           | Exact M14 candidate passes install through uninstall, performance, recovery, and soak checks before v1.0.0       |
 
 ---
@@ -927,13 +934,16 @@ Turn images, tables, diagrams, charts, and unusable PDF pages into searchable Ma
 11. Keep the cache global because vision configuration is system-wide. Do not expose cross-silo cache membership.
 12. Store a dispatch marker before an external call and the validated result immediately after it.
 13. Add exponential backoff, maximum attempts, timeout, and global parallelism semaphore.
-14. Do not exceed the probed provider concurrency.
-15. Splice accepted Markdown at the original page position inside invisible provenance comments containing image ID, page, kind, model, and revisions.
-16. Route bad/scanned PDF page renders through the identical interface and mark page extraction `vision` or `mixed`.
-17. When calls fail, write an alt-text placeholder, set `pending_vision`, complete text ingestion, and schedule retry.
-18. Add admin counts, manual retry, projected call count, elapsed estimate, and warnings for scan-heavy documents.
-19. Add a deterministic fake keyed by image hash for all automated ingestion tests.
-20. Keep one marked real-provider integration suite outside normal CI.
+14. Add a separate 1–16 images-per-call setting with a default of 5. Send each batch in one ordered
+    Ollama `images` array, require an indexed schema result for every image, and restore results to
+    their source order. Keep this independent from the number of parallel provider calls.
+15. Do not exceed the probed provider concurrency.
+16. Splice accepted Markdown at the original page position inside invisible provenance comments containing image ID, page, kind, model, and revisions.
+17. Route bad/scanned PDF page renders through the identical interface and mark page extraction `vision` or `mixed`.
+18. When calls fail, write an alt-text placeholder, set `pending_vision`, complete text ingestion, and schedule retry.
+19. Add admin counts, manual retry, batch-aware projected call count, elapsed estimate, and warnings for scan-heavy documents.
+20. Add a deterministic fake keyed by image hash for all automated ingestion tests.
+21. Keep one marked real-provider integration suite outside normal CI.
 
 ### Tests
 
@@ -948,6 +958,542 @@ Turn images, tables, diagrams, charts, and unusable PDF pages into searchable Ma
 ### Exit gate
 
 Representative images and scanned/failed PDF pages become searchable with provenance. Provider loss never blocks successful text ingestion. Generate proof and tag `m07-complete`.
+
+### Four-stage enhancement amendment — layout-preserving PDF Markdown
+
+#### Purpose and placement in the ingestion workflow
+
+This amendment upgrades PDF-to-Markdown conversion from page-level text flattening to a hybrid,
+layout-aware pipeline. It refines Milestones 6 and 7 without creating additional user-facing
+document workflow stages. The Ingest screen must continue to show one workflow per document:
+
+1. `1/3: ingesting to Markdown`;
+2. `2/3: chunking`;
+3. `3/3: embedding`.
+
+The four delivery stages below all execute inside, or prepare, the first of those three workflow
+steps. Progress may identify internal operations such as `classifying-layout` or
+`reconciling-vision`, but it must not create duplicate document rows or imply that the document has
+seven top-level ingestion stages.
+
+The implementation sequence is mandatory: Stage 2 may not begin until the Stage 1 proof passes,
+Stage 3 may not begin until Stage 2 passes, and Stage 4 may not become the default until all earlier
+stage proofs pass. Complete this work in the WSL/Docker testbed. Do not build a new Synology package
+solely for an intermediate stage. The next explicitly authorized package candidate receives the
+completed four-stage capability and is then covered by the normal final DSM certification.
+
+#### Cross-stage invariants
+
+1. The managed original PDF remains immutable and is always the source for extraction or re-index.
+2. Canonical Markdown remains the searchable content source of truth. Layout blocks are provenance
+   and diagnostics; they do not replace the canonical file.
+3. Page markers remain database locators and are not inserted as visible Markdown text.
+4. Every emitted block and chunk must resolve to valid UTF-16 and UTF-8 ranges in canonical
+   Markdown after assembly.
+5. Native text must not be silently discarded merely because layout classification is uncertain.
+6. Vision must be selective, bounded, cached, and recoverable. A vision outage must not invalidate
+   reliable native text from the same document.
+7. Native and vision text must never be appended in a way that duplicates the same page content.
+8. No layout decision may move content across a page boundary.
+9. Table reconstruction must prefer an honest linear fallback over a confidently formatted but
+   incorrect table.
+10. Every extraction decision must record a parser, layout-policy, confidence-policy, and, where
+    applicable, vision prompt/schema/model/preprocessing revision.
+11. Re-indexing must be restart-safe and must not make the currently active searchable version
+    partially visible.
+12. Silo scope, purge, backup, restore, audit, and retention rules apply to block metadata exactly as
+    they apply to pages and chunks.
+
+---
+
+#### Stage 1 of 4 — Extraction contract, persistence, corpus, and measurement baseline
+
+##### Objective
+
+Create the versioned data contract and evidence needed to improve layout without guessing. This
+stage must not change production Markdown output. It establishes a shadow representation of PDF
+layout, a representative fixture corpus, and baseline measurements against the current extractor.
+
+##### Entry criteria
+
+- The existing PDF.js extractor, canonical Markdown assembly, locator verifier, and fake vision
+  provider pass their current suites.
+- The WSL/Docker testbed can ingest and re-index PDFs with vision enabled and disabled.
+- The test corpus contains no private documents unless its storage and Git exclusion are explicitly
+  approved.
+
+##### Contract and schema work
+
+1. Introduce a versioned `ExtractedBlock` contract with at least:
+   - document/page/block ordinal;
+   - block kind: `title`, `heading`, `paragraph`, `list-item`, `table`, `caption`, `footnote`,
+     `header`, `footer`, `code`, or `unknown`;
+   - source: `native`, `vision`, or `mixed`;
+   - original normalized text and emitted Markdown;
+   - page-relative bounding box using normalized coordinates from 0 to 1;
+   - reading-order position;
+   - character and byte ranges assigned after canonical assembly;
+   - text, reading-order, structure, and combined confidence;
+   - warning codes and all relevant extraction revisions.
+2. Extend `ExtractedPage` so it can carry ordered blocks while retaining `body` for compatibility.
+   During Stage 1, reconstructing `body` from the shadow blocks must be byte-for-byte identical to
+   the current normalized page body.
+3. Add migration `000014_pdf_layout_blocks.sql` or the next unused migration number. Create a
+   `noderag.document_block` table keyed by document, page, and block ordinal with silo-preserving
+   foreign keys and cascade deletion. Use typed columns for locators, kind, source, bounding box,
+   and combined confidence; use bounded JSONB only for component scores, warnings, and revisions.
+4. Add the table to RLS, authorization tests, backup classification, restore verification, explicit
+   document/silo purge, integrity sweeps, migration checksums, and generated OpenAPI where exposed.
+5. Record `pdfExtractionVersion`, `layoutPolicyRevision`, and `confidencePolicyRevision` in document
+   extraction metadata. Do not overload normalization version for this purpose.
+6. Add read-only administrator diagnostics for page/block metadata only if the route is included in
+   the authorization inventory and does not expose content beyond the caller's existing
+   `read_markdown` grant.
+
+##### Fixture and evaluation corpus
+
+7. Add small redistributable PDFs covering:
+   - a conventional report with a title and three heading levels;
+   - numbered legal sections and nested lists;
+   - one-, two-, and three-column reading order;
+   - borderless and bordered simple tables;
+   - a complex table with merged cells that must deliberately fall back;
+   - repeated headers, footers, page numbers, and footnotes;
+   - mixed font sizes, bold/italic text, ligatures, and hyphenation;
+   - a page containing a diagram and caption;
+   - a scanned page, a mixed scan/native document, and a broken-ToUnicode page;
+   - right-to-left, combining-mark, emoji, and supplementary-plane text;
+   - negative examples whose aligned prose must not be classified as a table.
+8. Store hand-reviewed expected block order and Markdown beside each redistributable fixture. Keep
+   private or customer corpus manifests outside Git and identify them only by salted test ID and
+   content hash.
+9. Implement evaluation metrics for body-text retention, reading-order accuracy, heading kind and
+   level, list structure, table cell reconstruction, repeated-header suppression, duplicate-text
+   rate, locator validity, extraction time, peak RSS, and number of vision-bound pages.
+10. Capture current-extractor baselines on the same machine and corpus. Record median/p95 duration,
+    peak RSS, output hashes, warning counts, and current structural scores. These measurements are
+    comparative testbed evidence, not DSM capacity claims.
+
+##### Stage 1 tests
+
+- Migration apply, rollback where supported, clean-install, upgrade, backup, and blank restore.
+- RLS and zero-grant denial for every new table or route.
+- Property tests proving block order/ranges reconstruct the unchanged Stage 1 page body.
+- Unicode locator verification across every new fixture.
+- Document and silo purge leave no block rows or uniquely reachable block artifacts.
+- The production bundle still emits the pre-amendment Markdown hashes in shadow-only mode.
+
+##### Stage 1 completion artifacts
+
+- Versioned extraction/block TypeScript contracts.
+- Migration and updated checksum/backup/authorization manifests.
+- Redistributable layout fixture corpus and private-corpus manifest template.
+- Machine-readable baseline report at
+  `docs/Implementation/proofs/pdf-layout-stage-1-proof.json`.
+- Short design record describing bounding-box units, block kinds, and why the slug-independent
+  document/page identity remains unchanged.
+
+##### Stage 1 exit gate
+
+The shadow block representation reconstructs every current page body without a content or locator
+change; schema, RLS, purge, backup, and restore tests pass; the fixture corpus has approved expected
+results; and the baseline proof contains `gate: passed` and `nextStageAuthorized: true`.
+
+##### Stage 1 implementation record — 2026-09-06
+
+Stage 1 is implemented and passed in the local WSL/Docker-compatible testbed. The versioned
+`ExtractedBlock` contract and shared assembler preserve byte-identical canonical page bodies while
+assigning UTF-16 and UTF-8 block ranges. Migration `000014_pdf_layout_blocks` adds silo-scoped block
+persistence with composite page identity, normalized bounds, confidence components, revisions,
+RLS, cascade lifecycle, portable/full backup coverage, restore remapping, and explicit orphan
+verification. The redistributable PDF layout corpus now contains thirteen fixtures and reviewed
+expectations, and `scripts/measure-pdf-layout-baseline.ts` freezes the pre-structure output hashes
+and resource baseline. Workspace typecheck, fourteen-migration verification, 13 targeted unit tests,
+25 database-backed integration/recovery tests, and the full production build pass. The authoritative
+machine-readable record is
+`docs/Implementation/proofs/pdf-layout-stage-1-proof.json`; it records `gate: passed` and authorizes
+Stage 2. No Synology package or DSM-performance claim is made by this intermediate gate.
+
+##### Rollback
+
+Keep the new table additive and leave production reads on existing page/canonical-Markdown fields.
+If the gate fails, disable shadow block persistence, roll back only the additive migration in the
+testbed, and retain the corpus and failure report. Do not begin structural Markdown generation.
+
+---
+
+#### Stage 2 of 4 — Deterministic native layout reconstruction
+
+##### Objective
+
+Generate structured Markdown from machine-readable PDF content without calling vision. The native
+path must become markedly better for headings, sections, lists, columns, and simple tables while
+remaining deterministic, fast, and conservative.
+
+##### Entry criteria
+
+- Stage 1 proof passes and its contracts are frozen for this stage.
+- Golden expected blocks and Markdown have been reviewed by a human.
+- The current PDF extractor benchmark is repeatable within the recorded testbed variance.
+
+##### Ordered implementation work
+
+1. Extend each positioned PDF text run to retain font name, effective font height, baseline,
+   direction, transform, width, end-of-line indication, rendering mode, and style references exposed
+   by PDF.js. Normalize coordinates once at the PDF adapter boundary.
+2. Separate glyph/text acquisition from layout classification. Keep the adapter deterministic and
+   make the classifier operate on a serializable page-layout input so it can be unit-tested without
+   opening a PDF.
+3. Build lines using baseline and font-relative tolerances rather than a single absolute distance.
+   Preserve deliberate intra-line spacing, but collapse PDF positioning artifacts that are not
+   meaningful spaces.
+4. Detect dominant body font metrics per document and per page. Use relative, not hard-coded point
+   sizes, when identifying titles, headings, captions, and footnotes.
+5. Detect document-wide repeated bands near page tops and bottoms. Classify repeated titles, dates,
+   confidentiality labels, and page numbers as header/footer metadata. Suppress them from searchable
+   Markdown only when repetition and position satisfy the policy; otherwise retain them with a
+   warning.
+6. Segment the page into reading regions before ordering lines. Support full-width headings above
+   columns, balanced and unbalanced columns, sidebars, and a return to full-width content below a
+   multi-column region.
+7. Infer paragraphs from indentation, vertical spacing, terminal punctuation, and font continuity.
+   Join soft-wrapped lines and discretionary hyphenation while retaining intentional line breaks.
+8. Detect numbered, alphabetic, Roman-numeral, and bullet list markers. Infer nesting from marker
+   sequence and indentation. Do not convert isolated symbols into a list without supporting layout.
+9. Infer headings using a scored combination of relative font size, weight/style, surrounding
+   whitespace, alignment, capitalization, and section-number patterns. Normalize heading depth so
+   the document has one title and no unexplained jumps such as H2 directly to H5.
+10. Detect simple tables through stable row baselines and repeated column boundaries. Reconstruct a
+    GitHub-flavored Markdown table only when row/column assignments and cell coverage pass the table
+    threshold. Infer numeric alignment only from consistently numeric columns.
+11. Detect merged cells, overlapping text, irregular spanning headers, and ambiguous borderless
+    grids. Emit a labeled linear record layout or preformatted block for these cases and add
+    `complex-table-fallback`; do not fabricate empty or duplicated cells.
+12. Retain captions immediately after the figure/table they describe where reading order supports
+    that relationship. Keep diagrams as existing image/vision candidates rather than attempting to
+    derive diagram semantics from nearby text.
+13. Generate Markdown from the ordered blocks, then assign canonical character/byte locators in the
+    shared assembly layer. The Markdown renderer must require no PDF-specific rendering exception.
+14. Keep all Stage 2 vision calls disabled in its test mode. This proves that improvements came from
+    deterministic layout extraction and gives Stage 3 a clean native baseline.
+15. Report internal progress under `1/3: ingesting to Markdown`, including page count and an
+    operation such as `classifying-layout`; never create a second document queue item.
+
+##### Stage 2 quality and safety gates
+
+- Retain 100% of non-header/footer normalized body text on machine-readable golden fixtures unless
+  an expected fixture explicitly records a justified normalization.
+- Achieve at least 0.90 exact heading-kind/level F1 and 0.95 list-item F1 on the approved fixture
+  corpus.
+- Achieve at least 0.95 cell-text accuracy on declared simple-table fixtures.
+- Produce zero table classifications on the approved negative table examples.
+- Route every declared complex-table fixture to the documented fallback rather than a false simple
+  table.
+- Produce zero duplicated body paragraphs and pass every dual-unit page/chunk locator verifier.
+- Keep median native digital-PDF extraction time within 25% and peak RSS within 20% of the Stage 1
+  baseline, unless an evidence-backed amendment is approved before Stage 3.
+
+##### Stage 2 tests and artifacts
+
+- Unit tests for every classifier and Markdown emitter.
+- Property tests with randomized coordinates, font scaling, line spacing, and Unicode content.
+- Golden Markdown snapshots plus semantic assertions that do not rely only on snapshots.
+- Multi-column and repeated-header regression tests on the production bundle.
+- Large-PDF interruption/retry test proving deterministic identical output after recovery.
+- `docs/Implementation/proofs/pdf-layout-stage-2-proof.json` containing metrics, output hashes,
+  resource measurements, known fallbacks, and `nextStageAuthorized`.
+
+##### Stage 2 exit gate
+
+All native quality, locator, determinism, performance, and packaged-simulation gates pass. The
+enhanced output remains behind the testbed extraction-policy revision until Stage 3 determines when
+it is safe to trust automatically.
+
+##### Stage 2 implementation record — 2026-09-06
+
+Stage 2 is implemented and passed under `pdf-layout.v2-native` / `native-layout.v1`. PDF.js text
+acquisition now preserves geometry, effective font size, style references, direction, transform,
+line-ending evidence, and rendering mode, while a separate serializable classifier performs
+font-relative line construction, three-column ordering, heading hierarchy, nested lists, paragraph
+and hyphen reconstruction, conservative tables, repeated page-furniture suppression, and caption
+association. Simple tables become GFM tables; spanning/merged tables produce an explicit linear
+fallback; diagram labels are retained without invented semantics. A durable
+`classifying-layout` progress operation remains within workflow step 1/3. On the approved corpus,
+heading and list F1, table evidence accuracy, and required evidence retention are 1.0; duplicate
+text, locator failures, false table classifications, and complex-fallback failures are zero. Median
+runtime is 5.11 ms versus the 5.91 ms Stage 1 baseline and observed peak RSS is lower. The 24 focused
+unit tests, four database-backed ingestion tests, server typecheck, and complete production build
+pass. The authoritative record is
+`docs/Implementation/proofs/pdf-layout-stage-2-proof.json`; it authorizes Stage 3 and makes no DSM
+certification claim.
+
+##### Rollback
+
+Extraction jobs freeze their layout-policy revision. Retain the previous PDF extraction policy and
+allow testbed re-index to target it explicitly. A failed Stage 2 rollout restores the previous
+policy for new jobs; it does not rewrite already committed canonical Markdown silently.
+
+---
+
+#### Stage 3 of 4 — Block confidence, routing policy, diagnostics, and dry-run estimates
+
+##### Objective
+
+Decide, at block and page level, which native structures are safe to accept and which require
+vision. Confidence must describe extraction/layout reliability, not search relevance.
+
+##### Entry criteria
+
+- Stage 2 passes on the full approved corpus.
+- Every native layout decision produces structured evidence that can be scored.
+- Expected vision-required blocks/pages are labeled in the evaluation corpus.
+
+##### Ordered implementation work
+
+1. Implement separately testable confidence components:
+   - text integrity: replacements, private-use characters, control characters, glyph fragmentation,
+     and suspicious character density;
+   - reading order: region overlap, competing column paths, baseline disorder, and orphan lines;
+   - structure: classifier margin for headings/lists/captions and hierarchy consistency;
+   - table structure: row/column alignment, cell collision, missing-cell pattern, spanning evidence,
+     and text coverage;
+   - document consistency: deviation from dominant font, margin, header/footer, and section patterns.
+2. Calibrate component weights against the Stage 1 corpus. Preserve raw component values and the
+   policy revision; never store only one unexplained percentage.
+3. Start testbed calibration with three routing bands, then freeze measured values rather than
+   retaining arbitrary constants:
+   - high confidence: accept the native block;
+   - review band: accept reliable text but mark the uncertain structure for regional vision;
+   - low confidence or unreadable page: route the full page to vision.
+4. Optimize thresholds for a low false-acceptance rate. A malformed table accepted as correct is
+   more damaging than an honest fallback sent to vision. Record precision/recall and the confusion
+   matrix for `native-safe` versus `vision-required` decisions.
+5. Aggregate page confidence from its material blocks without allowing large quantities of trivial
+   footer text to hide one critical low-confidence table.
+6. Record a routing decision and reason codes for every block. Page-level reasons must identify
+   whether the whole page or only bounded regions require vision.
+7. Extend extraction progress with counts for accepted native blocks, uncertain regions, and
+   vision-bound pages. Ensure these details survive refresh and worker restart.
+8. Add an administrator-facing extraction diagnostic summary to document details: extraction
+   version, native/vision/mixed page counts, low-confidence block count, warnings, and whether an
+   enhanced re-index is available. Do not expose internal content to principals lacking document
+   read access.
+9. Add a dry-run estimate before enhanced re-index: document/page count, regional and full-page
+   vision candidates, estimated image batches using configured images per call, expected cache hits,
+   and provisional elapsed/provider-call estimates.
+10. Add a deterministic policy-comparison command that runs old and new confidence revisions over
+    stored fixture layouts without changing canonical Markdown.
+11. Freeze `confidencePolicyRevision` and update settings defaults, OpenAPI, operator guide, backup
+    data classification, and release manifests as applicable.
+
+##### Stage 3 test matrix
+
+- Clean prose, headings, simple tables, complex tables, scans, broken fonts, and mixed pages land in
+  their expected routing bands.
+- Scaling or translating all page coordinates does not materially alter confidence or routing.
+- One bad table on an otherwise clean page remains visible in the page aggregate.
+- Repeated decorative content does not create hundreds of vision candidates.
+- Dry-run batch counts respect both images-per-call and parallel-call settings without conflating
+  them.
+- Progress and routing reasons survive worker termination, lease recovery, and retry.
+- Confidence shown in extraction diagnostics is never labeled as search confidence.
+- RLS, audit, redaction, accessibility, and all existing PDF/search viewer tests pass.
+
+##### Stage 3 exit gate
+
+On the approved corpus, the routing policy meets the recorded false-acceptance ceiling, all known
+scan/broken-ToUnicode fixtures route to full-page vision, all declared complex tables route to
+regional vision or honest fallback, and no clean prose-only fixture is sent wholesale to vision.
+The dry-run estimate matches actual fake-provider dispatch within one batch. Generate
+`pdf-layout-stage-3-proof.json` with frozen thresholds and `nextStageAuthorized: true`.
+
+##### Stage 3 implementation record — 2026-09-07
+
+Stage 3 is implemented and passed under `pdf-confidence.v1`. Each native PDF block records distinct
+text, reading-order, structure, combined, and raw component scores plus a reason-coded routing
+decision. The calibrated testbed thresholds are 0.82 for native acceptance and 0.55 for the review
+band; lower material content requires full-page vision. The approved corpus confusion matrix has
+zero vision-required false accepts and sends zero clean fixtures to full-page vision. Durable
+progress records native-safe blocks, regional candidates, and full-page candidates. Two authorized
+read-only routes provide content-free diagnostics and a provisional enhanced re-index estimate;
+the latter calculates five-images-per-call batches independently from provider parallelism. PDF
+document details explain that extraction confidence is not search confidence, show version and
+routing counts, and present the estimate before re-index confirmation. The policy comparison tool
+is deterministic and mutation-free. Workspace typecheck, 15 focused unit tests, 20 integration and
+authorization tests, 19 Playwright/accessibility tests, OpenAPI verification, and the complete
+production build pass. The authoritative record is
+`docs/Implementation/proofs/pdf-layout-stage-3-proof.json`; it authorizes Stage 4 without making a
+DSM claim.
+
+##### Rollback
+
+Confidence evaluation is revisioned and does not delete native output. Restore the previous routing
+policy for new/retried jobs if calibration regresses. Do not reinterpret stored scores under a new
+policy without an explicit dry run or re-index.
+
+---
+
+#### Stage 4 of 4 — Selective vision reconstruction, reconciliation, upgrade rollout, and closure
+
+##### Objective
+
+Use vision only for the regions or pages selected by Stage 3, merge validated results without
+duplication, and safely upgrade existing PDFs to the new canonical Markdown format.
+
+##### Entry criteria
+
+- Stages 1–3 pass and their schema/layout/confidence revisions are frozen.
+- Ollama configuration passes the built-in image test, or the deterministic fake provider is used
+  for automated/offline acceptance.
+- The dry-run estimator can enumerate bounded regional and page candidates before dispatch.
+
+##### Ordered implementation work
+
+1. Add deterministic crop generation for uncertain regions. Expand each bounding box by a small,
+   versioned margin, clamp it to the page, render at a bounded resolution, and retain the original
+   page number and normalized source bounding box.
+2. Continue rendering the full page for scans, broken text maps, globally ambiguous reading order,
+   or layouts whose uncertain regions overlap too extensively to crop safely.
+3. Define a versioned layout-vision response containing ordered blocks with kind, Markdown, plain
+   text, confidence, source image index, and region-relative bounding box. Validate it strictly with
+   Zod and reject missing, duplicate, out-of-range, or extra results.
+4. Use the configured default of three images per call and the independent parallel-call setting.
+   Preserve input/result order, global provider concurrency, retry/backoff, timeout, dispatch
+   markers, and cache semantics already required by Milestone 7.
+5. Extend the vision cache key with the layout prompt/schema and crop/preprocessing revisions. The
+   same page region may reuse a result across retries, but a changed crop or layout prompt must not
+   reuse an incompatible result.
+6. Implement explicit reconciliation rules:
+   - reliable native blocks outside a vision region remain unchanged;
+   - an accepted regional result replaces only its targeted uncertain block range;
+   - full-page vision replaces the unreadable native page body rather than appending to it;
+   - mixed pages preserve native text where reliable and vision structure only where selected;
+   - overlapping vision results are rejected or deterministically resolved before Markdown emission;
+   - normalized text-coverage checks detect unexplained omission, repetition, and likely
+     hallucination;
+   - low-confidence or invalid vision output retains the safe native fallback/placeholder and stays
+     retryable.
+7. Store native and vision provenance per block. Invisible provenance comments may surround
+   accepted vision Markdown, but they must not break tables, lists, heading anchors, chunking, or
+   viewer rendering.
+8. Reassemble the complete document, run duplicate-text and locator verification, write/fsync a
+   staged canonical Markdown artifact, and commit page/block/chunk changes only through the existing
+   durable job and active-build rules.
+9. Update chunking so headings and section context improve passages without embedding provenance
+   comments, repeated headers, or suppressed page furniture.
+10. Provide an enhanced re-index action for PDFs whose `pdfExtractionVersion` is older than the new
+    default. Before confirmation, show the Stage 3 estimate and clarify that Markdown, chunks, and
+    embeddings will be rebuilt from the retained original.
+11. Roll out in the testbed in this order:
+    - new fixture PDFs with the fake provider;
+    - re-indexed fixture PDFs with forced interruption at every durable boundary;
+    - approved representative documents with fake vision;
+    - approved representative documents with the real provider;
+    - large-PDF concurrency/pressure run while search traffic is active;
+    - complete regression and at least one restart/restore cycle.
+12. Keep the prior searchable build active until the enhanced replacement passes file hashes,
+    dual-unit locators, chunk/vector completeness, and authorization checks. A failure retains the
+    prior active version and exposes a retryable structured error.
+13. Expose final operator diagnostics: native/vision/mixed pages, enhanced version, cache hit rate,
+    provider calls, elapsed time, fallbacks, warnings, and a link to the improved Markdown reader.
+14. Update the operator guide, troubleshooting guide, release notes, evaluation corpus/version,
+    settings defaults, OpenAPI, SBOM if dependencies changed, migration checksums, and DSM deferred
+    certification register.
+
+##### Stage 4 acceptance tests
+
+- Digitally generated prose-only PDFs complete with zero provider calls.
+- A page containing one uncertain table sends one bounded crop, not the full document.
+- Scanned pages use full-page vision and preserve exact PDF page locators.
+- Native and vision overlap produces one copy of each sentence and table cell.
+- Malformed, hallucinated, missing-index, duplicate-index, low-confidence, timeout, rate-limit, and
+  provider-offline responses remain visible and retryable without losing accepted native text.
+- Cache reuse, cache invalidation, five-images-per-call batching, and provider parallelism behave
+  independently and match the dry-run estimate.
+- Worker/API/database/host restart during render, dispatch, response validation, staging, and commit
+  resumes safely without repeated committed content.
+- Re-index from the previous extraction version either activates one complete enhanced version or
+  leaves the previous searchable version untouched.
+- Search citations open the correct PDF page and corresponding enhanced Markdown location.
+- Purge, backup, blank restore, rebuild, and search evaluation pass with block provenance present.
+- The 1-hour testbed soak shows no stuck work, unbounded memory growth, uncontrolled provider
+  dispatch, cross-silo data exposure, or locator drift.
+
+##### Stage 4 completion artifacts
+
+- Frozen PDF extraction, layout, confidence, vision prompt/schema, and preprocessing revisions.
+- Corpus comparison report showing old versus enhanced Markdown quality and search effects.
+- `docs/Implementation/proofs/pdf-layout-stage-4-proof.json` with provider/cache/resource measures.
+- Updated operator and troubleshooting documentation.
+- Updated release/deferred-DSM evidence listing the exact cases to repeat on Synology.
+
+##### Stage 4 exit gate
+
+All four stage proofs pass; enhanced Markdown is the default for new PDFs in the WSL/Docker
+testbed; legacy PDFs have a safe estimated re-index path; vision remains selective and recoverable;
+the complete existing test matrix is green; and the proof records `gate: passed`,
+`certification: testbed-complete`, and `dsmCertificationRequired: true`. Do not claim DSM
+performance or publish a final package solely from this gate. Carry the frozen implementation into
+the next authorized release candidate and final DSM certification.
+
+##### Stage 4 implementation record — 2026-09-07
+
+Stage 4 is implemented under `pdf-layout.v3-hybrid`. The PDF adapter renders versioned, clamped
+regional crops for Stage 3 review-band blocks and full pages only for unreadable/scanned input. The
+vision contract now requires strictly validated ordered layout blocks for PDF requests, preserves
+batch order, defaults to three images per call, limits provider batches independently through the
+parallel-call semaphore, and keys cached results by image, model, prompt, schema, preprocessing,
+and source crop-policy revisions. Migration `000015_pdf_hybrid_vision` admits durable `pdf-region`
+dispatches and stores layout response data plus the source-policy revision.
+
+Accepted regional output replaces only its target block; accepted full-page output replaces rather
+than appends the unreadable page. Low-confidence, malformed, timeout, rate-limit, and offline paths
+retain a native fallback or retryable placeholder. Block revisions and invisible provenance remain
+in canonical Markdown, while the embedding representation omits provenance comments and retains
+the reconstructed content and heading context. Diagnostics report frozen revisions, native/vision/
+mixed counts, provider calls, cache hits and hit rate, elapsed extraction time, fallbacks, warnings,
+and the Markdown endpoint.
+
+Enhanced PDF re-index uses the retained original, preserves the existing searchable chunks during
+extraction and embedding, and replaces them only inside the final chunk transaction. A terminal
+enhanced-reindex failure restores the previous searchable document state and records a retryable
+structured diagnostic. The ten-fixture hybrid corpus records zero clean-digital provider calls,
+expected regional/full-page routing, one cache reuse across identical rendered scans, zero duplicate
+vision blocks, and zero locator failures. The complete checks passed: 143 unit tests, 57 PostgreSQL
+integration tests, 19 Playwright/accessibility tests, workspace typecheck, lint, formatting,
+dependency boundaries, fifteen-migration verification, OpenAPI drift verification, production
+build and smoke, license/SBOM checks, secret scanning, and ten repeated corpus cycles. The
+authoritative record is `docs/Implementation/proofs/pdf-layout-stage-4-proof.json`.
+
+This implementation run did not manufacture an intermediate SPK or claim live DSM behavior. The
+full 86,400-second exact-candidate soak and the new `DSM-025` installed hybrid-PDF procedure remain
+release-qualification work for the next explicitly authorized candidate, alongside the existing DSM
+register. That pending release evidence does not change the completed WSL/Docker implementation,
+but it continues to block a production/DSM certification claim.
+
+##### Rollback and recovery
+
+Keep the previous extraction/layout policy available until the release candidate is frozen. On a
+new-policy failure, stop new enhanced activations, retain original PDFs and the prior active
+searchable build, and re-run affected documents under the last passing policy. Cache entries and
+block rows that belong only to an abandoned staged build follow ordinary reference-count and purge
+rules. Never overwrite a known-good canonical Markdown artifact in place as the rollback mechanism.
+
+#### Overall definition of done for the four-stage enhancement
+
+The enhancement is complete only when:
+
+- digital PDFs preserve useful headings, sections, lists, reading order, and supported table layout;
+- complex or uncertain layouts degrade honestly rather than appearing confidently wrong;
+- confidence is traceable per block and is clearly separate from search confidence;
+- vision is invoked only for measured uncertain regions/pages and never duplicates native content;
+- canonical Markdown, chunks, embeddings, citations, and both locator units agree after re-index;
+- old documents can be identified, estimated, upgraded, retried, or rolled back safely;
+- administrators can understand extraction provenance and warnings without reading server logs;
+- all proof, security, authorization, backup, restore, purge, accessibility, performance, and fault
+  gates pass in the testbed; and
+- the exact release candidate later passes the deferred live DSM cases before the capability is
+  represented as DSM-certified.
 
 ---
 
@@ -1016,30 +1562,43 @@ Allow a nontechnical administrator to install, configure, ingest, search, troubl
 5. Build model download/manual-upload flow with checksum and air-gapped instructions.
 6. Build embedding calibration using approximately twenty representative chunks and show measured characters/second plus projected ingest time.
 7. Build Ollama configuration/test showing reachability, model, optional encrypted API key,
-   editable provider parallelism, validated sample Markdown, and elapsed time.
+   editable provider parallelism, editable images-per-call batching defaulted to 5, validated sample
+   Markdown, and elapsed time.
 8. Build source mappings only after the package user can read the selected paths. Label them as
    read-only input/watch folders and explain that they are not NodeRag's managed storage.
 9. Stream setup progress from durable events and recover after page refresh.
-10. Implement search with one query box, Meaning/Keyword/Both labels, and visible silo-selection chips.
+10. Implement search with one query box, Meaning/Semantic/Keyword/Both labels, and visible silo-selection chips. Semantic must rerank a bounded vector shortlist using sentence-sized embeddings, discard passages without accepted sentence evidence, and use the strongest accepted sentence for ranking, confidence, and green PDF highlighting.
 11. Display passages, heading breadcrumbs, document metadata, exact/qualified locators, grouped same-document results, and page-less percentage location.
 12. Add preview using server-prepared context, open/download original, and copy citation.
-13. Add filters for the complete retrieval surface and explanatory empty states.
-14. Build the document browser with ingest state, page basis, warnings, image status, source-missing review, reindex, and purge.
-15. Build ingest/source pages with schedules, live queue, ETA, attempts, failures, pause/resume/cancel/retry.
-16. Build independent read/upload/delete capability management.
-17. Build users, API keys, gateways, audit, settings, model, builds, storage, backup/restore,
-    evaluation, and health pages. Administration cannot be a JSON viewer: expose the safe create,
+13. Add personal named Research collections below Search. Let Search target one collection, mark every
+    result with all collections that already contain it, and save or remove the open passage with the
+    `0` key. Missing selection must produce a clear error; removal always requires confirmation.
+    Research retains the passage, query, mode, confidence, evidence, locator, document, and
+    knowledge-space identity, can span knowledge spaces, and hides references whose current read grant
+    has been removed. Its PDF and Markdown viewers use Up/Down for saved references and Left/Right
+    within the active document.
+14. Add filters for the complete retrieval surface and explanatory empty states.
+15. Build the document browser with ingest state, page basis, warnings, image status, source-missing review, reindex, and purge.
+16. Build ingest/source pages with schedules, live queue, ETA, attempts, failures, pause/resume/cancel/retry.
+    Every queue row must name the document and source-relative path it is processing; source crawls
+    name their input folder rather than showing only a job kind and number.
+17. Build independent read/upload/delete capability management.
+18. Add a server-administrator-only Knowledge Bases page to the main navigation immediately below
+    Documents, moving silo create/edit/purge controls out of the Administration sub-navigation. Build
+    users, API keys, gateways, audit, settings, model, builds, storage, backup/restore, evaluation,
+    and health pages in Administration. These pages cannot be JSON viewers: expose the safe create,
     edit, test, grant, retry, and destructive-confirmation controls supported by each API, with
     plain-language descriptions of every section and consequential setting.
-18. Require typed confirmation for document/silo purge and display exactly what will be destroyed.
-19. Use grapheme-aware display truncation and `dir="auto"`; never apply grapheme indexing to locator arithmetic.
-20. Add keyboard-first behavior, focus management, responsive design, reduced-motion behavior,
+19. Require typed confirmation for document/silo purge and display exactly what will be destroyed.
+20. Use grapheme-aware display truncation and `dir="auto"`; never apply grapheme indexing to locator arithmetic.
+21. Add keyboard-first behavior, focus management, responsive design, reduced-motion behavior,
     and WCAG-focused semantics. Provide five explicit per-user browser color schemes—Light, Dark,
     Forest green, Midnight blue, and Deep red—and keep the NodeRag `N` visible in navigation and
     the browser/site icon.
-21. Add Playwright coverage for setup, auth, search, upload, source-missing review, capability administration, jobs, and purge.
-22. Add automated accessibility checks and manual keyboard/screen-reader checklist.
-23. Prove the UI has no browser-only filesystem access or privileged endpoint unavailable to an
+22. Add Playwright coverage for setup, auth, search, Research save/remove and cross-space navigation,
+    upload, source-missing review, capability administration, jobs, and purge.
+23. Add automated accessibility checks and manual keyboard/screen-reader checklist.
+24. Prove the UI has no browser-only filesystem access or privileged endpoint unavailable to an
     equivalent API client. A configured managed-storage path may be returned only by the
     server-administrator storage endpoint so that an administrator can maintain it; ordinary
     retrieval, health, and list responses must not expose it.
@@ -1050,7 +1609,14 @@ All intended user and administrator work is possible through the UI and public A
 
 ### Testbed implementation record (2026-09-04)
 
-The M09 implementation is complete in the WSL/Docker testbed. The shipped Preact UI provides readiness-aware setup/login/maintenance routing, durable first-run recovery, the complete operator workspace, and public-API-backed administration. Release-candidate usability reviews subsequently strengthened the administration surfaces with knowledge-space creation/editing, explained system settings, storage creation/editing with safe in-use path locking, editable vision credentials/concurrency, readable evaluation cards, five per-user browser color schemes, and a consistent NodeRag browser/site icon. Migration `000007_operator_ui`, `platform/openapi.m09.json`, the current M14 OpenAPI, browser/accessibility suite, operator guide, checklist, proof, and five-job GitHub workflow are the closure evidence. Production model transfer and strict DSM storage/package behavior remain correctly assigned to M10 and final live-DSM certification.
+The M09 implementation is complete in the WSL/Docker testbed. The shipped Preact UI provides readiness-aware setup/login/maintenance routing, durable first-run recovery, the complete operator workspace, and public-API-backed administration. Release-candidate usability reviews subsequently strengthened the administration surfaces with knowledge-space creation/editing, explained system settings, storage creation/editing with safe in-use path locking, editable vision credentials/concurrency, readable evaluation cards, five per-user browser color schemes, and a consistent NodeRag browser/site icon. The Ingest view now aggregates restart-safe internal jobs into one document workflow with three visible stages—Markdown ingestion, chunking, and embedding—whose progress resets at each boundary. It separates folder scans, hides successful/cancelled history by default without deleting it, explains true retries only after an error, and warns when a running stage has stopped reporting progress. Large-document embedding reports independent embedded, reused, completed, and remaining passage counts plus measured throughput and a token-based ETA. Adaptive one-to-sixteen-passage groups target frequent completions, twenty-second in-flight pulses preserve the worker lease, and each finished group is cached durably so retry resumes instead of repeating work. Non-destructive extraction-quality checks record and surface likely repeated or corrupt content for review. The document detail view now opens canonical Markdown as a responsive GitHub-style preview with tables, task lists, blockquotes, code, and Mermaid diagrams, while preserving a one-click source view and copy action. The renderer treats raw HTML as text, blocks relative resources and remote images by default, sanitizes all generated markup, and isolates diagram SVG output before display. Non-PDF search results use the same reader, open at a matched cited block or stored-offset fallback, retain result confidence, and provide Left/Right document scrolling plus Up/Down navigation through all displayed passages, switching between Markdown and PDF readers within the same source/viewer flow. Migration `000007_operator_ui`, `platform/openapi.m09.json`, the current M14 OpenAPI, browser/accessibility suite, operator guide, checklist, proof, and five-job GitHub workflow are the closure evidence. Production model transfer and strict DSM storage/package behavior remain correctly assigned to M10 and final live-DSM certification.
+
+The post-release-candidate Research checkpoint is implemented and remains Docker-testbed-only until
+its complete regression passes and a later Synology revision is explicitly authorized. Migration
+`000013_research_collections` adds personal collections and cross-knowledge-space citation snapshots;
+the runtime API, authorization inventory, generated OpenAPI, backup classification, Search UI, PDF and
+Markdown viewers, and Research workspace are updated together. This checkpoint does not modify or
+replace the currently installed Synology package and does not claim DSM certification.
 
 ---
 
@@ -1076,7 +1642,7 @@ Turn the complete application into a production SPK candidate and prove first ru
     - resolved path is under `/volumeN`;
     - ext4 or btrfs, not CIFS/NFS/FUSE;
     - encrypted-share policy enforced;
-    - mode 0700/0750 sticks;
+    - package-created directories request mode 0700/0750, while existing DSM ACL parents are preserved and any differing POSIX mode projection is reported without replacing ACL enforcement;
     - write/fsync/read succeeds;
     - free space exceeds projected data plus rebuild reserve;
     - sync/indexing-service warnings are shown.
@@ -1179,7 +1745,7 @@ Record relevance by stable document ID and page/sheet range, not chunk ID, so th
 2. Implement repeatable evaluation runs pinned to commit, migration head, build, model, settings revision, and corpus snapshot.
 3. Calculate Recall@10, MRR, nDCG@10, zero-result rate, and p50/p95 latency.
 4. Report overall, per silo, per format, per query class, and per search mode.
-5. Compare vector, keyword, and hybrid.
+5. Compare vector, sentence-refined semantic, keyword, and hybrid where the evaluation schema supports the candidate mode.
 6. Compare q8 and q4 where the Milestone 1 testbed compatibility gate found usable artifacts.
 7. Compare at minimum 1,200/200, 2,000/300, and 3,000/400 chunk profiles.
 8. Compare heading prefix enabled/disabled.
@@ -1338,7 +1904,7 @@ Produce a reproducible, documented, supportable, immutable NodeRag release candi
 6. Complete the first-run wizard through the production bundle without shell intervention.
 7. Ingest a production-like corpus containing every supported format, page-basis path, multilingual/Unicode content, embedded images, and scan fallback.
 8. Run REST, MCP, gateway, UI, audit, capability, source-missing, reindex, purge, rebuild, backup, restore, host/process restart, and upgrade acceptance cases.
-9. Run a minimum 24-hour Docker testbed soak with scheduled crawls, background ingest, search traffic, Ollama interruption/recovery, nightly locator verification, backup, log rotation, and competing host I/O.
+9. Run a minimum 1-hour Docker testbed soak with scheduled crawls, background ingest, search traffic, Ollama interruption/recovery, locator verification, backup, log rotation, and competing host I/O.
 10. Fail the soak on cross-silo exposure, locator mismatch, stuck terminal work, unrecovered lease, failed scheduled backup, quality threshold regression, unbounded resource growth, or critical health alarm.
 11. Inspect Git for secrets, documents, models, backups, vectors, generated runtime state, and accidental Railway reference staging.
 12. Generate:
@@ -1380,9 +1946,9 @@ Use the exact tagged M14 candidate and verify its checksum before installation. 
 5. Argon2id recalibration on the NAS and any settings migration required by the measured cost.
 6. DSM `run-as: package`, resource, data-share, port, firewall, web/desktop integration, logs, and lifecycle behavior.
 7. Storage probes on each approved `/volumeN` path, including ext4/btrfs, encryption, ACL-mode persistence, write/fsync/read, capacity, relocation, and rollback.
-8. Package Center manual install, first-run setup, one fixture of every format, vision/Ollama, vector/keyword/hybrid search, REST, MCP, gateways, UI, permissions, audit, missing-source behavior, reindex, purge, and rebuild.
+8. Package Center manual install, first-run setup, one fixture of every format, vector/semantic/keyword/hybrid search, vision/Ollama, REST, MCP, gateways, UI, permissions, audit, missing-source behavior, reindex, purge, and rebuild.
 9. Service restart, package restart, NAS reboot during ordinary work and each durable operation, same-major upgrade, failed-start recovery, backup, blank restore, rollback, retained uninstall, destructive uninstall, and reinstall.
-10. Repeat the versioned Milestone 12 baseline through the installed SPK as DSM-023: verify the approved corpus hashes; re-run q8 vector, vector/keyword/hybrid, representative q4, ANN/exact, RLS, active-ingest, and shared-versus-dedicated session cases where practical; record quality, locators, leakage, p50/p95, RSS, swap, CPU, temperature, disk latency, DSM administration responsiveness, and file-sharing responsiveness. Then complete a minimum 24-hour soak alongside ordinary DSM administration and file-sharing activity.
+10. Repeat the versioned Milestone 12 baseline through the installed SPK as DSM-023: verify the approved corpus hashes; re-run q8 vector, vector/semantic/keyword/hybrid, representative q4, ANN/exact, RLS, active-ingest, and shared-versus-dedicated session cases where practical; record quality, locators, leakage, p50/p95, RSS, swap, CPU, temperature, disk latency, DSM administration responsiveness, and file-sharing responsiveness. Then complete a minimum 1-hour soak alongside ordinary DSM administration and file-sharing activity.
 
 If a DSM check fails, do not weaken the check or publish v1.0.0. Reopen the owning milestone, fix and re-run its testbed suite, produce a new immutable release candidate, and repeat affected DSM checks. If every check passes, generate `dsm-final-proof.json`, commit any evidence-only documentation, wait for CI, create annotated tag `v1.0.0` on the certified candidate commit, and create the private GitHub release with the certified SPK and proof bundle.
 
@@ -1476,6 +2042,10 @@ Do not add these while executing the plan:
 - Automated DSM installation control beyond the written/live acceptance procedure.
 
 The Railway documentation may inform durability, idempotency, migration, security, proof, and backup patterns. It must not expand NodeRag into the Railway project's broader product surface.
+
+The user-approved post-v1 Chat expansion is governed separately by
+[`chat-phased-implementation.md`](chat-phased-implementation.md). Its C00–C11 milestones are additive
+to this completed M00–M14 sequence and do not retroactively change the v1 milestone evidence.
 
 ---
 

@@ -22,6 +22,7 @@ let principalId: number;
 let storageRoot: string;
 let openAiProfileId: number;
 let knownProfileId: number;
+let tearingDown = false;
 
 const authenticate: RequestAuthenticator = async (request) => {
   const role = request.headers['x-test-role'];
@@ -127,6 +128,9 @@ beforeAll(async () => {
   };
   await runMigrations(database);
   pool = new Pool(database);
+  pool.on('error', (error) => {
+    if (!tearingDown || (error as { code?: string }).code !== '57P01') throw error;
+  });
   const principal = await pool.query<{ id: number }>(
     `INSERT INTO noderag.principal(kind,label) VALUES('user','Chat configuration administrator')
      RETURNING id`,
@@ -181,6 +185,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await Promise.all([app.close(), disabledApp.close(), restartedApp?.close(), capacityApp.close()]);
+  tearingDown = true;
   await pool.end();
   await container.stop();
   await rm(storageRoot, { recursive: true, force: true });
